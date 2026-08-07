@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  charlie-vps:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: charlie-vps
+    hostname: charlie-vps
+    ports:
+      - "2222:22"
+      - "5900:5900"
+      - "6080:6080"
+    environment:
+      - DISPLAY=:99
+    restart: unless-stopped
