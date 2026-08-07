@@ -14,13 +14,6 @@ done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 ROOT_DIR="$(cd -P "${SCRIPT_DIR}/.." && pwd)"
 
-# If user cloned ease-Desk in their home directory, prioritize that workspace —
-# but only if it's a complete copy (contains the session module).
-if [ -d "${HOME}/ease-Desk/desktop" ] && [ -f "${HOME}/ease-Desk/desktop/session/session.py" ]; then
-    ROOT_DIR="${HOME}/ease-Desk"
-elif [ -d "/root/ease-Desk/desktop" ] && [ -f "/root/ease-Desk/desktop/session/session.py" ]; then
-    ROOT_DIR="/root/ease-Desk"
-fi
 
 # Ensure ease-Desk root is on the Python path
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH}"

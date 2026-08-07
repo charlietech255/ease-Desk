@@ -233,13 +233,13 @@ class SessionManager:
                         "--web",
                         web_dir,
                         f"0.0.0.0:{self.novnc_port}",
-                        f"localhost:{self.vnc_port}",
+                        f"127.0.0.1:{self.vnc_port}",
                     ]
                 else:
                     ws_cmd = [
                         "novnc_proxy",
                         "--vnc",
-                        f"localhost:{self.vnc_port}",
+                        f"127.0.0.1:{self.vnc_port}",
                         "--listen",
                         f"0.0.0.0:{self.novnc_port}",
                     ]

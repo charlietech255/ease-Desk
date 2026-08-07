@@ -99,12 +99,11 @@ if command -v apt-get >/dev/null 2>&1; then
         net-tools \
         fonts-dejavu-core \
         fonts-noto-color-emoji \
-        fonts-symbola \
         adwaita-icon-theme \
         hicolor-icon-theme \
         >/dev/null 2>&1 || {
             echo "Standard apt-get install complete with warnings (retrying essentials)..."
-            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 xvfb x11vnc novnc websockify
+            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 xvfb x11vnc novnc websockify nginx
         }
 elif command -v pkg >/dev/null 2>&1; then
     echo "📦 Installing Termux packages..."
@@ -142,16 +141,20 @@ map $http_upgrade $connection_upgrade {
 }
 
 server {
-    listen 80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
     server_name _;
 
     location / {
-        proxy_pass http://127.0.0.1:6080/;
+        proxy_pass http://127.0.0.1:6080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 }
 EOF
@@ -222,7 +225,9 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=${SERVICE_USER}
+WorkingDirectory=${INSTALL_DIR}
 Environment=HOME=$(eval echo "~${SERVICE_USER}")
+Environment=PYTHONPATH=${INSTALL_DIR}
 Environment=PYTHONUNBUFFERED=1
 ExecStart=${BIN_DIR}/desktop
 Restart=always
