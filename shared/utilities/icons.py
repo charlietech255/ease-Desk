@@ -10,8 +10,9 @@ import cairo
 import gi
 
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gtk
 
 # Category to standard FreeDesktop GTK Icon Theme names
 THEME_ICON_MAP = {
@@ -109,9 +110,12 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
 
     # Convert Cairo surface to GdkPixbuf
     surface.flush()
+    pb = Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
+    if pb is not None:
+        return pb
+
     data = surface.get_data()
     stride = surface.get_stride()
-
     return GdkPixbuf.Pixbuf.new_from_data(
         bytes(data),
         GdkPixbuf.Colorspace.RGB,

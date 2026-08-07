@@ -14,14 +14,19 @@ done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 ROOT_DIR="$(cd -P "${SCRIPT_DIR}/.." && pwd)"
 
+# If user cloned ease-Desk in their home directory, prioritize the latest git workspace
+if [ -d "${HOME}/ease-Desk/desktop" ]; then
+    ROOT_DIR="${HOME}/ease-Desk"
+elif [ -d "/root/ease-Desk/desktop" ]; then
+    ROOT_DIR="/root/ease-Desk"
+fi
+
 # Ensure ease-Desk root is on the Python path
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH}"
 
 # Unset any stale DISPLAY env var so session.py can detect the environment fresh.
-# On a headless VPS, DISPLAY=:0 may be set in /etc/environment but no real
-# X server is running — trusting it causes "Gtk couldn't be initialized".
-# Session manager will start Xvfb + noVNC automatically if no real display found.
 unset DISPLAY
 
-# Launch session manager
+# Launch session manager directly from ROOT_DIR
+cd "${ROOT_DIR}"
 exec python3 -m desktop.session.session "$@"
