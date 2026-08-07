@@ -1,6 +1,6 @@
 # ease-Desk
 
-A fast, lightweight graphical environment designed specifically for Linux VPS and server administration.
+A fast, lightweight graphical environment iliyoundwa specifically kwa ajili ya Linux VPS na server administration.
 
 ![ease-Desk](screenshots/desktop-file-manager.png)
 
@@ -8,17 +8,17 @@ A fast, lightweight graphical environment designed specifically for Linux VPS an
 
 ## Overview
 
-I designed ease-Desk to solve a common problem: full desktop environments like GNOME, KDE, or XFCE are too heavy for remote servers. They consume hundreds of megabytes of RAM, require heavy system services, and take too long to start.
+Nilidesign ease-Desk ili ku-solve issue ya kawaida sana: full desktop environments kama GNOME, KDE, au XFCE ziko heavy sana kwa remote VPS. Zinakula mamia ya megabytes za RAM, zinahitaji background services nyingi, na zinachukua muda kuanza.
 
-ease-Desk is built for VPS administrators and developers who work primarily through SSH terminals, but sometimes need a simple and responsive graphical interface to:
+ease-Desk ni tool nyepesi kwa ajili ya developers na sysadmins wanaopenda kufanya kazi kupitia SSH terminal, lakini mara moja moja wanahitaji clean graphical interface ili:
 
-- Browse and navigate server directories (such as /var/www, /etc, /home, and /var/log)
-- Create folders, rename, copy, move, and delete files
-- View and edit text configuration files directly (.conf, .json, .yaml, .php, .py, .sh, .log)
-- Check live server resource metrics (CPU cores, RAM usage, disk space, and OS information)
-- Launch on-demand with a single command (`desktop`) over SSH X11 Forwarding, Termux on Android, or remote VNC.
+- Ku-browse na ku-navigate directories za server (kama /var/www, /etc, /home, na /var/log)
+- Ku-create folders, ku-rename, ku-copy, ku-move, na ku-delete files bila hassle
+- Ku-view na ku-edit config files moja kwa moja (.conf, .json, .yaml, .php, .py, .sh, .log)
+- Ku-check live server metrics (CPU cores, RAM usage, disk space, na OS info)
+- Ku-start on-demand kwa command moja tu (`desktop`) kupitia SSH X11 Forwarding, Termux on Android, au remote VNC.
 
-When closed, it exits completely and leaves zero idle processes running on your server.
+Uki-exit tu, inajifunga completely bila kuacha process yoyote inayokula RAM au CPU kwa server yako.
 
 ---
 
@@ -37,7 +37,7 @@ When closed, it exits completely and leaves zero idle processes running on your 
 | RAM Usage | 450 MB - 1.2 GB | ~45 MB - 65 MB |
 | Idle CPU | 2% - 8% | < 0.1% |
 | Startup Time | 4 - 10 seconds | < 400 milliseconds |
-| Background Services | D-Bus, systemd daemons, indexers | None (runs on-demand) |
+| Background Services | D-Bus, systemd daemons, indexers | None (runs only on-demand) |
 | Connection Method | Heavy RDP / VNC streams | Native X11 Forwarding / Termux / VNC |
 
 ---
@@ -45,31 +45,31 @@ When closed, it exits completely and leaves zero idle processes running on your 
 ## Project Structure
 
 ```text
-├── desktop/                 # Desktop shell, session manager, and window management
-│   ├── session/             # Display server (Xvfb/X11), WM launcher, and cleanup
-│   └── shell/               # Desktop background, top bar, clock, and server monitor
+├── desktop/                 # Desktop shell, session manager, na window management
+│   ├── session/             # Display server (Xvfb/X11), WM launcher, na teardown
+│   └── shell/               # Desktop background, top bar, clock, na server monitor
 │
 ├── file_manager/            # VPS file manager application
 │   ├── core/                # Filesystem operations (copy, move, delete, permissions)
-│   ├── gui.py               # GTK3 icon view, path bar, and navigation controls
+│   ├── gui.py               # GTK3 icon view, path bar, na navigation controls
 │   ├── viewer.py            # Text and config file viewer / editor
-│   └── types.py             # MIME types, file extensions, and size formatting
+│   └── types.py             # MIME types, file extensions, na size formatting
 │
-├── shared/                  # Shared styling and system utilities
-│   ├── styles/              # Dark slate theme and CSS definitions
+├── shared/                  # Shared styling na system utilities
+│   ├── styles/              # Dark slate theme na CSS definitions
 │   └── utilities/           # System info probes, animation helpers, security checks
 │
 ├── docker/                  # Docker VPS testing environment
-│   ├── Dockerfile           # Debian 12 container with SSH server and sample files
+│   ├── Dockerfile           # Debian 12 container with SSH server na sample files
 │   └── entrypoint.sh        # Container startup script
 │
 ├── scripts/                 # Executable scripts
 │   ├── desktop              # Main CLI entry point
-│   ├── install.sh           # Automated installer for Debian / Ubuntu
+│   ├── install.sh           # Automated installer kwa Debian / Ubuntu
 │   ├── uninstall.sh         # Uninstaller script
 │   └── capture_screenshots.py # Headless screenshot capture tool
 │
-└── tests/                   # Unit and integration test suites
+└── tests/                   # Unit na integration test suites
 ```
 
 ---
@@ -78,17 +78,19 @@ When closed, it exits completely and leaves zero idle processes running on your 
 
 ### Automatic Installation (Debian / Ubuntu / Kali / Mint)
 
+Ili ku-install system-wide kwa urahisi:
+
 ```bash
 git clone https://github.com/charlietech255/ease-Desk.git
 cd ease-Desk
 sudo ./scripts/install.sh
 ```
 
-The install script installs the required lightweight GTK3 / Openbox packages and links the executable to `/usr/local/bin/desktop`.
+Hii script ita-install lightweight dependencies zote (GTK3 / Openbox) na kuweka symlink ya `desktop` moja kwa moja kwenye `/usr/local/bin/desktop`.
 
 ### Manual Dependencies
 
-If you prefer installing dependencies manually:
+Kama unapendelea ku-install dependencies mwenyewe:
 
 ```bash
 sudo apt-get update
@@ -101,39 +103,41 @@ sudo apt-get install -y python3 python3-gi python3-gi-cairo gir1.2-gtk-3.0 openb
 
 ### 1. SSH with X11 Forwarding (Recommended)
 
-From your computer (Linux, macOS, or Windows with WSLg / VcXsrv):
+Kutoka kwenye mashine yako (Linux, macOS, au Windows yenye WSLg / VcXsrv):
 
 ```bash
-# Connect to your server with X11 forwarding enabled
+# Connect kwenye VPS yako ukiwa na X11 forwarding enabled
 ssh -X user@your-server-ip
 
 # Start the desktop
 desktop
 ```
 
-ease-Desk automatically detects the active display and renders directly on your local screen.
+ease-Desk ina-detect display moja kwa moja na ku-render window kwenye screen yako ya local.
 
 ### 2. Android via Termux
 
-1. Open Termux on Android with Termux:X11 running.
-2. Connect to your VPS:
+Kama unatumia simu ya Android:
+
+1. Fungua Termux na hakikisha Termux:X11 inafanya kazi.
+2. Connect kwenye VPS yako:
    ```bash
    ssh -X user@your-server-ip
    ```
-3. Run `desktop`. The desktop will open inside Termux:X11.
+3. Run `desktop`, na graphical environment itatokea ndani ya Termux:X11 mara moja.
 
-### 3. Headless VPS with Web Browser or VNC
+### 3. Headless VPS with Web Browser au VNC
 
-If your server has no active X11 display:
+Kama server yako haina active X11 display:
 
 ```bash
 desktop --resolution 1280x800
 ```
 
-Open your browser and navigate to:
+Kisha fungua browser yako na tembelea:
 `http://your-server-ip:6080/vnc.html`
 
-Or connect with any standard VNC client to `your-server-ip:5900`.
+Au connect kwa VNC client yoyote kupitia `your-server-ip:5900`.
 
 ---
 
@@ -159,7 +163,7 @@ options:
 
 ## Docker Test Environment
 
-To test ease-Desk in an isolated VPS container:
+Kama unataka ku-test ease-Desk ndani ya isolated container kabla ya kuweka kwenye server halisi:
 
 ```bash
 # Start the container
@@ -176,15 +180,15 @@ desktop
 
 ## Security Safeguards
 
-- Critical system directories (`/`, `/bin`, `/boot`, `/etc`, `/usr`, `/lib`, `/sys`, `/proc`) cannot be deleted.
-- All file paths are validated using absolute paths to prevent directory traversal attacks.
-- Subprocesses are isolated in process groups and cleanly terminated upon exit.
+- Critical system directories (`/`, `/bin`, `/boot`, `/etc`, `/usr`, `/lib`, `/sys`, `/proc`) haziwezi ku-futiwa kwa bahati mbaya.
+- File paths zote zina-validate-iwa kwa absolute paths ili kuzuia directory traversal attacks.
+- Subprocesses zote ziko grouped kwenye isolated process groups ili zikizimwa zisibaki hewani.
 
 ---
 
 ## Running Tests
 
-Run the test suites with:
+Ili ku-verify kama kila component inafanya kazi fresh:
 
 ```bash
 python3 -m unittest discover -s tests
