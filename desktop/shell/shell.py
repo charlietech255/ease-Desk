@@ -121,8 +121,10 @@ class DesktopShell:
         )
         self.window.connect("delete-event", self._on_delete_event)
         self.window.connect("key-press-event", self._on_key_press)
+        # Window-level handlers receive ALL events during an active seat grab
         self.window.connect("motion-notify-event", self._on_window_motion)
         self.window.connect("button-release-event", self._on_window_release)
+        self._seat: Gdk.Seat | None = None
 
         self._load_config()
         self._load_css()
@@ -264,11 +266,11 @@ class DesktopShell:
         event = Gtk.EventBox()
         event.set_visible_window(True)
         event.set_above_child(True)
+        # Only need press events on the widget itself; motion/release are handled
+        # at window level via seat grab once dragging starts.
         event.set_events(
             Gdk.EventMask.BUTTON_PRESS_MASK
             | Gdk.EventMask.BUTTON_RELEASE_MASK
-            | Gdk.EventMask.POINTER_MOTION_MASK
-            | Gdk.EventMask.BUTTON1_MOTION_MASK
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -289,20 +291,17 @@ class DesktopShell:
         event.set_tooltip_text(f"{item.get('name')}\nDouble-click to open · Drag to arrange")
 
         def on_press(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
+            # Double-click → open, cancel any pending drag
             if event_gdk.type == Gdk.EventType._2BUTTON_PRESS and event_gdk.button == 1:
-                self.drag_ctx = None
+                self._cancel_drag()
                 self._launch_path(item.get("path", os.path.expanduser("~")))
                 return True
 
             if event_gdk.button == 1:
                 self._select_item(item["id"])
                 alloc = w.get_allocation()
-                current_x = item.get("x")
-                current_y = item.get("y")
-                if current_x is None:
-                    current_x = alloc.x
-                if current_y is None:
-                    current_y = alloc.y
+                current_x = item.get("x") if item.get("x") is not None else alloc.x
+                current_y = item.get("y") if item.get("y") is not None else alloc.y
 
                 self.drag_ctx = {
                     "item": item,
@@ -316,28 +315,19 @@ class DesktopShell:
                     "current_y": current_y,
                     "moved": False,
                 }
-                box.get_style_context().add_class("dragging")
+
+                # Grab the seat so that ALL pointer events (motion, release)
+                # are routed to our window even when the mouse leaves the icon.
+                self._begin_seat_grab(event_gdk.time)
                 return True
 
-            if event_gdk.button == 3:  # Right-click context menu
+            if event_gdk.button == 3:
                 self._select_item(item["id"])
                 self._show_icon_context_menu(item, event_gdk)
                 return True
             return False
 
-        def on_widget_motion(w: Gtk.Widget, event_gdk: Gdk.EventMotion) -> bool:
-            if self.drag_ctx and self.drag_ctx["widget"] == w:
-                return self._on_window_motion(self.window, event_gdk)
-            return False
-
-        def on_widget_release(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
-            if self.drag_ctx and self.drag_ctx["widget"] == w:
-                return self._on_window_release(self.window, event_gdk)
-            return False
-
         event.connect("button-press-event", on_press)
-        event.connect("motion-notify-event", on_widget_motion)
-        event.connect("button-release-event", on_widget_release)
         return event
 
     def _select_item(self, item_id: str | None) -> None:
@@ -352,6 +342,52 @@ class DesktopShell:
                     ctx.remove_class("selected")
 
     # --------------------------------------------------------------- DRAG & ARRANGE LOGIC
+    def _begin_seat_grab(self, event_time: int) -> None:
+        """Grab the pointer seat on the main window so motion/release events are
+        always delivered to our window during dragging, regardless of where the
+        mouse cursor is on screen."""
+        if not self.drag_ctx:
+            return
+        gdk_window = self.window.get_window()
+        if gdk_window is None:
+            return
+        display = Gdk.Display.get_default()
+        if display is None:
+            return
+        seat = display.get_default_seat()
+        if seat is None:
+            return
+
+        status = seat.grab(
+            gdk_window,
+            Gdk.SeatCapabilities.ALL_POINTING,
+            False,   # owner_events=False → all events go to gdk_window
+            None,
+            None,
+            None,
+        )
+        if status == Gdk.GrabStatus.SUCCESS:
+            self._seat = seat
+            # Now that we have the grab, show the dragging style
+            self.drag_ctx["box"].get_style_context().add_class("dragging")
+        else:
+            # Grab failed (e.g. running headless); fall back to ungrabbed mode
+            self._seat = None
+            self.drag_ctx["box"].get_style_context().add_class("dragging")
+
+    def _end_seat_grab(self) -> None:
+        """Release the seat grab acquired in _begin_seat_grab."""
+        if self._seat is not None:
+            self._seat.ungrab()
+            self._seat = None
+
+    def _cancel_drag(self) -> None:
+        """Abort an in-progress drag without saving."""
+        if self.drag_ctx:
+            self.drag_ctx["box"].get_style_context().remove_class("dragging")
+            self.drag_ctx = None
+        self._end_seat_grab()
+
     def _calc_grid_slot(self, x: int, y: int) -> tuple[int, int, int, int]:
         """Calculates snapped (x, y) and (col, row) for given coordinates."""
         win_w, win_h = self.window.get_size()
@@ -377,12 +413,14 @@ class DesktopShell:
         return None
 
     def _on_window_motion(self, window: Gtk.Window, event_gdk: Gdk.EventMotion) -> bool:
+        """Called for every pointer motion event while the seat grab is active."""
         if not self.drag_ctx:
             return False
 
         dx = event_gdk.x_root - self.drag_ctx["start_root_x"]
         dy = event_gdk.y_root - self.drag_ctx["start_root_y"]
 
+        # Start moving after a 3-pixel threshold to distinguish from a normal click
         if abs(dx) > 3 or abs(dy) > 3 or self.drag_ctx["moved"]:
             self.drag_ctx["moved"] = True
             win_w, win_h = self.window.get_size()
@@ -392,9 +430,9 @@ class DesktopShell:
             new_x = int(self.drag_ctx["start_x"] + dx)
             new_y = int(self.drag_ctx["start_y"] + dy)
 
-            # Constrain within bounds
+            # Constrain within desktop bounds (stay clear of topbar + bottom edge)
             new_x = max(10, min(win_w - alloc.width - 10, new_x))
-            new_y = max(10, min(win_h - alloc.height - 70, new_y))
+            new_y = max(10, min(win_h - alloc.height - 10, new_y))
 
             self.drag_ctx["current_x"] = new_x
             self.drag_ctx["current_y"] = new_y
@@ -402,42 +440,41 @@ class DesktopShell:
         return True
 
     def _on_window_release(self, window: Gtk.Window, event_gdk: Gdk.EventButton) -> bool:
-        if event_gdk.button == 1 and self.drag_ctx:
-            ctx = self.drag_ctx
-            self.drag_ctx = None
-            ctx["box"].get_style_context().remove_class("dragging")
+        """Called when the mouse button is released; finalises the drag."""
+        if event_gdk.button != 1 or not self.drag_ctx:
+            return False
 
-            if ctx["moved"]:
-                dragged_item = ctx["item"]
-                raw_x = ctx["current_x"]
-                raw_y = ctx["current_y"]
+        ctx = self.drag_ctx
+        self.drag_ctx = None
+        self._end_seat_grab()
+        ctx["box"].get_style_context().remove_class("dragging")
 
-                if self.snap_to_grid:
-                    snap_x, snap_y, target_col, target_row = self._calc_grid_slot(raw_x, raw_y)
-                    # Check if target slot is occupied by another icon (Drag-to-Swap / Replace)
-                    occupant = self._find_item_at_grid_slot(target_col, target_row, dragged_item["id"])
-                    if occupant:
-                        # Swap coordinates between dragged item and occupant
-                        occupant_widget = self.item_widgets.get(occupant["id"])
-                        orig_x = ctx["start_x"]
-                        orig_y = ctx["start_y"]
+        if ctx["moved"]:
+            dragged_item = ctx["item"]
+            raw_x = ctx["current_x"]
+            raw_y = ctx["current_y"]
 
-                        occupant["x"] = orig_x
-                        occupant["y"] = orig_y
-                        if occupant_widget:
-                            self.fixed.move(occupant_widget, orig_x, orig_y)
+            if self.snap_to_grid:
+                snap_x, snap_y, target_col, target_row = self._calc_grid_slot(raw_x, raw_y)
+                # If target slot is occupied → swap positions
+                occupant = self._find_item_at_grid_slot(target_col, target_row, dragged_item["id"])
+                if occupant:
+                    occupant_widget = self.item_widgets.get(occupant["id"])
+                    occupant["x"] = ctx["start_x"]
+                    occupant["y"] = ctx["start_y"]
+                    if occupant_widget:
+                        self.fixed.move(occupant_widget, ctx["start_x"], ctx["start_y"])
 
-                    dragged_item["x"] = snap_x
-                    dragged_item["y"] = snap_y
-                    self.fixed.move(ctx["widget"], snap_x, snap_y)
-                else:
-                    dragged_item["x"] = raw_x
-                    dragged_item["y"] = raw_y
-                    self.fixed.move(ctx["widget"], raw_x, raw_y)
+                dragged_item["x"] = snap_x
+                dragged_item["y"] = snap_y
+                self.fixed.move(ctx["widget"], snap_x, snap_y)
+            else:
+                dragged_item["x"] = raw_x
+                dragged_item["y"] = raw_y
+                self.fixed.move(ctx["widget"], raw_x, raw_y)
 
-                self._save_config()
-                return True
-        return False
+            self._save_config()
+        return True
 
     def _build_info_panel(self) -> Gtk.Widget:
         frame = Gtk.Frame()
