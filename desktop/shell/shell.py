@@ -1,8 +1,7 @@
-"""ease-Desk Shell — the minimal desktop shown after `desktop` starts.
+"""ease-Desk Shell — minimal desktop environment shell.
 
 Renders the background, top bar (server name, clock, Exit Desktop),
-draggable and customizable desktop icons with grid snapping / drag-to-arrange,
-and a compact VPS info panel.
+desktop icons in a clean left-column grid, and a compact VPS status panel.
 """
 
 from __future__ import annotations
@@ -25,12 +24,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CONFIG_DIR = os.path.expanduser("~/.config/ease-desk")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "desktop_config.json")
 
-# Desktop Grid Constants
-GRID_START_X = 30
-GRID_START_Y = 68
-GRID_CELL_W = 120
-GRID_CELL_H = 110
-
 ICON_PRESETS = [
     ("📁", "Folder"),
     ("🖥️", "Server"),
@@ -49,51 +42,55 @@ window.shell {
     background-image: linear-gradient(180deg, #161b29, #0e121c);
 }
 .topbar {
-    background-color: rgba(14, 18, 28, 0.85);
+    background-color: rgba(14, 18, 28, 0.88);
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .brand { color: #dce3f0; font-weight: 700; font-size: 15px; }
 .server { color: #8a97ad; font-size: 12px; }
 .clock { color: #7aa2f7; font-size: 14px; font-weight: 700; margin-right: 18px; }
 .exitbtn {
-    background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05); color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 6px; font-weight: 600; padding: 4px 14px;
 }
 .exitbtn:hover { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: #ef4444; }
-.icon-box {
-    padding: 8px 10px;
-    border-radius: 8px;
+
+/* Desktop icon button */
+.icon-btn {
+    background: transparent;
     border: 1px solid transparent;
-    min-width: 90px;
+    border-radius: 10px;
+    padding: 10px 8px;
+    min-width: 96px;
+    min-height: 96px;
 }
-.icon-box:hover {
+.icon-btn:hover {
     background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.15);
 }
-.icon-box.selected {
+.icon-btn:active {
     background-color: rgba(122, 162, 247, 0.22);
-    border: 1px solid rgba(122, 162, 247, 0.50);
+    border-color: rgba(122, 162, 247, 0.50);
 }
-.icon-box.dragging {
-    background-color: rgba(122, 162, 247, 0.35);
-    border: 2px dashed #7aa2f7;
-    opacity: 0.90;
+.icon-btn.selected {
+    background-color: rgba(122, 162, 247, 0.22);
+    border-color: rgba(122, 162, 247, 0.50);
 }
 .icon-name {
     color: #f1f5f9;
     font-weight: 600;
     font-size: 12px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 .vps-frame {
-    background-color: rgba(15, 23, 42, 0.85);
+    background-color: rgba(15, 23, 42, 0.88);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border-radius: 10px;
 }
 .vps-title { color: #7aa2f7; font-weight: 700; font-size: 12px; }
 .vps-key { color: #64748b; font-size: 12px; font-weight: 600; }
 .vps-val { color: #cbd5e1; font-size: 12px; }
-.hint { color: #64748b; font-size: 12px; }
+.hint { color: #475569; font-size: 11px; }
 """
 
 
@@ -101,11 +98,8 @@ class DesktopShell:
     def __init__(self) -> None:
         self.children: list[int] = []
         self.desktop_items: list[dict] = []
-        # Maps item id → (box_widget, icon_label, name_label)
-        self.item_boxes: dict[str, tuple[Gtk.Widget, Gtk.Widget, Gtk.Widget]] = {}
-        self.drag_ctx: dict | None = None
-        self.selected_item_id: str | None = None
-        self.snap_to_grid: bool = True
+        self.icon_buttons: dict[str, Gtk.Button] = {}
+        self.selected_id: str | None = None
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.get_style_context().add_class("shell")
@@ -123,7 +117,6 @@ class DesktopShell:
         self._refresh_info()
 
         self.window.show_all()
-
         GLib.timeout_add_seconds(1, self._tick_clock)
         GLib.timeout_add_seconds(5, self._refresh_info)
         animate.fade_in(self.window, duration_ms=300)
@@ -137,16 +130,18 @@ class DesktopShell:
                 "name": "File Manager",
                 "icon": "📁",
                 "path": os.path.expanduser("~"),
-                "x": GRID_START_X,
-                "y": GRID_START_Y,
             }
         ]
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    self.desktop_items = data.get("items", default_items)
-                    self.snap_to_grid = data.get("snap_to_grid", True)
+                    items = data.get("items", default_items)
+                    # Strip old x/y — layout is now purely grid-driven
+                    for it in items:
+                        it.pop("x", None)
+                        it.pop("y", None)
+                    self.desktop_items = items
                     return
             except Exception:
                 pass
@@ -156,11 +151,7 @@ class DesktopShell:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(
-                    {"items": self.desktop_items, "snap_to_grid": self.snap_to_grid},
-                    f,
-                    indent=2,
-                )
+                json.dump({"items": self.desktop_items}, f, indent=2)
         except Exception:
             pass
 
@@ -176,45 +167,57 @@ class DesktopShell:
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
+        # Main vertical box: topbar + content row
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         outer.pack_start(self._build_topbar(), False, False, 0)
 
-        # ---- Single EventBox as the entire desktop surface -----------------
-        # Gtk.Fixed has no GDK window so events placed on it are ignored.
-        # By wrapping Fixed in an EventBox we get ONE real X11/Wayland window
-        # that receives ALL pointer events (press, motion, release) reliably.
-        desk = Gtk.EventBox()
-        desk.set_visible_window(True)   # creates a real GDK sub-window
-        desk.add_events(
-            Gdk.EventMask.BUTTON_PRESS_MASK
-            | Gdk.EventMask.BUTTON_RELEASE_MASK
-            | Gdk.EventMask.POINTER_MOTION_MASK
-            | Gdk.EventMask.BUTTON1_MOTION_MASK
+        # Content row: left icon column + spacer + right info panel
+        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        outer.pack_start(content, True, True, 0)
+
+        # Left column: desktop icons in a vertical flow
+        left_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        left_col.set_margin_top(16)
+        left_col.set_margin_start(16)
+        left_col.set_margin_end(8)
+        content.pack_start(left_col, False, False, 0)
+        self.icons_col = left_col
+
+        # Populate icons
+        self._build_icon_column()
+
+        # Right side: spacer + bottom info overlay
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content.pack_start(right, True, True, 0)
+
+        # Click-anywhere on empty desktop: right-click context menu
+        desk_event = Gtk.EventBox()
+        desk_event.set_visible_window(False)
+        desk_event.set_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        desk_event.connect("button-press-event", self._on_desktop_click)
+        right.pack_start(desk_event, True, True, 0)
+
+        # Bottom status + hint overlay inside a fixed at the window level
+        overlay = Gtk.Overlay()
+        right.pack_start(overlay, False, False, 0)
+
+        # Hint text
+        self.hint_label = Gtk.Label(
+            label="Double-click icon to open  ·  Right-click for options"
         )
-        desk.connect("button-press-event", self._on_desk_press)
-        desk.connect("motion-notify-event", self._on_desk_motion)
-        desk.connect("button-release-event", self._on_desk_release)
-        outer.pack_start(desk, True, True, 0)
-        self.desk = desk
-
-        fixed = Gtk.Fixed()
-        desk.add(fixed)
-        self.fixed = fixed
-
-        # Build icon boxes (plain non-interactive widgets — events go to desk)
-        self._render_desktop_items()
-
-        self.info_panel = self._build_info_panel()
-        fixed.put(self.info_panel, 0, 0)
-
-        self.hint = Gtk.Label(
-            label="Double-click to open  ·  Hold & drag to arrange  ·  Right-click for options"
-        )
-        self.hint.get_style_context().add_class("hint")
-        fixed.put(self.hint, 0, 0)
+        self.hint_label.get_style_context().add_class("hint")
+        self.hint_label.set_halign(Gtk.Align.CENTER)
+        self.hint_label.set_margin_bottom(8)
+        self.hint_label.set_margin_top(4)
 
         self.window.add(outer)
-        self.window.connect("size-allocate", self._on_resize)
+
+        # Build the status info panel as a separate widget positioned at bottom-right
+        self.info_panel = self._build_info_panel()
+        self.info_panel.set_halign(Gtk.Align.END)
+        self.info_panel.set_valign(Gtk.Align.END)
+        self.info_panel.set_margin_end(24)
+        self.info_panel.set_margin_bottom(60)
 
     def _build_topbar(self) -> Gtk.Widget:
         bar = Gtk.Box(spacing=12)
@@ -227,8 +230,7 @@ class DesktopShell:
         brand.get_style_context().add_class("brand")
         bar.pack_start(brand, False, False, 0)
 
-        sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        bar.pack_start(sep, False, False, 0)
+        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
 
         self.server_label = Gtk.Label()
         self.server_label.get_style_context().add_class("server")
@@ -247,251 +249,119 @@ class DesktopShell:
 
         return bar
 
-    # ---------------------------------------------------------------- ICONS
-    def _render_desktop_items(self) -> None:
-        """Remove all existing icon widgets and recreate them."""
-        for box, _, _ in self.item_boxes.values():
-            self.fixed.remove(box)
-        self.item_boxes.clear()
+    def _build_icon_column(self) -> None:
+        """Rebuild all icon buttons in the left column."""
+        # Remove existing children
+        for child in self.icons_col.get_children():
+            self.icons_col.remove(child)
+        self.icon_buttons.clear()
 
         for item in self.desktop_items:
-            box, ilbl, nlbl = self._make_icon_box(item)
-            self.item_boxes[item["id"]] = (box, ilbl, nlbl)
-            x = item.get("x") if item.get("x") is not None else GRID_START_X
-            y = item.get("y") if item.get("y") is not None else GRID_START_Y
-            self.fixed.put(box, int(x), int(y))
+            btn = self._make_icon_button(item)
+            self.icon_buttons[item["id"]] = btn
+            self.icons_col.pack_start(btn, False, False, 4)
 
-    def _make_icon_box(self, item: dict) -> tuple[Gtk.Widget, Gtk.Widget, Gtk.Widget]:
-        """Create a purely visual (non-interactive) icon widget."""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.get_style_context().add_class("icon-box")
-        box.set_halign(Gtk.Align.CENTER)
+        self.icons_col.show_all()
 
-        icon_label = Gtk.Label()
-        icon_label.set_markup(f"<span font='54'>{item.get('icon', '📁')}</span>")
+    def _make_icon_button(self, item: dict) -> Gtk.Button:
+        """Create one desktop icon as a styled Gtk.Button."""
+        btn = Gtk.Button()
+        btn.get_style_context().add_class("icon-btn")
+        btn.set_relief(Gtk.ReliefStyle.NONE)
+        btn.set_focus_on_click(False)
 
-        name_label = Gtk.Label(label=item.get("name", "Item"))
-        name_label.get_style_context().add_class("icon-name")
-        name_label.set_max_width_chars(14)
-        name_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
+        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        inner.set_halign(Gtk.Align.CENTER)
 
-        box.pack_start(icon_label, False, False, 0)
-        box.pack_start(name_label, False, False, 0)
+        icon_lbl = Gtk.Label()
+        icon_lbl.set_markup(f"<span font='48'>{item.get('icon', '📁')}</span>")
 
-        # Disable event propagation from labels so all events reach the desk EventBox
-        icon_label.set_can_focus(False)
-        name_label.set_can_focus(False)
+        name_lbl = Gtk.Label(label=item.get("name", "Item"))
+        name_lbl.get_style_context().add_class("icon-name")
+        name_lbl.set_max_width_chars(12)
+        name_lbl.set_ellipsize(3)
 
-        return box, icon_label, name_label
+        inner.pack_start(icon_lbl, False, False, 0)
+        inner.pack_start(name_lbl, False, False, 0)
+        btn.add(inner)
 
-    # -------------------------------------------------------- HIT TESTING
-    def _item_at(self, x: float, y: float) -> dict | None:
-        """Return the desktop item whose box covers coordinates (x, y)."""
-        for item in self.desktop_items:
-            box, _, _ = self.item_boxes.get(item["id"], (None, None, None))
-            if box is None:
-                continue
-            a = box.get_allocation()
-            if a.x <= x <= a.x + a.width and a.y <= y <= a.y + a.height:
-                return item
-        return None
-
-    # ----------------------------------------------- DESKTOP EVENT HANDLERS
-    def _on_desk_press(self, desk: Gtk.Widget, event: Gdk.EventButton) -> bool:
-        """Single surface that handles ALL desktop pointer presses."""
-        item = self._item_at(event.x, event.y)
-
-        # Double-click → open
-        if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
-            if item:
-                self.drag_ctx = None
-                self._launch_path(item.get("path", os.path.expanduser("~")))
-            return True
-
-        # Left-click — start potential drag
-        if event.button == 1:
-            if item:
-                self._select_item(item["id"])
-                box, _, _ = self.item_boxes[item["id"]]
-                alloc = box.get_allocation()
-                self.drag_ctx = {
-                    "item": item,
-                    "box": box,
-                    "start_root_x": event.x_root,
-                    "start_root_y": event.y_root,
-                    "start_x": alloc.x,
-                    "start_y": alloc.y,
-                    "current_x": alloc.x,
-                    "current_y": alloc.y,
-                    "moved": False,
-                }
-            else:
-                self._select_item(None)
-                self.drag_ctx = None
-            return True
-
+        # Single click → select
+        btn.connect(
+            "clicked",
+            lambda *_, b=btn, i=item: self._on_icon_click(b, i),
+        )
+        # Double click via button-press-event
+        btn.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        btn.connect(
+            "button-press-event",
+            lambda w, ev, i=item: self._on_icon_press(w, ev, i),
+        )
         # Right-click
-        if event.button == 3:
-            if item:
-                self._select_item(item["id"])
-                self._show_icon_menu(item, event)
-            else:
-                self._select_item(None)
-                self._show_desktop_menu(event)
-            return True
+        btn.connect(
+            "button-release-event",
+            lambda w, ev, i=item: self._on_icon_right(w, ev, i),
+        )
 
+        btn.set_tooltip_text(f"{item.get('name')}  —  {item.get('path', '')}")
+        return btn
+
+    # ---------------------------------------------------------- ICON EVENTS
+    def _on_icon_press(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
+        if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
+            self._launch_path(item.get("path", os.path.expanduser("~")))
+            return True
         return False
 
-    def _on_desk_motion(self, desk: Gtk.Widget, event: Gdk.EventMotion) -> bool:
-        """Pointer motion — move the dragged icon if a drag is in progress."""
-        if not self.drag_ctx:
-            return False
+    def _on_icon_click(self, btn: Gtk.Button, item: dict) -> None:
+        """Single-click → select the icon."""
+        self._select(item["id"])
 
-        dx = event.x_root - self.drag_ctx["start_root_x"]
-        dy = event.y_root - self.drag_ctx["start_root_y"]
+    def _on_icon_right(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
+        if event.button == 3:
+            self._show_icon_menu(item, event)
+            return True
+        return False
 
-        # 4-pixel threshold before we commit to a drag (avoids jitter on click)
-        if abs(dx) > 4 or abs(dy) > 4 or self.drag_ctx["moved"]:
-            if not self.drag_ctx["moved"]:
-                self.drag_ctx["moved"] = True
-                self.drag_ctx["box"].get_style_context().add_class("dragging")
-
-            win_w, win_h = self.window.get_size()
-            b = self.drag_ctx["box"]
-            a = b.get_allocation()
-
-            new_x = int(self.drag_ctx["start_x"] + dx)
-            new_y = int(self.drag_ctx["start_y"] + dy)
-            new_x = max(10, min(win_w - a.width - 10, new_x))
-            new_y = max(10, min(win_h - a.height - 10, new_y))
-
-            self.drag_ctx["current_x"] = new_x
-            self.drag_ctx["current_y"] = new_y
-            self.fixed.move(b, new_x, new_y)
-        return True
-
-    def _on_desk_release(self, desk: Gtk.Widget, event: Gdk.EventButton) -> bool:
-        """Mouse button released — finalise drag position or treat as single click."""
-        if event.button != 1 or not self.drag_ctx:
-            return False
-
-        ctx = self.drag_ctx
-        self.drag_ctx = None
-        ctx["box"].get_style_context().remove_class("dragging")
-
-        if not ctx["moved"]:
-            return True  # Was a plain click, already handled in press
-
-        dragged_item = ctx["item"]
-        raw_x, raw_y = ctx["current_x"], ctx["current_y"]
-
-        if self.snap_to_grid:
-            snap_x, snap_y, tc, tr = self._calc_grid_slot(raw_x, raw_y)
-            # Swap with occupant if another icon is at the target slot
-            occupant = self._find_item_at_slot(tc, tr, dragged_item["id"])
-            if occupant:
-                obox, _, _ = self.item_boxes[occupant["id"]]
-                occupant["x"] = ctx["start_x"]
-                occupant["y"] = ctx["start_y"]
-                self.fixed.move(obox, ctx["start_x"], ctx["start_y"])
-            dragged_item["x"] = snap_x
-            dragged_item["y"] = snap_y
-            self.fixed.move(ctx["box"], snap_x, snap_y)
-        else:
-            dragged_item["x"] = raw_x
-            dragged_item["y"] = raw_y
-
-        self._save_config()
-        return True
-
-    # ---------------------------------------------------------- GRID HELPERS
-    def _calc_grid_slot(self, x: int, y: int) -> tuple[int, int, int, int]:
-        win_w, win_h = self.window.get_size()
-        max_cols = max(1, (win_w - GRID_START_X) // GRID_CELL_W)
-        max_rows = max(1, (win_h - GRID_START_Y - 80) // GRID_CELL_H)
-        col = max(0, min(max_cols - 1, round((x - GRID_START_X) / GRID_CELL_W)))
-        row = max(0, min(max_rows - 1, round((y - GRID_START_Y) / GRID_CELL_H)))
-        return GRID_START_X + col * GRID_CELL_W, GRID_START_Y + row * GRID_CELL_H, col, row
-
-    def _find_item_at_slot(self, col: int, row: int, exclude_id: str) -> dict | None:
-        for item in self.desktop_items:
-            if item.get("id") == exclude_id:
-                continue
-            _, _, c, r = self._calc_grid_slot(
-                item.get("x", GRID_START_X), item.get("y", GRID_START_Y)
-            )
-            if c == col and r == row:
-                return item
-        return None
-
-    # -------------------------------------------------------- SELECTION STYLE
-    def _select_item(self, item_id: str | None) -> None:
-        self.selected_item_id = item_id
-        for iid, (box, _, _) in self.item_boxes.items():
-            ctx = box.get_style_context()
+    def _select(self, item_id: str | None) -> None:
+        self.selected_id = item_id
+        for iid, btn in self.icon_buttons.items():
+            ctx = btn.get_style_context()
             if iid == item_id:
                 ctx.add_class("selected")
             else:
                 ctx.remove_class("selected")
 
-    # ------------------------------------------------------ STATUS INFO PANEL
-    def _build_info_panel(self) -> Gtk.Widget:
-        frame = Gtk.Frame()
-        frame.get_style_context().add_class("vps-frame")
-        grid = Gtk.Grid(column_spacing=16, row_spacing=5)
-        grid.set_margin_start(16)
-        grid.set_margin_end(16)
-        grid.set_margin_top(12)
-        grid.set_margin_bottom(12)
+    def _on_desktop_click(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
+        """Right-click on empty desktop area → context menu."""
+        self._select(None)
+        if event.button == 3:
+            self._show_desktop_menu(event)
+            return True
+        return False
 
-        title = Gtk.Label(label="Server Status")
-        title.get_style_context().add_class("vps-title")
-        title.set_halign(Gtk.Align.START)
-        grid.attach(title, 0, 0, 2, 1)
-
-        self.vps_rows: list[tuple[Gtk.Label, Gtk.Label]] = []
-        for i, key in enumerate(("Server", "OS", "CPU", "RAM", "Disk")):
-            k = Gtk.Label(label=key)
-            k.get_style_context().add_class("vps-key")
-            k.set_halign(Gtk.Align.START)
-            v = Gtk.Label()
-            v.get_style_context().add_class("vps-val")
-            v.set_halign(Gtk.Align.START)
-            v.set_selectable(True)
-            grid.attach(k, 0, i + 1, 1, 1)
-            grid.attach(v, 1, i + 1, 1, 1)
-            self.vps_rows.append((k, v))
-
-        frame.add(grid)
-        return frame
-
-    # ------------------------------------------------------- CONTEXT MENUS
+    # ------------------------------------------------------ CONTEXT MENUS
     def _show_icon_menu(self, item: dict, event: Gdk.EventButton) -> None:
         menu = Gtk.Menu()
 
-        open_item = Gtk.MenuItem.new_with_label(f"Open {item.get('name')}")
-        open_item.connect("activate", lambda *_: self._launch_path(item.get("path", "~")))
-        menu.append(open_item)
+        open_mi = Gtk.MenuItem.new_with_label(f"Open '{item.get('name')}'")
+        open_mi.connect("activate", lambda *_: self._launch_path(item.get("path", "~")))
+        menu.append(open_mi)
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        change_icon = Gtk.MenuItem.new_with_label("Change Icon / Symbol…")
-        change_icon.connect("activate", lambda *_: self._dialog_change_icon(item))
-        menu.append(change_icon)
+        ch_icon = Gtk.MenuItem.new_with_label("Change Icon / Symbol…")
+        ch_icon.connect("activate", lambda *_: self._dialog_change_icon(item))
+        menu.append(ch_icon)
 
-        rename_item = Gtk.MenuItem.new_with_label("Rename Shortcut…")
-        rename_item.connect("activate", lambda *_: self._dialog_rename_item(item))
-        menu.append(rename_item)
-
-        reset_pos = Gtk.MenuItem.new_with_label("Reset Position")
-        reset_pos.connect("activate", lambda *_: self._reset_item_position(item))
-        menu.append(reset_pos)
+        rename = Gtk.MenuItem.new_with_label("Rename Shortcut…")
+        rename.connect("activate", lambda *_: self._dialog_rename(item))
+        menu.append(rename)
 
         if item.get("id") != "file_manager":
             menu.append(Gtk.SeparatorMenuItem())
-            del_item = Gtk.MenuItem.new_with_label("Remove Shortcut")
-            del_item.connect("activate", lambda *_: self._remove_shortcut(item))
-            menu.append(del_item)
+            rem = Gtk.MenuItem.new_with_label("Remove Shortcut")
+            rem.connect("activate", lambda *_: self._remove_shortcut(item))
+            menu.append(rem)
 
         menu.show_all()
         menu.popup(None, None, None, None, event.button, event.time)
@@ -499,67 +369,26 @@ class DesktopShell:
     def _show_desktop_menu(self, event: Gdk.EventButton) -> None:
         menu = Gtk.Menu()
 
-        fm_item = Gtk.MenuItem.new_with_label("Open File Manager")
-        fm_item.connect("activate", lambda *_: self._launch_path(os.path.expanduser("~")))
-        menu.append(fm_item)
+        fm_mi = Gtk.MenuItem.new_with_label("Open File Manager")
+        fm_mi.connect("activate", lambda *_: self._launch_path(os.path.expanduser("~")))
+        menu.append(fm_mi)
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        arrange_item = Gtk.MenuItem.new_with_label("Auto-Arrange Icons")
-        arrange_item.connect("activate", lambda *_: self._auto_arrange_icons())
-        menu.append(arrange_item)
-
-        sort_menu_item = Gtk.MenuItem.new_with_label("Sort Icons By")
-        sort_submenu = Gtk.Menu()
-        for label, key in [("Name (A → Z)", "name_asc"), ("Name (Z → A)", "name_desc"), ("Path", "type")]:
-            si = Gtk.MenuItem.new_with_label(label)
-            si.connect("activate", lambda *_, k=key: self._sort_icons(k))
-            sort_submenu.append(si)
-        sort_menu_item.set_submenu(sort_submenu)
-        menu.append(sort_menu_item)
-
-        snap_item = Gtk.CheckMenuItem.new_with_label("Snap to Grid")
-        snap_item.set_active(self.snap_to_grid)
-        snap_item.connect("toggled", self._toggle_snap_to_grid)
-        menu.append(snap_item)
+        add_mi = Gtk.MenuItem.new_with_label("Add Desktop Shortcut…")
+        add_mi.connect("activate", lambda *_: self._dialog_add_shortcut())
+        menu.append(add_mi)
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        add_sc = Gtk.MenuItem.new_with_label("Add Desktop Shortcut…")
-        add_sc.connect("activate", lambda *_: self._dialog_add_shortcut())
-        menu.append(add_sc)
-
-        menu.append(Gtk.SeparatorMenuItem())
-
-        ref_item = Gtk.MenuItem.new_with_label("Refresh Server Info")
-        ref_item.connect("activate", lambda *_: self._refresh_info())
-        menu.append(ref_item)
+        ref_mi = Gtk.MenuItem.new_with_label("Refresh Server Info")
+        ref_mi.connect("activate", lambda *_: self._refresh_info())
+        menu.append(ref_mi)
 
         menu.show_all()
         menu.popup(None, None, None, None, event.button, event.time)
 
-    # --------------------------------------------------------- ICON ACTIONS
-    def _toggle_snap_to_grid(self, check_item: Gtk.CheckMenuItem) -> None:
-        self.snap_to_grid = check_item.get_active()
-        if self.snap_to_grid:
-            for item in self.desktop_items:
-                sx, sy, _, _ = self._calc_grid_slot(item.get("x", GRID_START_X), item.get("y", GRID_START_Y))
-                item["x"] = sx
-                item["y"] = sy
-                box, _, _ = self.item_boxes.get(item["id"], (None, None, None))
-                if box:
-                    self.fixed.move(box, sx, sy)
-        self._save_config()
-
-    def _sort_icons(self, sort_type: str) -> None:
-        if sort_type == "name_asc":
-            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("name", "").lower()))
-        elif sort_type == "name_desc":
-            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("name", "").lower()), reverse=True)
-        elif sort_type == "type":
-            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("path", "")))
-        self._auto_arrange_icons()
-
+    # --------------------------------------------------------- DIALOGS
     def _dialog_change_icon(self, item: dict) -> None:
         dialog = Gtk.Dialog(
             title=f"Change Icon — {item.get('name')}",
@@ -569,49 +398,45 @@ class DesktopShell:
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Apply", Gtk.ResponseType.OK)
-        dialog.set_default_size(360, 260)
+        dialog.set_default_size(360, 280)
 
         content = dialog.get_content_area()
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_margin_start(16)
-        box.set_margin_end(16)
-        box.set_margin_top(14)
-        box.set_margin_bottom(14)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        vbox.set_margin_start(16); vbox.set_margin_end(16)
+        vbox.set_margin_top(14); vbox.set_margin_bottom(14)
 
-        lbl = Gtk.Label(label="Select a new icon or symbol:")
+        lbl = Gtk.Label(label="Pick a preset or enter a custom emoji:")
         lbl.set_halign(Gtk.Align.START)
-        box.pack_start(lbl, False, False, 0)
+        vbox.pack_start(lbl, False, False, 0)
 
         grid = Gtk.Grid(column_spacing=8, row_spacing=8)
-        selected_icon = [item.get("icon", "📁")]
-        custom_entry = Gtk.Entry()
-        custom_entry.set_text(item.get("icon", "📁"))
-        custom_entry.set_placeholder_text("Or enter custom symbol/emoji…")
+        selected = [item.get("icon", "📁")]
+        custom = Gtk.Entry()
+        custom.set_text(item.get("icon", "📁"))
+        custom.set_placeholder_text("Custom emoji or text…")
 
-        def select(symbol: str) -> None:
-            selected_icon[0] = symbol
-            custom_entry.set_text(symbol)
+        def pick(sym: str) -> None:
+            selected[0] = sym
+            custom.set_text(sym)
 
-        for i, (sym, label_text) in enumerate(ICON_PRESETS):
-            btn = Gtk.Button.new_with_label(f"{sym} {label_text}")
-            btn.connect("clicked", lambda *_, s=sym: select(s))
-            grid.attach(btn, i % 2, i // 2, 1, 1)
+        for i, (sym, txt) in enumerate(ICON_PRESETS):
+            b = Gtk.Button.new_with_label(f"{sym} {txt}")
+            b.connect("clicked", lambda *_, s=sym: pick(s))
+            grid.attach(b, i % 2, i // 2, 1, 1)
 
-        box.pack_start(grid, True, True, 0)
-        box.pack_start(Gtk.Label(label="Custom Symbol / Text:"), False, False, 0)
-        box.pack_start(custom_entry, False, False, 0)
-        content.add(box)
+        vbox.pack_start(grid, True, True, 0)
+        vbox.pack_start(Gtk.Label(label="Custom:"), False, False, 0)
+        vbox.pack_start(custom, False, False, 0)
+        content.add(vbox)
         dialog.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
-            item["icon"] = custom_entry.get_text().strip() or selected_icon[0]
+            item["icon"] = custom.get_text().strip() or selected[0]
             self._save_config()
-            self._render_desktop_items()
-            self._apply_layout()
-            self.fixed.show_all()
+            self._build_icon_column()
         dialog.destroy()
 
-    def _dialog_rename_item(self, item: dict) -> None:
+    def _dialog_rename(self, item: dict) -> None:
         dialog = Gtk.Dialog(
             title="Rename Shortcut",
             transient_for=self.window,
@@ -620,21 +445,18 @@ class DesktopShell:
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Save", Gtk.ResponseType.OK)
-        dialog.set_default_size(320, 140)
+        dialog.set_default_size(320, 130)
 
         content = dialog.get_content_area()
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_start(16)
-        box.set_margin_end(16)
-        box.set_margin_top(14)
-        box.set_margin_bottom(14)
-
-        box.pack_start(Gtk.Label(label="New name:"), False, False, 0)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        vbox.set_margin_start(16); vbox.set_margin_end(16)
+        vbox.set_margin_top(14); vbox.set_margin_bottom(14)
+        vbox.pack_start(Gtk.Label(label="New name:"), False, False, 0)
         entry = Gtk.Entry()
         entry.set_text(item.get("name", ""))
         entry.set_activates_default(True)
-        box.pack_start(entry, False, False, 0)
-        content.add(box)
+        vbox.pack_start(entry, False, False, 0)
+        content.add(vbox)
         dialog.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
@@ -642,9 +464,7 @@ class DesktopShell:
             if new_name:
                 item["name"] = new_name
                 self._save_config()
-                self._render_desktop_items()
-                self._apply_layout()
-                self.fixed.show_all()
+                self._build_icon_column()
         dialog.destroy()
 
     def _dialog_add_shortcut(self) -> None:
@@ -655,122 +475,86 @@ class DesktopShell:
             destroy_with_parent=True,
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("Add Shortcut", Gtk.ResponseType.OK)
-        dialog.set_default_size(380, 220)
+        dialog.add_button("Add", Gtk.ResponseType.OK)
+        dialog.set_default_size(380, 210)
 
         content = dialog.get_content_area()
         grid = Gtk.Grid(column_spacing=10, row_spacing=10)
-        grid.set_margin_start(16)
-        grid.set_margin_end(16)
-        grid.set_margin_top(14)
-        grid.set_margin_bottom(14)
+        grid.set_margin_start(16); grid.set_margin_end(16)
+        grid.set_margin_top(14); grid.set_margin_bottom(14)
 
-        grid.attach(Gtk.Label(label="Shortcut Name:"), 0, 0, 1, 1)
-        name_entry = Gtk.Entry()
-        name_entry.set_placeholder_text("e.g. Web Root or Server Logs")
-        grid.attach(name_entry, 1, 0, 1, 1)
+        grid.attach(Gtk.Label(label="Name:"), 0, 0, 1, 1)
+        name_e = Gtk.Entry(); name_e.set_placeholder_text("e.g. Web Root")
+        grid.attach(name_e, 1, 0, 1, 1)
 
-        grid.attach(Gtk.Label(label="Folder / File Path:"), 0, 1, 1, 1)
-        path_entry = Gtk.Entry()
-        path_entry.set_placeholder_text("e.g. /var/www or /etc")
-        grid.attach(path_entry, 1, 1, 1, 1)
+        grid.attach(Gtk.Label(label="Path:"), 0, 1, 1, 1)
+        path_e = Gtk.Entry(); path_e.set_placeholder_text("e.g. /var/www")
+        grid.attach(path_e, 1, 1, 1, 1)
 
-        grid.attach(Gtk.Label(label="Icon Symbol:"), 0, 2, 1, 1)
-        icon_entry = Gtk.Entry()
-        icon_entry.set_text("🌐")
-        grid.attach(icon_entry, 1, 2, 1, 1)
+        grid.attach(Gtk.Label(label="Icon:"), 0, 2, 1, 1)
+        icon_e = Gtk.Entry(); icon_e.set_text("🌐")
+        grid.attach(icon_e, 1, 2, 1, 1)
 
         content.add(grid)
         dialog.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
             import uuid
-            new_item = {
+            self.desktop_items.append({
                 "id": str(uuid.uuid4())[:8],
-                "name": name_entry.get_text().strip() or "Shortcut",
-                "icon": icon_entry.get_text().strip() or "📁",
-                "path": path_entry.get_text().strip() or os.path.expanduser("~"),
-                "x": None,
-                "y": None,
-            }
-            self.desktop_items.append(new_item)
+                "name": name_e.get_text().strip() or "Shortcut",
+                "icon": icon_e.get_text().strip() or "📁",
+                "path": path_e.get_text().strip() or os.path.expanduser("~"),
+            })
             self._save_config()
-            self._auto_arrange_icons()
-            self._render_desktop_items()
-            self._apply_layout()
-            self.fixed.show_all()
+            self._build_icon_column()
         dialog.destroy()
 
     def _remove_shortcut(self, item: dict) -> None:
         self.desktop_items = [i for i in self.desktop_items if i.get("id") != item.get("id")]
         self._save_config()
-        self._render_desktop_items()
-        self._apply_layout()
-        self.fixed.show_all()
+        self._build_icon_column()
 
-    def _reset_item_position(self, item: dict) -> None:
-        item["x"] = None
-        item["y"] = None
-        self._save_config()
-        self._auto_arrange_icons()
+    # ------------------------------------------------------ STATUS PANEL
+    def _build_info_panel(self) -> Gtk.Widget:
+        frame = Gtk.Frame()
+        frame.get_style_context().add_class("vps-frame")
+        g = Gtk.Grid(column_spacing=16, row_spacing=5)
+        g.set_margin_start(16); g.set_margin_end(16)
+        g.set_margin_top(12); g.set_margin_bottom(12)
 
-    def _auto_arrange_icons(self) -> None:
-        win_w, win_h = self.window.get_size()
-        max_rows = max(3, (win_h - GRID_START_Y - 90) // GRID_CELL_H)
-        for idx, item in enumerate(self.desktop_items):
-            col = idx // max_rows
-            row = idx % max_rows
-            item["x"] = GRID_START_X + col * GRID_CELL_W
-            item["y"] = GRID_START_Y + row * GRID_CELL_H
-        self._save_config()
-        self._apply_layout()
+        title = Gtk.Label(label="Server Status")
+        title.get_style_context().add_class("vps-title")
+        title.set_halign(Gtk.Align.START)
+        g.attach(title, 0, 0, 2, 1)
 
-    # --------------------------------------------------------------- LAYOUT
-    def _apply_layout(self) -> None:
-        win_w, win_h = self.window.get_size()
-        if win_w <= 1 or win_h <= 1:
-            return
+        self.vps_rows: list[tuple[Gtk.Label, Gtk.Label]] = []
+        for i, key in enumerate(("Server", "OS", "CPU", "RAM", "Disk")):
+            k = Gtk.Label(label=key)
+            k.get_style_context().add_class("vps-key")
+            k.set_halign(Gtk.Align.START)
+            v = Gtk.Label()
+            v.get_style_context().add_class("vps-val")
+            v.set_halign(Gtk.Align.START)
+            v.set_selectable(True)
+            g.attach(k, 0, i + 1, 1, 1)
+            g.attach(v, 1, i + 1, 1, 1)
+            self.vps_rows.append((k, v))
 
-        max_rows = max(3, (win_h - GRID_START_Y - 90) // GRID_CELL_H)
-        for idx, item in enumerate(self.desktop_items):
-            # Don't override position of icon currently being dragged
-            if self.drag_ctx and self.drag_ctx["item"].get("id") == item.get("id"):
-                continue
-            box, _, _ = self.item_boxes.get(item["id"], (None, None, None))
-            if box is None:
-                continue
-            x, y = item.get("x"), item.get("y")
-            if x is None or y is None:
-                col = idx // max_rows
-                row = idx % max_rows
-                x = GRID_START_X + col * GRID_CELL_W
-                y = GRID_START_Y + row * GRID_CELL_H
-                item["x"] = x
-                item["y"] = y
-            self.fixed.move(box, int(x), int(y))
+        frame.add(g)
+        return frame
 
-        # Hint label — centered at bottom
-        hint_w = self.hint.get_preferred_width()[1] or 400
-        self.fixed.move(self.hint, max(20, (win_w - hint_w) // 2), win_h - 45)
-
-        # Server status panel — bottom right
-        panel_w = self.info_panel.get_preferred_width()[1] or 240
-        panel_h = self.info_panel.get_preferred_height()[1] or 160
-        self.fixed.move(self.info_panel, max(20, win_w - panel_w - 24), max(20, win_h - panel_h - 60))
-
-    def _on_resize(self, window: Gtk.Window, allocation: Gdk.Rectangle) -> None:
-        self._apply_layout()
-
+    # ---------------------------------------------------------- KEY / EVENTS
     def _on_key_press(self, window: Gtk.Window, event: Gdk.EventKey) -> bool:
         if event.keyval == Gdk.KEY_Escape:
             self._exit()
             return True
-        if event.keyval in (Gdk.KEY_F5, Gdk.KEY_r, Gdk.KEY_R):
+        if event.keyval == Gdk.KEY_F5:
             self._refresh_info()
             return True
-        if event.keyval == Gdk.KEY_Delete and self.selected_item_id:
+        if event.keyval == Gdk.KEY_Delete and self.selected_id:
             for item in self.desktop_items:
-                if item.get("id") == self.selected_item_id and item.get("id") != "file_manager":
+                if item.get("id") == self.selected_id and item.get("id") != "file_manager":
                     self._remove_shortcut(item)
                     return True
         return False
@@ -787,8 +571,7 @@ class DesktopShell:
         try:
             proc = subprocess.Popen(
                 [sys.executable, "-m", "file_manager", target],
-                env=env,
-                cwd=ROOT,
+                env=env, cwd=ROOT,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -820,13 +603,12 @@ class DesktopShell:
         info = sysinfo.summary()
         self.server_label.set_text(f"Server: {info['hostname']}")
         values = [
-            info["hostname"],
-            info["os"],
+            info["hostname"], info["os"],
             f"{info['cpu']} cores",
             f"{info['mem_used']} / {info['mem_total']}",
             f"{info['disk_used']} / {info['disk_total']}",
         ]
-        for (k_label, v_label), value in zip(self.vps_rows, values):
+        for (_, v_label), value in zip(self.vps_rows, values):
             v_label.set_text(value)
         return True
 
