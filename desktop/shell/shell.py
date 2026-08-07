@@ -1,8 +1,8 @@
 """ease-Desk Shell — the minimal desktop shown after `desktop` starts.
 
 Renders the background, top bar (server name, clock, Exit Desktop),
-draggable and customizable desktop icons, and a compact VPS info panel.
-Desktop icons can be dragged freely to any position just like Windows/GNOME.
+draggable and customizable desktop icons with grid snapping and drag-to-arrange/swap,
+and a compact VPS info panel.
 """
 
 from __future__ import annotations
@@ -24,6 +24,12 @@ from shared.utilities import animate, sysinfo  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CONFIG_DIR = os.path.expanduser("~/.config/ease-desk")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "desktop_config.json")
+
+# Desktop Grid Constants (Matching Windows / GNOME desktop spacing)
+GRID_START_X = 30
+GRID_START_Y = 68
+GRID_CELL_W = 120
+GRID_CELL_H = 110
 
 ICON_PRESETS = [
     ("📁", "Folder"),
@@ -55,29 +61,30 @@ window.shell {
 }
 .exitbtn:hover { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: #ef4444; }
 .icon-box {
-    padding: 10px 14px;
+    padding: 8px 10px;
     border-radius: 8px;
     border: 1px solid transparent;
     transition: background-color 150ms ease, border-color 150ms ease;
+    min-width: 90px;
 }
 .icon-box:hover {
     background-color: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .icon-box.selected {
-    background-color: rgba(122, 162, 247, 0.18);
-    border: 1px solid rgba(122, 162, 247, 0.45);
+    background-color: rgba(122, 162, 247, 0.22);
+    border: 1px solid rgba(122, 162, 247, 0.50);
 }
 .icon-box.dragging {
-    background-color: rgba(122, 162, 247, 0.25);
-    border: 1px dashed #7aa2f7;
-    opacity: 0.90;
+    background-color: rgba(122, 162, 247, 0.35);
+    border: 2px dashed #7aa2f7;
+    opacity: 0.92;
 }
 .icon-name {
     color: #f1f5f9;
     font-weight: 600;
-    font-size: 13px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    font-size: 12px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.85);
 }
 .vps-frame {
     background-color: rgba(15, 23, 42, 0.85);
@@ -98,6 +105,7 @@ class DesktopShell:
         self.item_widgets: dict[str, Gtk.Widget] = {}
         self.drag_ctx: dict | None = None
         self.selected_item_id: str | None = None
+        self.snap_to_grid: bool = True
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.get_style_context().add_class("shell")
@@ -137,8 +145,8 @@ class DesktopShell:
                 "name": "File Manager",
                 "icon": "📁",
                 "path": os.path.expanduser("~"),
-                "x": None,
-                "y": None,
+                "x": GRID_START_X,
+                "y": GRID_START_Y,
             }
         ]
         if os.path.exists(CONFIG_FILE):
@@ -146,6 +154,7 @@ class DesktopShell:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.desktop_items = data.get("items", default_items)
+                    self.snap_to_grid = data.get("snap_to_grid", True)
                     return
             except Exception:
                 pass
@@ -155,7 +164,11 @@ class DesktopShell:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump({"items": self.desktop_items}, f, indent=2)
+                json.dump(
+                    {"items": self.desktop_items, "snap_to_grid": self.snap_to_grid},
+                    f,
+                    indent=2,
+                )
         except Exception:
             pass
 
@@ -198,7 +211,7 @@ class DesktopShell:
         self.info_panel = self._build_info_panel()
         fixed.put(self.info_panel, 0, 0)
 
-        self.hint = Gtk.Label(label="Double-click to open · Drag to arrange · Right-click to customize")
+        self.hint = Gtk.Label(label="Double-click to open · Drag to arrange & swap · Right-click for options")
         self.hint.get_style_context().add_class("hint")
         fixed.put(self.hint, 0, 0)
 
@@ -237,7 +250,7 @@ class DesktopShell:
         return bar
 
     def _render_desktop_items(self) -> None:
-        # Clear existing widgets if any
+        # Clear existing widgets
         for w in list(self.item_widgets.values()):
             self.fixed.remove(w)
         self.item_widgets.clear()
@@ -245,7 +258,7 @@ class DesktopShell:
         for item in self.desktop_items:
             widget = self._create_icon_widget(item)
             self.item_widgets[item["id"]] = widget
-            self.fixed.put(widget, item.get("x") or 0, item.get("y") or 0)
+            self.fixed.put(widget, item.get("x") or GRID_START_X, item.get("y") or GRID_START_Y)
 
     def _create_icon_widget(self, item: dict) -> Gtk.Widget:
         event = Gtk.EventBox()
@@ -258,20 +271,22 @@ class DesktopShell:
             | Gdk.EventMask.BUTTON1_MOTION_MASK
         )
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         box.get_style_context().add_class("icon-box")
         box.set_halign(Gtk.Align.CENTER)
 
         icon_label = Gtk.Label()
-        icon_label.set_markup(f"<span font='64'>{item.get('icon', '📁')}</span>")
+        icon_label.set_markup(f"<span font='54'>{item.get('icon', '📁')}</span>")
 
         name_label = Gtk.Label(label=item.get("name", "Item"))
         name_label.get_style_context().add_class("icon-name")
+        name_label.set_max_width_chars(14)
+        name_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
 
         box.pack_start(icon_label, False, False, 0)
         box.pack_start(name_label, False, False, 0)
         event.add(box)
-        event.set_tooltip_text(f"{item.get('name')} — double-click to open, drag to move")
+        event.set_tooltip_text(f"{item.get('name')}\nDouble-click to open · Drag to arrange")
 
         def on_press(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
             if event_gdk.type == Gdk.EventType._2BUTTON_PRESS and event_gdk.button == 1:
@@ -336,6 +351,31 @@ class DesktopShell:
                 else:
                     ctx.remove_class("selected")
 
+    # --------------------------------------------------------------- DRAG & ARRANGE LOGIC
+    def _calc_grid_slot(self, x: int, y: int) -> tuple[int, int, int, int]:
+        """Calculates snapped (x, y) and (col, row) for given coordinates."""
+        win_w, win_h = self.window.get_size()
+        max_cols = max(1, (win_w - GRID_START_X) // GRID_CELL_W)
+        max_rows = max(1, (win_h - GRID_START_Y - 80) // GRID_CELL_H)
+
+        col = max(0, min(max_cols - 1, round((x - GRID_START_X) / GRID_CELL_W)))
+        row = max(0, min(max_rows - 1, round((y - GRID_START_Y) / GRID_CELL_H)))
+
+        snap_x = GRID_START_X + (col * GRID_CELL_W)
+        snap_y = GRID_START_Y + (row * GRID_CELL_H)
+        return snap_x, snap_y, col, row
+
+    def _find_item_at_grid_slot(self, target_col: int, target_row: int, exclude_id: str) -> dict | None:
+        for item in self.desktop_items:
+            if item.get("id") == exclude_id:
+                continue
+            ix = item.get("x", GRID_START_X)
+            iy = item.get("y", GRID_START_Y)
+            _, _, col, row = self._calc_grid_slot(ix, iy)
+            if col == target_col and row == target_row:
+                return item
+        return None
+
     def _on_window_motion(self, window: Gtk.Window, event_gdk: Gdk.EventMotion) -> bool:
         if not self.drag_ctx:
             return False
@@ -343,7 +383,7 @@ class DesktopShell:
         dx = event_gdk.x_root - self.drag_ctx["start_root_x"]
         dy = event_gdk.y_root - self.drag_ctx["start_root_y"]
 
-        if abs(dx) > 2 or abs(dy) > 2 or self.drag_ctx["moved"]:
+        if abs(dx) > 3 or abs(dy) > 3 or self.drag_ctx["moved"]:
             self.drag_ctx["moved"] = True
             win_w, win_h = self.window.get_size()
             w = self.drag_ctx["widget"]
@@ -368,8 +408,33 @@ class DesktopShell:
             ctx["box"].get_style_context().remove_class("dragging")
 
             if ctx["moved"]:
-                ctx["item"]["x"] = ctx["current_x"]
-                ctx["item"]["y"] = ctx["current_y"]
+                dragged_item = ctx["item"]
+                raw_x = ctx["current_x"]
+                raw_y = ctx["current_y"]
+
+                if self.snap_to_grid:
+                    snap_x, snap_y, target_col, target_row = self._calc_grid_slot(raw_x, raw_y)
+                    # Check if target slot is occupied by another icon (Drag-to-Swap / Replace)
+                    occupant = self._find_item_at_grid_slot(target_col, target_row, dragged_item["id"])
+                    if occupant:
+                        # Swap coordinates between dragged item and occupant
+                        occupant_widget = self.item_widgets.get(occupant["id"])
+                        orig_x = ctx["start_x"]
+                        orig_y = ctx["start_y"]
+
+                        occupant["x"] = orig_x
+                        occupant["y"] = orig_y
+                        if occupant_widget:
+                            self.fixed.move(occupant_widget, orig_x, orig_y)
+
+                    dragged_item["x"] = snap_x
+                    dragged_item["y"] = snap_y
+                    self.fixed.move(ctx["widget"], snap_x, snap_y)
+                else:
+                    dragged_item["x"] = raw_x
+                    dragged_item["y"] = raw_y
+                    self.fixed.move(ctx["widget"], raw_x, raw_y)
+
                 self._save_config()
                 return True
         return False
@@ -446,13 +511,41 @@ class DesktopShell:
 
             menu.append(Gtk.SeparatorMenuItem())
 
-            add_sc = Gtk.MenuItem.new_with_label("Add Shortcut to Folder…")
-            add_sc.connect("activate", lambda *_: self._dialog_add_shortcut())
-            menu.append(add_sc)
-
+            # Auto Arrange
             arrange_item = Gtk.MenuItem.new_with_label("Auto-Arrange Icons")
             arrange_item.connect("activate", lambda *_: self._auto_arrange_icons())
             menu.append(arrange_item)
+
+            # Sort Submenu
+            sort_menu_item = Gtk.MenuItem.new_with_label("Sort Icons By")
+            sort_submenu = Gtk.Menu()
+
+            s_name_asc = Gtk.MenuItem.new_with_label("Name (A → Z)")
+            s_name_asc.connect("activate", lambda *_: self._sort_icons("name_asc"))
+            sort_submenu.append(s_name_asc)
+
+            s_name_desc = Gtk.MenuItem.new_with_label("Name (Z → A)")
+            s_name_desc.connect("activate", lambda *_: self._sort_icons("name_desc"))
+            sort_submenu.append(s_name_desc)
+
+            s_type = Gtk.MenuItem.new_with_label("Type / Path")
+            s_type.connect("activate", lambda *_: self._sort_icons("type"))
+            sort_submenu.append(s_type)
+
+            sort_menu_item.set_submenu(sort_submenu)
+            menu.append(sort_menu_item)
+
+            # Snap to grid toggle
+            snap_item = Gtk.CheckMenuItem.new_with_label("Snap to Grid")
+            snap_item.set_active(self.snap_to_grid)
+            snap_item.connect("toggled", self._toggle_snap_to_grid)
+            menu.append(snap_item)
+
+            menu.append(Gtk.SeparatorMenuItem())
+
+            add_sc = Gtk.MenuItem.new_with_label("Add Desktop Shortcut…")
+            add_sc.connect("activate", lambda *_: self._dialog_add_shortcut())
+            menu.append(add_sc)
 
             menu.append(Gtk.SeparatorMenuItem())
 
@@ -464,6 +557,33 @@ class DesktopShell:
             menu.popup(None, None, None, None, event.button, event.time)
             return True
         return False
+
+    def _toggle_snap_to_grid(self, check_item: Gtk.CheckMenuItem) -> None:
+        self.snap_to_grid = check_item.get_active()
+        if self.snap_to_grid:
+            self._snap_all_to_grid()
+        self._save_config()
+
+    def _snap_all_to_grid(self) -> None:
+        for item in self.desktop_items:
+            x = item.get("x", GRID_START_X)
+            y = item.get("y", GRID_START_Y)
+            sx, sy, _, _ = self._calc_grid_slot(x, y)
+            item["x"] = sx
+            item["y"] = sy
+            w = self.item_widgets.get(item["id"])
+            if w:
+                self.fixed.move(w, sx, sy)
+
+    def _sort_icons(self, sort_type: str) -> None:
+        if sort_type == "name_asc":
+            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("name", "").lower()))
+        elif sort_type == "name_desc":
+            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("name", "").lower()), reverse=True)
+        elif sort_type == "type":
+            self.desktop_items.sort(key=lambda i: (i.get("id") != "file_manager", i.get("path", "")))
+
+        self._auto_arrange_icons()
 
     def _dialog_change_icon(self, item: dict) -> None:
         dialog = Gtk.Dialog(
@@ -605,8 +725,9 @@ class DesktopShell:
             }
             self.desktop_items.append(new_item)
             self._save_config()
-            self._render_desktop_items()
             self._auto_arrange_icons()
+            self._render_desktop_items()
+            self._apply_layout()
             self.fixed.show_all()
         dialog.destroy()
 
@@ -621,20 +742,18 @@ class DesktopShell:
         item["x"] = None
         item["y"] = None
         self._save_config()
-        self._apply_layout()
+        self._auto_arrange_icons()
 
     def _auto_arrange_icons(self) -> None:
-        start_x = 40
-        start_y = 70
-        spacing_y = 110
-        spacing_x = 130
-        max_rows = 5
+        """Arranges all icons into clean sequential grid columns (Top-to-Bottom, Left-to-Right)."""
+        win_w, win_h = self.window.get_size()
+        max_rows = max(3, (win_h - GRID_START_Y - 90) // GRID_CELL_H)
 
         for idx, item in enumerate(self.desktop_items):
             col = idx // max_rows
             row = idx % max_rows
-            item["x"] = start_x + (col * spacing_x)
-            item["y"] = start_y + (row * spacing_y)
+            item["x"] = GRID_START_X + (col * GRID_CELL_W)
+            item["y"] = GRID_START_Y + (row * GRID_CELL_H)
 
         self._save_config()
         self._apply_layout()
@@ -648,6 +767,8 @@ class DesktopShell:
         # Update background event box size to cover whole fixed container
         self.bg_event.set_size_request(win_w, win_h)
 
+        max_rows = max(3, (win_h - GRID_START_Y - 90) // GRID_CELL_H)
+
         for idx, item in enumerate(self.desktop_items):
             if self.drag_ctx and item.get("id") == self.drag_ctx["item"].get("id"):
                 continue
@@ -656,28 +777,23 @@ class DesktopShell:
                 continue
             x, y = item.get("x"), item.get("y")
             if x is None or y is None:
-                # Default position
-                if item.get("id") == "file_manager":
-                    icon_w = widget.get_preferred_width()[1] or 100
-                    x = (win_w - icon_w) // 2
-                    y = max(110, int(win_h * 0.25))
-                else:
-                    x = 40 + (idx * 130)
-                    y = 70
+                # Default position on grid
+                col = idx // max_rows
+                row = idx % max_rows
+                x = GRID_START_X + (col * GRID_CELL_W)
+                y = GRID_START_Y + (row * GRID_CELL_H)
                 item["x"] = x
                 item["y"] = y
             self.fixed.move(widget, int(x), int(y))
 
-        # Position hint cleanly below primary file manager
-        fm_widget = self.item_widgets.get("file_manager")
-        if fm_widget:
-            fm_y = self.desktop_items[0].get("y") or max(110, int(win_h * 0.25))
-            hint_w = self.hint.get_preferred_width()[1] or 400
-            self.fixed.move(self.hint, max(20, (win_w - hint_w) // 2), int(fm_y + 140))
+        # Position hint cleanly below desktop items or center bottom
+        hint_w = self.hint.get_preferred_width()[1] or 400
+        self.fixed.move(self.hint, max(20, (win_w - hint_w) // 2), win_h - 45)
 
-        # Position server status panel
+        # Position server status panel at bottom right
+        panel_w = self.info_panel.get_preferred_width()[1] or 240
         panel_h = self.info_panel.get_preferred_height()[1] or 160
-        self.fixed.move(self.info_panel, 20, max(20, win_h - panel_h - 75))
+        self.fixed.move(self.info_panel, max(20, win_w - panel_w - 24), max(20, win_h - panel_h - 60))
 
     def _on_resize(self, window: Gtk.Window, allocation: Gdk.Rectangle) -> None:
         self._apply_layout()
@@ -686,6 +802,17 @@ class DesktopShell:
         if event.keyval == Gdk.KEY_Escape:
             self._exit()
             return True
+        if event.keyval == Gdk.KEY_F5 or (
+            event.keyval in (Gdk.KEY_r, Gdk.KEY_R) and (event.state & Gdk.ModifierType.CONTROL_MASK)
+        ):
+            self._refresh_info()
+            self._apply_layout()
+            return True
+        if event.keyval == Gdk.KEY_Delete and self.selected_item_id:
+            for item in self.desktop_items:
+                if item.get("id") == self.selected_item_id and item.get("id") != "file_manager":
+                    self._remove_shortcut(item)
+                    return True
         return False
 
     def _on_delete_event(self, window: Gtk.Window, event: Gdk.Event) -> bool:
