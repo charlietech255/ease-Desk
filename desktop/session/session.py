@@ -212,7 +212,6 @@ class SessionManager:
                 str(self.vnc_port),
                 "-forever",
                 "-shared",
-                "-localhost",
                 "-quiet",
                 "-bg",
             ] + auth_args
@@ -233,16 +232,16 @@ class SessionManager:
                         "websockify",
                         "--web",
                         web_dir,
-                        f"127.0.0.1:{self.novnc_port}",
-                        f"127.0.0.1:{self.vnc_port}",
+                        f"0.0.0.0:{self.novnc_port}",
+                        f"localhost:{self.vnc_port}",
                     ]
                 else:
                     ws_cmd = [
                         "novnc_proxy",
                         "--vnc",
-                        f"127.0.0.1:{self.vnc_port}",
+                        f"localhost:{self.vnc_port}",
                         "--listen",
-                        f"127.0.0.1:{self.novnc_port}",
+                        f"0.0.0.0:{self.novnc_port}",
                     ]
                 novnc = subprocess.Popen(
                     ws_cmd,
