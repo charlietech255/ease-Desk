@@ -27,9 +27,52 @@ else
     fi
 fi
 
-echo -n "🔒 Enter a secure password for your ease-Desk login: "
-read -s VNC_PASS
-echo ""
+# Port-availability helper (works with both ss and net-tools' netstat)
+port_ready() {
+    ss -tln 2>/dev/null | grep -qE ":$1 " && return 0
+    netstat -tln 2>/dev/null | grep -qE ":$1 " && return 0
+    return 1
+}
+
+# 0. Clean up stale sessions, leftover ports and lock files.
+#    This is what fixes a previous 502/port-conflict install on re-run.
+if [ "$(id -u)" -eq 0 ]; then
+    echo "🧹 Cleaning up stale ease-Desk sessions before install..."
+    pkill -f "desktop.session.session" 2>/dev/null || true
+    pkill -f "desktop.shell.shell" 2>/dev/null || true
+    pkill -f "websockify --web" 2>/dev/null || true
+    pkill -f "x11vnc -display" 2>/dev/null || true
+    systemctl stop easedesk >/dev/null 2>&1 || true
+    rm -f "/etc/systemd/system/easedesk.service" 2>/dev/null || true
+
+    if command -v docker >/dev/null 2>&1; then
+        # Free host ports 5900/6080 that a previous Docker setup holds
+        docker rm -f charlie-vps >/dev/null 2>&1 || true
+    fi
+
+    # Remove stale X11 lock/socket files from dead virtual displays
+    for num in $(seq 99 119); do
+        rm -f "/tmp/.X${num}-lock"
+        rm -f "/tmp/.X11-unix/X${num}"
+    done
+
+    # Wait until old ports are actually freed before we rebind them
+    for port in 6080 5900; do
+        for i in $(seq 1 15); do
+            port_ready "${port}" || break
+            sleep 0.5
+        done
+    done
+    echo "✅ Old sessions stopped, ports 6080/5900 freed."
+fi
+
+if [ -n "${EASEDESK_VNC_PASS:-}" ]; then
+    VNC_PASS="$EASEDESK_VNC_PASS"
+else
+    echo -n "🔒 Enter a secure password for your ease-Desk login: "
+    read -s VNC_PASS
+    echo ""
+fi
 
 # 1. Install System Dependencies (Apt on Debian/Ubuntu, Pkg on Termux)
 if command -v apt-get >/dev/null 2>&1; then
@@ -166,38 +209,89 @@ mkdir -p "${BIN_DIR}"
 ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/desktop"
 chmod +x "${BIN_DIR}/desktop"
 
-# 5. Setup Systemd Service (Start it in background)
+# 5. Setup Systemd Service (Start it in background, restart automatically)
 if command -v systemctl >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
     echo "⚙️ Configuring ease-Desk Systemd Background Service..."
+    SERVICE_USER="${SUDO_USER:-$USER}"
     cat << EOF > /etc/systemd/system/easedesk.service
 [Unit]
 Description=ease-Desk Virtual Desktop Session
-After=network.target nginx.service
+After=network-online.target nginx.service
+Wants=network-online.target
 
 [Service]
 Type=simple
-User=${SUDO_USER:-$USER}
-Environment=HOME=$(eval echo "~${SUDO_USER:-$USER}")
+User=${SERVICE_USER}
+Environment=HOME=$(eval echo "~${SERVICE_USER}")
+Environment=PYTHONUNBUFFERED=1
 ExecStart=${BIN_DIR}/desktop
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    systemctl enable easedesk
+    systemctl enable easedesk >/dev/null 2>&1
     systemctl restart easedesk || echo "⚠️ Failed to start background service."
     echo "✓ Background service 'easedesk' started!"
 fi
 
-echo ""
-echo "====================================================="
-echo "✓ ease-Desk Installed & Running in Background!"
-echo "====================================================="
-echo "You can check the status anytime by typing:"
-echo "    systemctl status easedesk"
-echo ""
-echo "• Open your web URL to view the desktop:"
-echo "  👉 http://YOUR_IP_OR_DOMAIN/vnc.html"
-echo "====================================================="
+# 6. Healthcheck — verify the whole chain: Nginx :80 -> websockify :6080 -> x11vnc :5900
+if [ "$(id -u)" -eq 0 ]; then
+    echo ""
+    echo "🔍 Running final health checks..."
+    for i in $(seq 1 45); do
+        port_ready 6080 && break
+        sleep 1
+    done
+
+    if port_ready 5900; then
+        echo "✓ x11vnc listening on :5900"
+    else
+        echo "✗ x11vnc NOT listening on :5900 (check: journalctl -u easedesk)"
+    fi
+
+    if port_ready 6080; then
+        echo "✓ websockify listening on :6080"
+    else
+        echo "✗ websockify NOT listening on :6080 — restarting service and re-testing..."
+        systemctl restart easedesk >/dev/null 2>&1 || true
+        sleep 8
+        port_ready 6080 && echo "✓ websockify now listening on :6080" || echo "✗ websockify still down (check: journalctl -u easedesk)"
+    fi
+
+    PUBLIC_IP="$(curl -s -m 3 https://api.ipify.org 2>/dev/null | tr -d '[:space:]')"
+    [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    BASE_URL="${PUBLIC_IP:-127.0.0.1}"
+
+    HTTP_CODE="$(curl -s -o /dev/null -m 5 -w "%{http_code}" "http://${BASE_URL}/vnc.html" 2>/dev/null)"
+    echo ""
+    if [ "${HTTP_CODE:-000}" = "200" ]; then
+        echo "====================================================="
+        echo "✓ ease-Desk Installed & Running in Background!"
+        echo "====================================================="
+        echo "   👉 Open: http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
+        echo ""
+        echo "   Status anytime:  systemctl status easedesk"
+        echo "====================================================="
+    else
+        echo "====================================================="
+        echo "⚠️  ease-Desk installed, but the web URL is NOT ready yet."
+        echo "====================================================="
+        echo "  Nginx answered HTTP ${HTTP_CODE:-000} on :80."
+        echo "  Diagnose with:"
+        echo "    systemctl status nginx easedesk"
+        echo "    journalctl -u easedesk --no-pager -n 50"
+        echo "    ss -tln | grep -E ':(80|6080|5900)'"
+        echo "====================================================="
+    fi
+else
+    echo ""
+    echo "====================================================="
+    echo "✓ ease-Desk Installed Successfully!"
+    echo "====================================================="
+    echo "Type 'desktop' to launch it."
+    echo "====================================================="
+fi
