@@ -663,6 +663,8 @@ class FileManagerWindow(Gtk.Window):
 
         # MODE 1: THIS PC OVERVIEW
         if self.current_dir == THIS_PC_URI:
+            self.thispc_container.show()
+            self.explorer_container.hide()
             self.stack.set_visible_child_name("thispc")
             self.action_bar.hide()
             self.sort_btn.set_sensitive(False)
@@ -676,6 +678,8 @@ class FileManagerWindow(Gtk.Window):
             return
 
         # MODE 2: FOLDER EXPLORER
+        self.thispc_container.hide()
+        self.explorer_container.show()
         self.stack.set_visible_child_name("explorer")
         self.action_bar.show()
         self.sort_btn.set_sensitive(True)

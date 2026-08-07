@@ -196,14 +196,20 @@ class PtyTextViewTerminal(Gtk.Box):
 
     def _parse_and_append_ansi(self, text: str) -> None:
         """Parse standard ANSI escape sequences and insert text with matching GtkTextTags."""
-        # Simple ANSI escape parser
+        # 1. Strip OSC sequences (e.g. \x1b]0;title\x07 or \x1b]0;title\x1b\)
+        clean_text = re.sub(r"\x1b\][0-9]+;[^\x07\x1b]*(\x07|\x1b\\)", "", text)
+
+        # 2. Strip DEC private mode sequences (e.g. \x1b[?1h, \x1b[?2004h, \x1b[?25h, etc.)
+        clean_text = re.sub(r"\x1b\[\?[0-9;]*[a-zA-Z]", "", clean_text)
+
+        # 3. Strip other non-color escape codes (cursor moves, keypad modes, charset designations)
+        clean_text = re.sub(r"\x1b\[[0-9;]*[A-LN-Za-ln-zHfJKsu]", "", clean_text)
+        clean_text = re.sub(r"\x1b[=><\(\)][0-9A-Za-z]?", "", clean_text)
+
+        # 4. Strip bells, backspace artifacts
+        clean_text = clean_text.replace("\x07", "").replace("\x08", "")
+
         ansi_regex = re.compile(r"\x1b\[([0-9;]*)m")
-        cursor_home = re.compile(r"\x1b\[[0-9;]*[HfJKsu]")
-
-        # Strip cursor control codes for simple TextView
-        clean_text = cursor_home.sub("", text)
-        clean_text = clean_text.replace("\x07", "").replace("\x08", "")  # strip bell & backspace echo artifacts
-
         tokens = ansi_regex.split(clean_text)
         current_tags: list[str] = []
 

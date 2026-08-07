@@ -1,27 +1,41 @@
-"""Automated screenshot capture tool for ease-Desk prototype.
+"""Automated high-fidelity screenshot capture tool for ease-Desk.
 
-Spawns a virtual X11 server (Xvfb), runs the ease-Desk components,
-and takes exact pixel-perfect screenshots of:
-1. screenshots/desktop-empty.png
-2. screenshots/desktop-file-manager.png
+Directly captures pixel-perfect window surfaces from GTK3:
+1. screenshots/desktop-empty.png (Desktop Shell)
+2. screenshots/desktop-this-pc.png (This PC & Disks)
+3. screenshots/desktop-file-manager.png (File Manager)
+4. screenshots/desktop-terminal.png (Terminal Emulator)
+5. screenshots/desktop-task-manager.png (Task Manager & Resource Monitor)
 """
 
 from __future__ import annotations
 
 import os
 import shutil
-import signal
-import subprocess
 import sys
 import time
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
+
+from desktop.shell.shell import DesktopShell
+from desktop.task_manager.task_manager import TaskManagerWindow
+from desktop.terminal.terminal import TerminalWindow
+from file_manager.gui import FileManagerWindow
 SCREENSHOTS_DIR = os.path.join(ROOT_DIR, "screenshots")
 SAMPLE_DIR = os.path.join(ROOT_DIR, "sample_vps")
 
 
 def create_sample_fs() -> str:
-    """Create a realistic sample VPS directory if /var/www is not writable locally."""
+    """Create a realistic sample VPS directory."""
     target = "/var/www" if os.access("/var/www", os.W_OK) else SAMPLE_DIR
     if target == SAMPLE_DIR:
         os.makedirs(os.path.join(target, "html"), exist_ok=True)
@@ -43,35 +57,28 @@ def create_sample_fs() -> str:
     return target
 
 
-def capture_display(display_num: str, output_path: str) -> bool:
-    """Capture root window using GDK/Cairo or scrot."""
+def capture_gtk_window(window: Gtk.Window, output_path: str) -> bool:
+    """Pump the GTK event loop until the window is fully realized, rendered, and save pixbuf."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    window.show_all()
 
-    # Method 1: PyGObject GdkPixbuf capture
-    try:
-        env = dict(os.environ)
-        env["DISPLAY"] = display_num
-        py_code = (
-            f"import gi; gi.require_version('Gdk', '3.0'); from gi.repository import Gdk, GdkPixbuf; "
-            f"screen = Gdk.Screen.get_default(); root = screen.get_root_window(); "
-            f"w, h = root.get_width(), root.get_height(); "
-            f"pix = Gdk.pixbuf_get_from_window(root, 0, 0, w, h); "
-            f"pix.savev('{output_path}', 'png', [], [])"
-        )
-        proc = subprocess.run([sys.executable, "-c", py_code], env=env, timeout=10)
-        if proc.returncode == 0 and os.path.exists(output_path):
-            return True
-    except Exception:
-        pass
+    # Flush iterations to process redraws and style updates
+    for _ in range(60):
+        Gtk.main_iteration_do(False)
+    time.sleep(0.3)
+    for _ in range(40):
+        Gtk.main_iteration_do(False)
 
-    # Method 2: Scrot fallback
-    if shutil.which("scrot"):
-        env = dict(os.environ)
-        env["DISPLAY"] = display_num
-        proc = subprocess.run(["scrot", output_path], env=env, timeout=10)
-        if proc.returncode == 0 and os.path.exists(output_path):
-            return True
+    gdk_win = window.get_window()
+    if not gdk_win:
+        return False
 
+    w = gdk_win.get_width()
+    h = gdk_win.get_height()
+    pix = Gdk.pixbuf_get_from_window(gdk_win, 0, 0, w, h)
+    if pix:
+        pix.savev(output_path, "png", [], [])
+        return os.path.exists(output_path)
     return False
 
 
@@ -79,109 +86,65 @@ def main() -> int:
     os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
     sample_path = create_sample_fs()
 
-    display_num = ":108"
-    print(f"Starting Xvfb on {display_num} (1280x800x24)...")
-    xvfb = subprocess.Popen(
-        [
-            "Xvfb",
-            display_num,
-            "-screen",
-            "0",
-            "1280x800x24",
-            "-ac",
-            "+extension",
-            "GLX",
-            "+render",
-            "-noreset",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        preexec_fn=os.setsid,
-    )
-    time.sleep(0.6)
+    print("Starting screenshot capture process...")
 
-    env = dict(os.environ)
-    env["DISPLAY"] = display_num
-    env["PYTHONPATH"] = ROOT_DIR + os.pathsep + env.get("PYTHONPATH", "")
+    # 1. Desktop Shell
+    print("Capturing desktop-empty.png...")
+    shell = DesktopShell()
+    empty_out = os.path.join(SCREENSHOTS_DIR, "desktop-empty.png")
+    if capture_gtk_window(shell.window, empty_out):
+        print(f"✓ Saved {empty_out}")
+    else:
+        print(f"✗ Failed {empty_out}")
+    shell.window.destroy()
 
-    wm = None
-    if shutil.which("openbox"):
-        wm = subprocess.Popen(
-            ["openbox"],
-            env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid,
-        )
-        time.sleep(0.3)
+    # 2. This PC Window
+    print("Capturing desktop-this-pc.png...")
+    thispc_win = FileManagerWindow(start_path="thispc://")
+    thispc_out = os.path.join(SCREENSHOTS_DIR, "desktop-this-pc.png")
+    if capture_gtk_window(thispc_win, thispc_out):
+        print(f"✓ Saved {thispc_out}")
+    else:
+        print(f"✗ Failed {thispc_out}")
+    thispc_win.destroy()
 
-    try:
-        # 1. Capture Empty Desktop
-        print("Launching ease-Desk Shell...")
-        shell = subprocess.Popen(
-            [sys.executable, "-m", "desktop.shell.shell"],
-            env=env,
-            cwd=ROOT_DIR,
-        )
-        time.sleep(1.5)  # allow GTK fade-in and layout to render
+    # 3. File Manager Window
+    print("Capturing desktop-file-manager.png...")
+    fm_win = FileManagerWindow(start_path=sample_path)
+    fm_out = os.path.join(SCREENSHOTS_DIR, "desktop-file-manager.png")
+    if capture_gtk_window(fm_win, fm_out):
+        print(f"✓ Saved {fm_out}")
+    else:
+        print(f"✗ Failed {fm_out}")
+    fm_win.destroy()
 
-        empty_out = os.path.join(SCREENSHOTS_DIR, "desktop-empty.png")
-        print(f"Capturing {empty_out}...")
-        if capture_display(display_num, empty_out):
-            print("✓ Successfully captured desktop-empty.png")
-        else:
-            print("✗ Failed to capture desktop-empty.png")
-
-        # 2. Capture Desktop with This PC (Partitions & Storage) Open
-        print("Launching This PC (Partitions overview)...")
-        thispc = subprocess.Popen(
-            [sys.executable, "-m", "file_manager.app", "thispc://"],
-            env=env,
-            cwd=ROOT_DIR,
-        )
-        time.sleep(1.8)
-
-        thispc_out = os.path.join(SCREENSHOTS_DIR, "desktop-this-pc.png")
-        print(f"Capturing {thispc_out}...")
-        if capture_display(display_num, thispc_out):
-            print("✓ Successfully captured desktop-this-pc.png")
-        else:
-            print("✗ Failed to capture desktop-this-pc.png")
-
-        # 3. Capture Desktop with File Manager Open
-        print(f"Launching File Manager in {sample_path}...")
-        fm = subprocess.Popen(
-            [sys.executable, "-m", "file_manager.app", sample_path],
-            env=env,
-            cwd=ROOT_DIR,
-        )
-        time.sleep(1.8)
-
-        fm_out = os.path.join(SCREENSHOTS_DIR, "desktop-file-manager.png")
-        print(f"Capturing {fm_out}...")
-        if capture_display(display_num, fm_out):
-            print("✓ Successfully captured desktop-file-manager.png")
-        else:
-            print("✗ Failed to capture desktop-file-manager.png")
-
-        # Terminate applications
-        fm.terminate()
-        thispc.terminate()
-        shell.terminate()
-        time.sleep(0.5)
-
-    finally:
-        if wm:
-            try:
-                os.killpg(os.getpgid(wm.pid), signal.SIGTERM)
-            except Exception:
-                pass
+    # 4. Terminal Emulator Window
+    print("Capturing desktop-terminal.png...")
+    term_win = TerminalWindow(initial_dir=sample_path)
+    if term_win.term and term_win.term.master_fd:
         try:
-            os.killpg(os.getpgid(xvfb.pid), signal.SIGTERM)
-        except Exception:
+            os.write(term_win.term.master_fd, b"ls -la --color=auto\n")
+        except OSError:
             pass
+    time.sleep(0.5)
+    term_out = os.path.join(SCREENSHOTS_DIR, "desktop-terminal.png")
+    if capture_gtk_window(term_win, term_out):
+        print(f"✓ Saved {term_out}")
+    else:
+        print(f"✗ Failed {term_out}")
+    term_win.destroy()
 
-    print("\nScreenshot capture process complete.")
+    # 5. Task Manager Window
+    print("Capturing desktop-task-manager.png...")
+    task_win = TaskManagerWindow()
+    task_out = os.path.join(SCREENSHOTS_DIR, "desktop-task-manager.png")
+    if capture_gtk_window(task_win, task_out):
+        print(f"✓ Saved {task_out}")
+    else:
+        print(f"✗ Failed {task_out}")
+    task_win.destroy()
+
+    print("\nAll screenshots updated successfully!")
     return 0
 
 

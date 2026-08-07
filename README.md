@@ -24,9 +24,17 @@ Uki-exit tu, inajifunga completely bila kuacha process yoyote inayokula RAM au C
 
 ## Screenshots
 
-| Clean Desktop | File Manager Open |
+| 🖥️ Clean Desktop Shell | 💻 Embedded Terminal Console |
 |---|---|
-| ![Empty Desktop](screenshots/desktop-empty.png) | ![File Manager](screenshots/desktop-file-manager.png) |
+| ![Empty Desktop](screenshots/desktop-empty.png) | ![Terminal](screenshots/desktop-terminal.png) |
+
+| 📊 Task Manager & Monitor | 📁 File Manager & Storage |
+|---|---|
+| ![Task Manager](screenshots/desktop-task-manager.png) | ![File Manager](screenshots/desktop-file-manager.png) |
+
+| 💽 This PC (Drives & Partitions) |
+|---|
+| ![This PC](screenshots/desktop-this-pc.png) |
 
 ---
 
@@ -45,19 +53,21 @@ Uki-exit tu, inajifunga completely bila kuacha process yoyote inayokula RAM au C
 ## Project Structure
 
 ```text
-├── desktop/                 # Desktop shell, session manager, na window management
+├── desktop/                 # Desktop shell, session manager, na modular tools
 │   ├── session/             # Display server (Xvfb/X11), WM launcher, na teardown
-│   └── shell/               # Desktop background, top bar, clock, na server monitor
+│   ├── shell/               # Desktop background, start menu, top bar, na quick launchers
+│   ├── terminal/            # Embedded PTY terminal emulator na ANSI console
+│   └── task_manager/        # Process activity monitor, CPU/RAM/Disk gauges
 │
 ├── file_manager/            # VPS file manager application
-│   ├── core/                # Filesystem operations (copy, move, delete, permissions)
-│   ├── gui.py               # GTK3 icon view, path bar, na navigation controls
+│   ├── core/                # Filesystem ops, zip/tar archives, permissions
+│   ├── gui.py               # GTK3 icon view, This PC view, context menu
 │   ├── viewer.py            # Text and config file viewer / editor
 │   └── types.py             # MIME types, file extensions, na size formatting
 │
 ├── shared/                  # Shared styling na system utilities
 │   ├── styles/              # Dark slate theme na CSS definitions
-│   └── utilities/           # System info probes, animation helpers, security checks
+│   └── utilities/           # Cairo vector icons, sysinfo probes, security checks
 │
 ├── docker/                  # Docker VPS testing environment
 │   ├── Dockerfile           # Debian 12 container with SSH server na sample files
