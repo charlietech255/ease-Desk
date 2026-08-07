@@ -10,6 +10,7 @@ import argparse
 import os
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -84,17 +85,34 @@ class SessionManager:
 
         # 2. Start Window Manager (Openbox or minimal fallback)
         self._start_window_manager()
-        print("✓ Display server")
+        print("✓ Display server initialized")
 
         # 3. Start Desktop Shell
         shell_proc = self._start_desktop_shell()
-        print("✓ Desktop shell")
-        print("✓ File Manager service")
-        print(f"\nease-Desk started on {self.display_str}.")
-        if self.is_virtual_display and self.enable_vnc:
-            print(f"  • Native VNC Server: port {self.vnc_port}")
-            print(f"  • Web Client (noVNC): http://localhost:{self.novnc_port}/vnc.html")
-        print("\n(Press Ctrl+C in terminal or click 'Exit Desktop' to shutdown)\n")
+        print("✓ Desktop shell initialized")
+        print("✓ File Manager service ready")
+
+        if self.is_virtual_display:
+            ips = self._get_ip_addresses()
+            primary_ip = ips[0] if ips else "localhost"
+            print("\n" + "=" * 64)
+            print("         🌐 ease-Desk Server is Running!         ")
+            print("=" * 64)
+            print("  Open this link in your browser (Phone / PC / Tablet):")
+            print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html")
+            if primary_ip != "localhost" and primary_ip != "127.0.0.1":
+                print(f"  👉 http://localhost:{self.novnc_port}/vnc.html")
+            print("-" * 64)
+            if self.enable_vnc:
+                print(f"  🖥️  Native VNC Client: {primary_ip}:{self.vnc_port}")
+            print(f"  🖥️  Display ID:       {self.display_str}")
+            print("=" * 64)
+            print("(Press Ctrl+C in this terminal to shutdown ease-Desk)\n")
+        else:
+            print("\n" + "=" * 64)
+            print(f"  🖥️  ease-Desk started directly on {self.display_str}")
+            print("=" * 64)
+            print("(Press Ctrl+C or click 'Exit Desktop' to shutdown)\n")
 
         # Setup signal handlers for clean exit
         self._setup_signals(shell_proc)
@@ -107,6 +125,29 @@ class SessionManager:
         finally:
             self.stop()
         return returncode
+
+    def _get_ip_addresses(self) -> list[str]:
+        """Detect local network and external IP addresses."""
+        ips: list[str] = []
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            sock_ip = s.getsockname()[0]
+            s.close()
+            if sock_ip and sock_ip != "127.0.0.1":
+                ips.append(sock_ip)
+        except Exception:
+            pass
+
+        try:
+            res = subprocess.run(["hostname", "-I"], capture_output=True, text=True, timeout=1)
+            for part in res.stdout.strip().split():
+                if part and part not in ips and not part.startswith("127.") and not part.startswith("172.17."):
+                    ips.append(part)
+        except Exception:
+            pass
+
+        return ips
 
     # -------------------------------------------------------- Subprocesses
     def _start_virtual_display(self) -> None:

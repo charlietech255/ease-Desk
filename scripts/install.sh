@@ -1,26 +1,35 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ease-Desk Installation Script (Debian / Ubuntu)
+# ease-Desk — All-in-One Installer (Linux / VPS / Debian / Ubuntu / Termux)
 # ==============================================================================
 set -e
 
-INSTALL_DIR="/opt/ease-desk"
-BIN_LINK="/usr/local/bin/desktop"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-echo "=== Installing ease-Desk ==="
+echo "====================================================="
+echo "   Installing ease-Desk (All-in-One Setup)          "
+echo "====================================================="
 
-# Check root privileges
-if [ "$(id -u)" -ne 0 ]; then
-    echo "This script requires root privileges to install system packages and global binaries."
-    echo "Please run with sudo: sudo $0"
-    exit 1
+# Determine installation paths based on privileges
+if [ "$(id -u)" -eq 0 ]; then
+    INSTALL_DIR="/opt/ease-desk"
+    BIN_DIR="/usr/local/bin"
+else
+    # User-level installation fallback if sudo not available
+    if command -v sudo >/dev/null 2>&1; then
+        echo "Elevating privileges with sudo to install system dependencies & global command..."
+        exec sudo "$0" "$@"
+    else
+        INSTALL_DIR="${HOME}/.local/share/ease-desk"
+        BIN_DIR="${HOME}/.local/bin"
+        mkdir -p "${BIN_DIR}"
+    fi
 fi
 
-# Update and install dependencies if apt-get is available
+# 1. Install System Dependencies (Apt on Debian/Ubuntu, Pkg on Termux)
 if command -v apt-get >/dev/null 2>&1; then
-    echo "Installing system dependencies via apt..."
+    echo "📦 Installing system packages (Xvfb, GTK3, Python-GI, VNC, noVNC)..."
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install -y -qq \
@@ -36,28 +45,56 @@ if command -v apt-get >/dev/null 2>&1; then
         websockify \
         procps \
         scrot \
-        curl
+        curl \
+        net-tools \
+        fonts-dejavu-core \
+        adwaita-icon-theme \
+        >/dev/null 2>&1 || {
+            echo "Standard apt-get install complete with warnings (retrying essentials)..."
+            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 xvfb x11vnc novnc websockify
+        }
+elif command -v pkg >/dev/null 2>&1; then
+    echo "📦 Installing Termux packages..."
+    pkg install -y python x11-repo xwayland tigervnc
 fi
 
-# Create target installation directory
-echo "Deploying files to ${INSTALL_DIR}..."
+# 2. Setup noVNC index.html symlink for root URL convenience
+if [ -d "/usr/share/novnc" ] && [ -f "/usr/share/novnc/vnc.html" ]; then
+    ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html 2>/dev/null || true
+fi
+
+# 3. Deploy ease-Desk files
+echo "📂 Deploying ease-Desk to ${INSTALL_DIR}..."
 mkdir -p "${INSTALL_DIR}"
 cp -r "${ROOT_DIR}/desktop" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/file_manager" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/shared" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/scripts" "${INSTALL_DIR}/"
-[ -f "${ROOT_DIR}/unnamed.png" ] && cp "${ROOT_DIR}/unnamed.png" "${INSTALL_DIR}/"
 
-# Set permissions
+# Copy assets & wallpapers
+for asset in "${ROOT_DIR}"/*.png "${ROOT_DIR}"/*.jpg "${ROOT_DIR}"/*.svg; do
+    [ -f "${asset}" ] && cp "${asset}" "${INSTALL_DIR}/" 2>/dev/null || true
+done
+
+# Ensure permissions
 chmod +x "${INSTALL_DIR}/scripts/desktop"
+chmod +x "${INSTALL_DIR}/scripts/"*.sh 2>/dev/null || true
 chmod -R a+rX "${INSTALL_DIR}"
 
-# Create symlink
-echo "Creating symlink ${BIN_LINK}..."
-ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_LINK}"
-chmod +x "${BIN_LINK}"
+# 4. Create global command link
+mkdir -p "${BIN_DIR}"
+ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/desktop"
+chmod +x "${BIN_DIR}/desktop"
 
 echo ""
-echo "=== Installation complete ==="
-echo "You can now start ease-Desk by running:"
+echo "====================================================="
+echo "✓ ease-Desk Installed Successfully!"
+echo "====================================================="
+echo "Now you can simply type:"
+echo ""
 echo "    desktop"
+echo ""
+echo "• If you are on a Desktop monitor: It will open directly."
+echo "• If you are on a VPS/headless: It will display a web URL"
+echo "  (e.g., http://YOUR_IP:6080/vnc.html) to open in browser."
+echo "====================================================="
