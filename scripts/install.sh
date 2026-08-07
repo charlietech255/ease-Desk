@@ -136,6 +136,8 @@ EOF
     fi
 fi
 
+
+
 # 3. Deploy ease-Desk files
 echo "📂 Deploying ease-Desk to ${INSTALL_DIR}..."
 mkdir -p "${INSTALL_DIR}"
@@ -159,15 +161,38 @@ mkdir -p "${BIN_DIR}"
 ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/desktop"
 chmod +x "${BIN_DIR}/desktop"
 
+# 5. Setup Systemd Service (Start it in background)
+if command -v systemctl >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+    echo "⚙️ Configuring ease-Desk Systemd Background Service..."
+    cat << EOF > /etc/systemd/system/easedesk.service
+[Unit]
+Description=ease-Desk Virtual Desktop Session
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=${SUDO_USER:-$USER}
+Environment=HOME=$(eval echo "~${SUDO_USER:-$USER}")
+ExecStart=${BIN_DIR}/desktop
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable easedesk
+    systemctl restart easedesk || echo "⚠️ Failed to start background service."
+    echo "✓ Background service 'easedesk' started!"
+fi
+
 echo ""
 echo "====================================================="
-echo "✓ ease-Desk Installed Successfully!"
+echo "✓ ease-Desk Installed & Running in Background!"
 echo "====================================================="
-echo "Now you can simply type:"
+echo "You can check the status anytime by typing:"
+echo "    systemctl status easedesk"
 echo ""
-echo "    desktop"
-echo ""
-echo "• If you are on a Desktop monitor: It will open directly."
-echo "• If you are on a VPS/headless: It will display a web URL"
-echo "  (e.g., http://YOUR_DOMAIN/vnc.html) to open in browser (via Nginx proxy)."
+echo "• Open your web URL to view the desktop:"
+echo "  👉 http://YOUR_IP_OR_DOMAIN/vnc.html"
 echo "====================================================="
