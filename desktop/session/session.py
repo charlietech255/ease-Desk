@@ -150,12 +150,24 @@ class SessionManager:
     def _get_ip_addresses(self) -> list[str]:
         """Detect local network and external IP addresses."""
         ips: list[str] = []
+        
+        # Try to get public IP first
+        try:
+            from urllib.request import urlopen
+            # 1-second timeout so it doesn't block startup
+            with urlopen("https://api.ipify.org", timeout=1.0) as response:
+                public_ip = response.read().decode('utf-8').strip()
+                if public_ip:
+                    ips.append(public_ip)
+        except Exception:
+            pass
+
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             sock_ip = s.getsockname()[0]
             s.close()
-            if sock_ip and sock_ip != "127.0.0.1":
+            if sock_ip and sock_ip != "127.0.0.1" and sock_ip not in ips:
                 ips.append(sock_ip)
         except Exception:
             pass
