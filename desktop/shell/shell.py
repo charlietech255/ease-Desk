@@ -96,7 +96,7 @@ class DesktopShell:
         self.children: list[int] = []
         self.desktop_items: list[dict] = []
         self.item_widgets: dict[str, Gtk.Widget] = {}
-        self.active_drag_item_id: str | None = None
+        self.drag_ctx: dict | None = None
         self.selected_item_id: str | None = None
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
@@ -105,8 +105,16 @@ class DesktopShell:
         self.window.set_decorated(False)
         self.window.set_default_size(1280, 800)
         self.window.fullscreen()
+        self.window.add_events(
+            Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+            | Gdk.EventMask.BUTTON1_MOTION_MASK
+        )
         self.window.connect("delete-event", self._on_delete_event)
         self.window.connect("key-press-event", self._on_key_press)
+        self.window.connect("motion-notify-event", self._on_window_motion)
+        self.window.connect("button-release-event", self._on_window_release)
 
         self._load_config()
         self._load_css()
@@ -166,16 +174,23 @@ class DesktopShell:
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         outer.pack_start(self._build_topbar(), False, False, 0)
 
-        # Background event box to catch right-clicks on empty desktop
+        fixed = Gtk.Fixed()
+        fixed.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+            | Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.BUTTON1_MOTION_MASK
+        )
+        outer.pack_start(fixed, True, True, 0)
+        self.fixed = fixed
+
+        # Background click event box for empty desktop right clicks
         bg_event = Gtk.EventBox()
         bg_event.set_visible_window(False)
         bg_event.set_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         bg_event.connect("button-press-event", self._on_bg_click)
-
-        fixed = Gtk.Fixed()
-        bg_event.add(fixed)
-        outer.pack_start(bg_event, True, True, 0)
-        self.fixed = fixed
+        fixed.put(bg_event, 0, 0)
+        self.bg_event = bg_event
 
         # Build desktop items
         self._render_desktop_items()
@@ -234,11 +249,13 @@ class DesktopShell:
 
     def _create_icon_widget(self, item: dict) -> Gtk.Widget:
         event = Gtk.EventBox()
-        event.set_visible_window(False)
+        event.set_visible_window(True)
+        event.set_above_child(True)
         event.set_events(
             Gdk.EventMask.BUTTON_PRESS_MASK
             | Gdk.EventMask.BUTTON_RELEASE_MASK
             | Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.BUTTON1_MOTION_MASK
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -256,37 +273,35 @@ class DesktopShell:
         event.add(box)
         event.set_tooltip_text(f"{item.get('name')} — double-click to open, drag to move")
 
-        drag_state = {
-            "dragging": False,
-            "moved": False,
-            "start_root_x": 0.0,
-            "start_root_y": 0.0,
-            "start_widget_x": 0,
-            "start_widget_y": 0,
-            "current_x": 0,
-            "current_y": 0,
-        }
-
         def on_press(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
             if event_gdk.type == Gdk.EventType._2BUTTON_PRESS and event_gdk.button == 1:
+                self.drag_ctx = None
                 self._launch_path(item.get("path", os.path.expanduser("~")))
                 return True
 
             if event_gdk.button == 1:
                 self._select_item(item["id"])
                 alloc = w.get_allocation()
-                drag_state["dragging"] = True
-                drag_state["moved"] = False
-                drag_state["start_root_x"] = event_gdk.x_root
-                drag_state["start_root_y"] = event_gdk.y_root
-                drag_state["start_widget_x"] = alloc.x
-                drag_state["start_widget_y"] = alloc.y
-                drag_state["current_x"] = alloc.x
-                drag_state["current_y"] = alloc.y
-                self.active_drag_item_id = item["id"]
+                current_x = item.get("x")
+                current_y = item.get("y")
+                if current_x is None:
+                    current_x = alloc.x
+                if current_y is None:
+                    current_y = alloc.y
 
+                self.drag_ctx = {
+                    "item": item,
+                    "widget": w,
+                    "box": box,
+                    "start_root_x": event_gdk.x_root,
+                    "start_root_y": event_gdk.y_root,
+                    "start_x": current_x,
+                    "start_y": current_y,
+                    "current_x": current_x,
+                    "current_y": current_y,
+                    "moved": False,
+                }
                 box.get_style_context().add_class("dragging")
-                w.grab_add()
                 return True
 
             if event_gdk.button == 3:  # Right-click context menu
@@ -295,47 +310,19 @@ class DesktopShell:
                 return True
             return False
 
-        def on_motion(w: Gtk.Widget, event_gdk: Gdk.EventMotion) -> bool:
-            if not drag_state["dragging"]:
-                return False
+        def on_widget_motion(w: Gtk.Widget, event_gdk: Gdk.EventMotion) -> bool:
+            if self.drag_ctx and self.drag_ctx["widget"] == w:
+                return self._on_window_motion(self.window, event_gdk)
+            return False
 
-            dx = event_gdk.x_root - drag_state["start_root_x"]
-            dy = event_gdk.y_root - drag_state["start_root_y"]
-
-            if abs(dx) > 2 or abs(dy) > 2 or drag_state["moved"]:
-                drag_state["moved"] = True
-                win_w, win_h = self.window.get_size()
-                alloc = w.get_allocation()
-
-                new_x = int(drag_state["start_widget_x"] + dx)
-                new_y = int(drag_state["start_widget_y"] + dy)
-
-                # Constrain within desktop bounds
-                new_x = max(10, min(win_w - alloc.width - 10, new_x))
-                new_y = max(10, min(win_h - alloc.height - 70, new_y))
-
-                drag_state["current_x"] = new_x
-                drag_state["current_y"] = new_y
-                self.fixed.move(w, new_x, new_y)
-            return True
-
-        def on_release(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
-            if event_gdk.button == 1 and drag_state["dragging"]:
-                drag_state["dragging"] = False
-                self.active_drag_item_id = None
-                w.grab_remove()
-                box.get_style_context().remove_class("dragging")
-
-                if drag_state["moved"]:
-                    item["x"] = drag_state["current_x"]
-                    item["y"] = drag_state["current_y"]
-                    self._save_config()
-                    return True
+        def on_widget_release(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
+            if self.drag_ctx and self.drag_ctx["widget"] == w:
+                return self._on_window_release(self.window, event_gdk)
             return False
 
         event.connect("button-press-event", on_press)
-        event.connect("motion-notify-event", on_motion)
-        event.connect("button-release-event", on_release)
+        event.connect("motion-notify-event", on_widget_motion)
+        event.connect("button-release-event", on_widget_release)
         return event
 
     def _select_item(self, item_id: str | None) -> None:
@@ -348,6 +335,44 @@ class DesktopShell:
                     ctx.add_class("selected")
                 else:
                     ctx.remove_class("selected")
+
+    def _on_window_motion(self, window: Gtk.Window, event_gdk: Gdk.EventMotion) -> bool:
+        if not self.drag_ctx:
+            return False
+
+        dx = event_gdk.x_root - self.drag_ctx["start_root_x"]
+        dy = event_gdk.y_root - self.drag_ctx["start_root_y"]
+
+        if abs(dx) > 2 or abs(dy) > 2 or self.drag_ctx["moved"]:
+            self.drag_ctx["moved"] = True
+            win_w, win_h = self.window.get_size()
+            w = self.drag_ctx["widget"]
+            alloc = w.get_allocation()
+
+            new_x = int(self.drag_ctx["start_x"] + dx)
+            new_y = int(self.drag_ctx["start_y"] + dy)
+
+            # Constrain within bounds
+            new_x = max(10, min(win_w - alloc.width - 10, new_x))
+            new_y = max(10, min(win_h - alloc.height - 70, new_y))
+
+            self.drag_ctx["current_x"] = new_x
+            self.drag_ctx["current_y"] = new_y
+            self.fixed.move(w, new_x, new_y)
+        return True
+
+    def _on_window_release(self, window: Gtk.Window, event_gdk: Gdk.EventButton) -> bool:
+        if event_gdk.button == 1 and self.drag_ctx:
+            ctx = self.drag_ctx
+            self.drag_ctx = None
+            ctx["box"].get_style_context().remove_class("dragging")
+
+            if ctx["moved"]:
+                ctx["item"]["x"] = ctx["current_x"]
+                ctx["item"]["y"] = ctx["current_y"]
+                self._save_config()
+                return True
+        return False
 
     def _build_info_panel(self) -> Gtk.Widget:
         frame = Gtk.Frame()
@@ -620,9 +645,11 @@ class DesktopShell:
         if win_w <= 1 or win_h <= 1:
             return
 
+        # Update background event box size to cover whole fixed container
+        self.bg_event.set_size_request(win_w, win_h)
+
         for idx, item in enumerate(self.desktop_items):
-            if item.get("id") == self.active_drag_item_id:
-                # Do not disrupt active dragging position
+            if self.drag_ctx and item.get("id") == self.drag_ctx["item"].get("id"):
                 continue
             widget = self.item_widgets.get(item["id"])
             if not widget:
