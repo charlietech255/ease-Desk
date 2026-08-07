@@ -107,7 +107,7 @@ class FileManagerWindow(Gtk.Window):
         self.back_btn = _mk("← Back")
         self.forward_btn = _mk("→ Forward")
         self.up_btn = _mk("↑ Up")
-        self.thispc_btn = _mk("🖥️ This PC")
+        self.thispc_btn = _mk("This PC")
         self.home_btn = _mk("~ Home")
 
         for btn in (self.back_btn, self.forward_btn, self.up_btn, self.thispc_btn, self.home_btn):
@@ -226,7 +226,7 @@ class FileManagerWindow(Gtk.Window):
         # 1. Update Banner
         s = sysinfo.summary()
         self.banner_label.set_markup(
-            f"<span font='13' weight='bold' foreground='#7aa2f7'>🖥️ {escape(s['hostname'])}</span>   "
+            f"<span font='13' weight='bold' foreground='#7aa2f7'>Host: {escape(s['hostname'])}</span>   "
             f"<span font='11' foreground='#94a3b8'>•  OS: {escape(s['os'])}  •  CPU: {s['cpu']} cores  "
             f"•  RAM: {s['mem_used']} / {s['mem_total']}  •  Root Disk: {s['disk_used']} / {s['disk_total']}</span>"
         )
@@ -666,7 +666,7 @@ class FileManagerWindow(Gtk.Window):
             self.stack.set_visible_child_name("thispc")
             self.action_bar.hide()
             self.sort_btn.set_sensitive(False)
-            self.path_entry.set_text("🖥️ This PC")
+            self.path_entry.set_text("This PC")
             self.header.set_title("This PC")
             self.header.set_subtitle("Devices and drives")
             self.set_title("This PC — ease-Desk")
