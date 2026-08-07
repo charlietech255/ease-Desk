@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import html
 import os
+import subprocess
+import sys
 import urllib.parse
 from html import escape
 
@@ -22,6 +24,8 @@ from file_manager.core import fs, types  # noqa: E402
 from file_manager.viewer import ImageViewerWindow, TextViewerWindow  # noqa: E402
 from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
 from shared.utilities.icons import get_icon_pixbuf  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DRAG_TARGET_URI = 0
 DRAG_TARGET_TEXT = 1
