@@ -286,7 +286,7 @@ class DesktopShell:
                 self.active_drag_item_id = item["id"]
 
                 box.get_style_context().add_class("dragging")
-                Gtk.grab_add(w)
+                w.grab_add()
                 return True
 
             if event_gdk.button == 3:  # Right-click context menu
@@ -323,7 +323,7 @@ class DesktopShell:
             if event_gdk.button == 1 and drag_state["dragging"]:
                 drag_state["dragging"] = False
                 self.active_drag_item_id = None
-                Gtk.grab_remove(w)
+                w.grab_remove()
                 box.get_style_context().remove_class("dragging")
 
                 if drag_state["moved"]:
