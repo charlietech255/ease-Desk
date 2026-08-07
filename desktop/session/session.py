@@ -67,12 +67,15 @@ class SessionManager:
         # 1. Setup Display Server
         existing_display = os.environ.get("DISPLAY")
         if self.requested_display:
+            # Explicitly requested display — trust it
             self.display_str = self.requested_display
-        elif existing_display and existing_display.strip():
-            self.display_str = existing_display
+            self.is_virtual_display = False
+        elif existing_display and existing_display.strip() and self._display_is_alive(existing_display.strip()):
+            # Existing DISPLAY is set AND verified to be reachable
+            self.display_str = existing_display.strip()
             self.is_virtual_display = False
         else:
-            # Headless SSH connection: start Xvfb virtual display
+            # Headless / VPS / no real display — start Xvfb virtual display
             self.display_str = self._find_free_display()
             self.is_virtual_display = True
             self._start_virtual_display()
@@ -125,6 +128,20 @@ class SessionManager:
         finally:
             self.stop()
         return returncode
+
+    def _display_is_alive(self, display: str) -> bool:
+        """Return True only if the given DISPLAY string has a live X server."""
+        try:
+            result = subprocess.run(
+                ["xdpyinfo", "-display", display],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2,
+            )
+            return result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            # xdpyinfo not installed or timed out — assume dead
+            return False
 
     def _get_ip_addresses(self) -> list[str]:
         """Detect local network and external IP addresses."""
