@@ -27,6 +27,10 @@ else
     fi
 fi
 
+echo -n "🔒 Enter a secure password for your ease-Desk login: "
+read -s VNC_PASS
+echo ""
+
 # 1. Install System Dependencies (Apt on Debian/Ubuntu, Pkg on Termux)
 if command -v apt-get >/dev/null 2>&1; then
     echo "📦 Installing system packages (Xvfb, GTK3, Python-GI, VNC, noVNC)..."
@@ -43,6 +47,9 @@ if command -v apt-get >/dev/null 2>&1; then
         x11vnc \
         novnc \
         websockify \
+        nginx \
+        certbot \
+        python3-certbot-nginx \
         procps \
         scrot \
         curl \
@@ -64,6 +71,69 @@ fi
 # 2. Setup noVNC index.html symlink for root URL convenience
 if [ -d "/usr/share/novnc" ] && [ -f "/usr/share/novnc/vnc.html" ]; then
     ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html 2>/dev/null || true
+fi
+
+# 2.1 Store VNC Password
+if [ -n "$VNC_PASS" ] && command -v x11vnc >/dev/null 2>&1; then
+    USER_HOME=$(eval echo "~${SUDO_USER:-$USER}")
+    mkdir -p "${USER_HOME}/.vnc"
+    x11vnc -storepasswd "$VNC_PASS" "${USER_HOME}/.vnc/passwd" >/dev/null 2>&1
+    chown -R "${SUDO_USER:-$USER}" "${USER_HOME}/.vnc"
+    echo "🔒 Password saved securely."
+fi
+
+# 2.2 Setup Nginx Reverse Proxy & SSL
+if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+    echo "🌐 Configuring Nginx Reverse Proxy for ease-Desk..."
+    
+    if systemctl is-active --quiet apache2 2>/dev/null; then
+        echo "⚠️ Apache2 detected. Disabling to free port 80 for Nginx..."
+        systemctl stop apache2 || true
+        systemctl disable apache2 || true
+    fi
+
+    cat << 'EOF' > /tmp/easedesk.conf
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:6080/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+EOF
+    if [ -d "/etc/nginx/sites-available" ]; then
+        mv /tmp/easedesk.conf /etc/nginx/sites-available/easedesk
+        ln -sf /etc/nginx/sites-available/easedesk /etc/nginx/sites-enabled/
+        rm -f /etc/nginx/sites-enabled/default
+        
+        if nginx -t >/dev/null 2>&1; then
+            systemctl restart nginx || true
+            echo "✓ Nginx configured successfully with 0 errors."
+        else
+            echo "❌ Nginx configuration test failed."
+        fi
+
+        if command -v certbot >/dev/null 2>&1; then
+            echo -n "Do you have a custom domain name to configure SSL/HTTPS? (y/N): "
+            read -r SETUP_SSL
+            if [[ "$SETUP_SSL" =~ ^[Yy]$ ]]; then
+                echo -n "Enter your domain name (e.g. desktop.example.com): "
+                read -r DOMAIN_NAME
+                echo -n "Enter your email for SSL registration: "
+                read -r CERT_EMAIL
+                if [ -n "$DOMAIN_NAME" ] && [ -n "$CERT_EMAIL" ]; then
+                    echo "🔒 Securing with Certbot..."
+                    certbot --nginx -d "$DOMAIN_NAME" --non-interactive --agree-tos -m "$CERT_EMAIL" || echo "⚠️ Certbot failed, but HTTP is still available."
+                fi
+            fi
+        fi
+    fi
 fi
 
 # 3. Deploy ease-Desk files
@@ -99,5 +169,5 @@ echo "    desktop"
 echo ""
 echo "• If you are on a Desktop monitor: It will open directly."
 echo "• If you are on a VPS/headless: It will display a web URL"
-echo "  (e.g., http://YOUR_IP:6080/vnc.html) to open in browser."
+echo "  (e.g., http://YOUR_DOMAIN/vnc.html) to open in browser (via Nginx proxy)."
 echo "====================================================="

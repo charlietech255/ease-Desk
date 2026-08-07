@@ -103,16 +103,15 @@ class SessionManager:
             print("         🌐 ease-Desk Server is Running!         ")
             print("=" * 64)
             print("  Open this link in your browser (Phone / PC / Tablet):")
-            print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html{url_params}")
-            print("\n  ⚠️  If the site can't be reached on a VPS:")
-            print(f"     1. Ensure Port {self.novnc_port} is OPEN in your Cloud Firewall (AWS/DigitalOcean/etc)")
-            print("     2. OR use an SSH Tunnel to bypass the firewall securely:")
-            print(f"        ssh -L {self.novnc_port}:localhost:{self.novnc_port} charlie@{primary_ip}")
-            print(f"        Then open: http://localhost:{self.novnc_port}/vnc.html")
+            print(f"  👉 http://{primary_ip}/vnc.html{url_params}")
+            print(f"     (requires Nginx reverse proxy on port 80)")
+            print("")
+            print("  Or using SSH Tunnel (Secure):")
+            print(f"  👉 http://localhost:{self.novnc_port}/vnc.html{url_params}")
             print("-" * 64)
             print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
             if self.enable_vnc:
-                print(f"  🖥️  Native VNC Client: {primary_ip}:{self.vnc_port}")
+                print(f"  🖥️  Native VNC Client (SSH Tunnel): localhost:{self.vnc_port}")
             print(f"  🖥️  Display ID:       {self.display_str}")
             print("=" * 64)
             print("(Press Ctrl+C in this terminal to shutdown ease-Desk)\n")
@@ -202,6 +201,9 @@ class SessionManager:
         time.sleep(0.35)
 
         if self.enable_vnc and shutil.which("x11vnc"):
+            pwd_file = os.path.expanduser("~/.vnc/passwd")
+            auth_args = ["-rfbauth", pwd_file] if os.path.exists(pwd_file) else ["-nopw"]
+
             vnc_cmd = [
                 "x11vnc",
                 "-display",
@@ -210,10 +212,10 @@ class SessionManager:
                 str(self.vnc_port),
                 "-forever",
                 "-shared",
-                "-nopw",
+                "-localhost",
                 "-quiet",
                 "-bg",
-            ]
+            ] + auth_args
             subprocess.run(
                 vnc_cmd,
                 stdout=subprocess.DEVNULL,
@@ -231,7 +233,7 @@ class SessionManager:
                         "websockify",
                         "--web",
                         web_dir,
-                        f"0.0.0.0:{self.novnc_port}",
+                        f"localhost:{self.novnc_port}",
                         f"localhost:{self.vnc_port}",
                     ]
                 else:
@@ -240,7 +242,7 @@ class SessionManager:
                         "--vnc",
                         f"localhost:{self.vnc_port}",
                         "--listen",
-                        f"0.0.0.0:{self.novnc_port}",
+                        f"localhost:{self.novnc_port}",
                     ]
                 novnc = subprocess.Popen(
                     ws_cmd,
