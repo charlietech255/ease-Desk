@@ -171,9 +171,43 @@ def copy(path: str, dest_dir: str, new_name: str | None = None) -> str:
     return target
 
 
+def copy_or_replace(path: str, dest_dir: str, overwrite: bool = False) -> str:
+    name = os.path.basename(path.rstrip(os.sep)) or "item"
+    target = safe_child(dest_dir, name)
+    if os.path.exists(target):
+        if not overwrite:
+            return copy(path, dest_dir)
+        # Delete existing target first to replace cleanly
+        delete(target)
+    try:
+        if os.path.isdir(path):
+            shutil.copytree(path, target, symlinks=True)
+        else:
+            shutil.copy2(path, target)
+    except OSError as exc:
+        raise _translate("copy", path, exc) from exc
+    return target
+
+
 def move(path: str, dest_dir: str, new_name: str | None = None) -> str:
     name = new_name or os.path.basename(path.rstrip(os.sep)) or "item"
     target = _unique_target(dest_dir, name)
+    try:
+        shutil.move(path, target)
+    except OSError as exc:
+        raise _translate("move", path, exc) from exc
+    return target
+
+
+def move_or_replace(path: str, dest_dir: str, overwrite: bool = False) -> str:
+    name = os.path.basename(path.rstrip(os.sep)) or "item"
+    target = safe_child(dest_dir, name)
+    if os.path.realpath(path) == os.path.realpath(target):
+        return target
+    if os.path.exists(target):
+        if not overwrite:
+            return move(path, dest_dir)
+        delete(target)
     try:
         shutil.move(path, target)
     except OSError as exc:

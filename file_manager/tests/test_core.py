@@ -82,6 +82,42 @@ class FileOperationTests(unittest.TestCase):
         self.assertTrue(os.path.exists(moved))
         self.assertFalse(os.path.exists(src))
 
+    def test_copy_or_replace(self):
+        src = os.path.join(self.root, "item.txt")
+        with open(src, "w") as f:
+            f.write("content 1")
+        dest = os.path.join(self.root, "dest_dir")
+        os.mkdir(dest)
+
+        # First copy
+        copied = fs.copy_or_replace(src, dest, overwrite=False)
+        self.assertEqual(copied, os.path.join(dest, "item.txt"))
+
+        # Update source
+        with open(src, "w") as f:
+            f.write("content 2")
+
+        # Replace copy
+        replaced = fs.copy_or_replace(src, dest, overwrite=True)
+        self.assertEqual(replaced, os.path.join(dest, "item.txt"))
+        with open(replaced, "r") as f:
+            self.assertEqual(f.read(), "content 2")
+
+    def test_move_or_replace(self):
+        src = os.path.join(self.root, "movable.txt")
+        with open(src, "w") as f:
+            f.write("initial")
+        dest = os.path.join(self.root, "dest_dir2")
+        os.mkdir(dest)
+        with open(os.path.join(dest, "movable.txt"), "w") as f:
+            f.write("old")
+
+        moved = fs.move_or_replace(src, dest, overwrite=True)
+        self.assertEqual(moved, os.path.join(dest, "movable.txt"))
+        self.assertFalse(os.path.exists(src))
+        with open(moved, "r") as f:
+            self.assertEqual(f.read(), "initial")
+
     def test_copy_directory_auto_names(self):
         src = os.path.join(self.root, "proj")
         os.mkdir(src)

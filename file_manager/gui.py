@@ -1,6 +1,7 @@
-"""Charlie File Manager main window.
+"""ease-Desk File Manager main window.
 
-Implements navigation, icon view, file operations, context menu, keyboard
+Implements navigation, icon view, file operations, drag-and-drop file organization,
+replace/overwrite handling, custom sorting/arrangement, context menu, keyboard
 shortcuts, history (back/forward) and the status bar.
 """
 
@@ -8,6 +9,7 @@ from __future__ import annotations
 
 import html
 import os
+import urllib.parse
 from html import escape
 
 import gi
@@ -18,6 +20,9 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 from file_manager.core import fs, types  # noqa: E402
 from file_manager.viewer import ImageViewerWindow, TextViewerWindow  # noqa: E402
 from shared.utilities import animate  # noqa: E402
+
+DRAG_TARGET_URI = 0
+DRAG_TARGET_TEXT = 1
 
 
 def _mk(tooltip: str) -> Gtk.Button:
@@ -43,9 +48,12 @@ class FileManagerWindow(Gtk.Window):
         self.history_index: int = -1
         self.clipboard: tuple[str, list[str]] | None = None  # (mode, paths)
         self.current_dir: str = os.path.realpath(start_path)
+        self.sort_field: str = "name"
+        self.sort_reverse: bool = False
 
         self._build_ui()
         self._build_menu()
+        self._setup_dnd()
 
         self.connect("delete-event", self._on_delete_event)
         self.connect("key-press-event", self._on_key_press)
@@ -61,7 +69,8 @@ class FileManagerWindow(Gtk.Window):
         root.pack_start(self._build_toolbar(), False, False, 0)
         root.pack_start(self._build_actions(), False, False, 0)
 
-        self.model = Gtk.ListStore(str, str, str, str)  # markup, name, path, desc
+        # Model columns: markup, name, path, desc, is_dir, size, mtime
+        self.model = Gtk.ListStore(str, str, str, str, bool, int, float)
         self.view = Gtk.IconView.new_with_model(self.model)
         renderer = Gtk.CellRendererText()
         renderer.set_property("ellipsize", 3)  # END
@@ -115,6 +124,12 @@ class FileManagerWindow(Gtk.Window):
         path_item.add(self.path_entry)
         bar.insert(path_item, -1)
 
+        self.sort_btn = _mk("⇃⇂ Arrange")
+        item_sort = Gtk.ToolItem()
+        item_sort.add(self.sort_btn)
+        bar.insert(item_sort, -1)
+        self.sort_btn.connect("clicked", lambda *_: self._popup_sort_menu())
+
         self.refresh_btn = _mk("⟳ Refresh")
         item = Gtk.ToolItem()
         item.add(self.refresh_btn)
@@ -142,9 +157,6 @@ class FileManagerWindow(Gtk.Window):
         ]
         bar = Gtk.Box(spacing=6)
         bar.get_style_context().add_class("action-bar")
-        bar.set_margin_start(0)
-        bar.set_margin_end(0)
-        bar.set_margin_bottom(0)
         for label, callback in actions:
             btn = _mk(label)
             btn.get_style_context().add_class("action-btn")
@@ -164,6 +176,7 @@ class FileManagerWindow(Gtk.Window):
             ("Cut", self._cut_selected),
             ("Paste", self._paste),
             (None, None),
+            ("Arrange / Sort By…", self._popup_sort_menu),
             ("Properties", self._properties_selected),
         ]:
             if label is None:
@@ -174,7 +187,172 @@ class FileManagerWindow(Gtk.Window):
                 self.menu.append(item)
         self.menu.show_all()
 
-    # ------------------------------------------------------------ selection
+    # ------------------------------------------------------------ DND (Drag and Drop)
+    def _setup_dnd(self) -> None:
+        targets = [
+            Gtk.TargetEntry.new("text/uri-list", 0, DRAG_TARGET_URI),
+            Gtk.TargetEntry.new("text/plain", 0, DRAG_TARGET_TEXT),
+        ]
+        self.view.enable_model_drag_source(
+            Gdk.ModifierType.BUTTON1_MASK,
+            targets,
+            Gdk.DragAction.COPY | Gdk.DragAction.MOVE,
+        )
+        self.view.enable_model_drag_dest(
+            targets,
+            Gdk.DragAction.COPY | Gdk.DragAction.MOVE,
+        )
+        self.view.connect("drag-data-get", self._on_drag_data_get)
+        self.view.connect("drag-data-received", self._on_drag_data_received)
+
+    def _on_drag_data_get(
+        self,
+        widget: Gtk.Widget,
+        context: Gdk.DragContext,
+        selection_data: Gtk.SelectionData,
+        info: int,
+        time: int,
+    ) -> None:
+        paths = self._selected_paths()
+        if not paths:
+            return
+        if info == DRAG_TARGET_URI:
+            uris = [f"file://{urllib.parse.quote(p)}" for p in paths]
+            selection_data.set_uris(uris)
+        else:
+            selection_data.set_text("\n".join(paths), -1)
+
+    def _on_drag_data_received(
+        self,
+        widget: Gtk.Widget,
+        context: Gdk.DragContext,
+        x: int,
+        y: int,
+        selection_data: Gtk.SelectionData,
+        info: int,
+        time: int,
+    ) -> None:
+        # Determine target directory
+        dest_dir = self.current_dir
+        path_at = self.view.get_path_at_pos(x, y)
+        if path_at is not None:
+            it = self.model.get_iter(path_at)
+            if it is not None:
+                item_path = self.model.get_value(it, 2)
+                is_dir = self.model.get_value(it, 4)
+                if is_dir:
+                    dest_dir = item_path
+
+        # Parse source paths
+        sources = []
+        if info == DRAG_TARGET_URI:
+            uris = selection_data.get_uris() or []
+            for u in uris:
+                parsed = urllib.parse.urlparse(u)
+                if parsed.scheme == "file":
+                    p = urllib.parse.unquote(parsed.path)
+                    if os.path.exists(p):
+                        sources.append(p)
+        else:
+            text = selection_data.get_text() or ""
+            for line in text.splitlines():
+                line = line.strip()
+                if line and os.path.exists(line):
+                    sources.append(line)
+
+        if not sources:
+            context.finish(False, False, time)
+            return
+
+        # Perform move or copy
+        action = context.get_selected_action()
+        is_move = action == Gdk.DragAction.MOVE
+        errors = []
+        done = 0
+
+        for src in sources:
+            if os.path.dirname(os.path.realpath(src)) == dest_dir and is_move:
+                continue  # moving into same folder
+            src_name = os.path.basename(src)
+            dest_target = os.path.join(dest_dir, src_name)
+
+            overwrite = False
+            if os.path.exists(dest_target):
+                # Prompt Replace / Keep Both
+                choice = self._confirm_replace(src_name)
+                if choice == "cancel":
+                    continue
+                overwrite = choice == "replace"
+
+            try:
+                if is_move:
+                    fs.move_or_replace(src, dest_dir, overwrite=overwrite)
+                else:
+                    fs.copy_or_replace(src, dest_dir, overwrite=overwrite)
+                done += 1
+            except fs.FileOpError as exc:
+                errors.append(str(exc))
+
+        if errors:
+            self._error("\n".join(errors))
+        if done:
+            self._toast(f"{'Moved' if is_move else 'Copied'} {done} item{'s' if done > 1 else ''} to {os.path.basename(dest_dir) or dest_dir}")
+        self._reload()
+        context.finish(True, is_move, time)
+
+    def _confirm_replace(self, filename: str) -> str:
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.NONE,
+        )
+        dialog.set_title("File Exists")
+        dialog.set_markup(
+            f"<b>Replace existing file?</b>\n\n"
+            f"A file or folder named '<b>{escape(filename)}</b>' already exists in the destination folder."
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Keep Both (Rename)", Gtk.ResponseType.NO)
+        dialog.add_button("Replace", Gtk.ResponseType.YES)
+        dialog.set_default_response(Gtk.ResponseType.NO)
+        dialog.show_all()
+        res = dialog.run()
+        dialog.destroy()
+        if res == Gtk.ResponseType.YES:
+            return "replace"
+        if res == Gtk.ResponseType.NO:
+            return "rename"
+        return "cancel"
+
+    # ------------------------------------------------------------ ARRANGE / SORT
+    def _popup_sort_menu(self) -> None:
+        menu = Gtk.Menu()
+
+        def set_sort(field: str, reverse: bool = False) -> None:
+            self.sort_field = field
+            self.sort_reverse = reverse
+            self._reload()
+
+        sort_options = [
+            ("Name (A → Z)", "name", False),
+            ("Name (Z → A)", "name", True),
+            ("Size (Smallest first)", "size", False),
+            ("Size (Largest first)", "size", True),
+            ("Date Modified (Newest first)", "mtime", True),
+            ("Date Modified (Oldest first)", "mtime", False),
+            ("File Type / Category", "type", False),
+        ]
+
+        for label, field, rev in sort_options:
+            item = Gtk.MenuItem.new_with_label(label)
+            item.connect("activate", lambda *_, f=field, r=rev: set_sort(f, r))
+            menu.append(item)
+
+        menu.show_all()
+        menu.popup_at_pointer(None)
+
+    # ------------------------------------------------------------ SELECTION
     def _selected_paths(self) -> list[str]:
         items = self.view.get_selected_items()
         paths = []
@@ -188,7 +366,7 @@ class FileManagerWindow(Gtk.Window):
         items = self._selected_paths()
         return items[0] if items else None
 
-    # -------------------------------------------------------------- actions
+    # -------------------------------------------------------------- ACTIONS
     def _navigate(self, path: str, record: bool = True) -> None:
         real = os.path.realpath(path)
         if not os.path.isdir(real):
@@ -224,6 +402,17 @@ class FileManagerWindow(Gtk.Window):
         except fs.FileOpError as exc:
             self._error(str(exc))
             entries = []
+
+        # Sort entries according to current sort field
+        if self.sort_field == "size":
+            entries.sort(key=lambda e: (not e.is_dir, e.size), reverse=self.sort_reverse)
+        elif self.sort_field == "mtime":
+            entries.sort(key=lambda e: (not e.is_dir, e.mtime), reverse=self.sort_reverse)
+        elif self.sort_field == "type":
+            entries.sort(key=lambda e: (not e.is_dir, types.categorize(e.name, e.is_dir)[0]), reverse=self.sort_reverse)
+        else:  # name
+            entries.sort(key=lambda e: (not e.is_dir, e.name.lower()), reverse=self.sort_reverse)
+
         self.model.clear()
         for entry in entries:
             cat, desc, icon = types.categorize(entry.name, entry.is_dir, entry.is_link)
@@ -231,7 +420,7 @@ class FileManagerWindow(Gtk.Window):
                 f"<span font='26'>{icon}</span>\n"
                 f"<span font='11' foreground='#e2e8f0'>{escape(entry.name)}</span>"
             )
-            self.model.append([markup, entry.name, entry.path, desc])
+            self.model.append([markup, entry.name, entry.path, desc, entry.is_dir, entry.size, entry.mtime])
         self.path_entry.set_text(self.current_dir)
         self.set_title(f"File Manager — {self.current_dir}")
         self._update_status()
@@ -394,7 +583,7 @@ class FileManagerWindow(Gtk.Window):
             rows.append(("Link target", props["link_target"] or ""))
         self._info_table("Properties", rows)
 
-    # --------------------------------------------------------------- events
+    # --------------------------------------------------------------- EVENTS
     def _on_delete_event(self, window, event) -> bool:
         animate.fade_out(self, duration_ms=180, on_done=self.destroy)
         return True
@@ -455,7 +644,7 @@ class FileManagerWindow(Gtk.Window):
         if path:
             self._navigate(path)
 
-    # --------------------------------------------------------------- helpers
+    # --------------------------------------------------------------- HELPERS
     def _toast(self, message: str) -> None:
         self.status_label.set_text(message)
         GLib.timeout_add(2500, lambda: self._update_status())
