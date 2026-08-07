@@ -43,6 +43,9 @@ THEME_ICON_MAP = {
     "server": ["network-server", "computer", "drive-harddisk"],
     "trash": ["user-trash", "trash-empty"],
     "drive": ["drive-harddisk", "media-flash", "drive-removable-media"],
+    "terminal": ["utilities-terminal", "terminal", "org.gnome.Terminal", "xterm"],
+    "task_manager": ["utilities-system-monitor", "system-monitor", "org.gnome.SystemMonitor", "preferences-system"],
+    "activity": ["utilities-system-monitor", "system-monitor", "org.gnome.SystemMonitor"],
 }
 
 _PIXBUF_CACHE: dict[tuple[str, int], GdkPixbuf.Pixbuf] = {}
@@ -85,6 +88,10 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
 
     if key in ("folder", "home", "desktop", "documents", "downloads", "projects"):
         _draw_folder(ctx, key)
+    elif key in ("terminal", "cli", "bash", "console"):
+        _draw_terminal(ctx)
+    elif key in ("task_manager", "activity", "process", "monitor"):
+        _draw_task_manager(ctx)
     elif key in ("computer", "server"):
         _draw_computer(ctx)
     elif key in ("webroot", "html"):
@@ -93,7 +100,7 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
         _draw_drive(ctx)
     elif key in ("image",):
         _draw_image(ctx)
-    elif key in ("archive",):
+    elif key in ("archive", "zip", "tar"):
         _draw_archive(ctx)
     elif key in ("script", "php", "javascript"):
         _draw_script(ctx)
@@ -366,3 +373,70 @@ def _draw_trash(ctx: cairo.Context) -> None:
     ctx.rectangle(20, 24, 60, 8)
     ctx.rectangle(42, 18, 16, 6)
     ctx.fill()
+
+
+def _draw_terminal(ctx: cairo.Context) -> None:
+    # Terminal frame window
+    ctx.set_source_rgb(0.11, 0.13, 0.18)  # Deep dark slate
+    ctx.rectangle(14, 18, 72, 64)
+    ctx.fill()
+
+    # Title bar top strip
+    ctx.set_source_rgb(0.18, 0.22, 0.30)
+    ctx.rectangle(14, 18, 72, 14)
+    ctx.fill()
+
+    # Window buttons
+    ctx.set_source_rgb(0.95, 0.35, 0.35)  # Red
+    ctx.arc(22, 25, 2.5, 0, 2 * 3.14159)
+    ctx.fill()
+    ctx.set_source_rgb(0.95, 0.75, 0.25)  # Yellow
+    ctx.arc(30, 25, 2.5, 0, 2 * 3.14159)
+    ctx.fill()
+    ctx.set_source_rgb(0.30, 0.85, 0.45)  # Green
+    ctx.arc(38, 25, 2.5, 0, 2 * 3.14159)
+    ctx.fill()
+
+    # Prompt symbol `>_`
+    ctx.set_source_rgb(0.25, 0.90, 0.50)  # Terminal neon green
+    ctx.set_line_width(4)
+    ctx.move_to(24, 44)
+    ctx.line_to(36, 54)
+    ctx.line_to(24, 64)
+    ctx.stroke()
+
+    # Cursor underscore
+    ctx.rectangle(42, 60, 16, 4)
+    ctx.fill()
+
+
+def _draw_task_manager(ctx: cairo.Context) -> None:
+    # Monitor screen frame
+    ctx.set_source_rgb(0.12, 0.16, 0.23)
+    ctx.rectangle(14, 18, 72, 56)
+    ctx.fill()
+
+    # Stand base
+    ctx.set_source_rgb(0.28, 0.34, 0.44)
+    ctx.rectangle(44, 74, 12, 10)
+    ctx.rectangle(30, 84, 40, 5)
+    ctx.fill()
+
+    # Pulse / Heartbeat graph line
+    ctx.set_source_rgb(0.20, 0.75, 1.0)  # Cyan blue wave
+    ctx.set_line_width(3.5)
+    ctx.move_to(18, 46)
+    ctx.line_to(32, 46)
+    ctx.line_to(38, 28)
+    ctx.line_to(46, 62)
+    ctx.line_to(54, 34)
+    ctx.line_to(60, 52)
+    ctx.line_to(66, 46)
+    ctx.line_to(82, 46)
+    ctx.stroke()
+
+    # Small peak glow
+    ctx.set_source_rgb(0.30, 0.95, 0.65)
+    ctx.arc(38, 28, 3, 0, 2 * 3.14159)
+    ctx.fill()
+

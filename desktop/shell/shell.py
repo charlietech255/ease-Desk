@@ -60,6 +60,32 @@ window.shell {
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .brand { color: #dce3f0; font-weight: 700; font-size: 15px; }
+.start-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 6px;
+    padding: 4px 14px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+}
+.start-btn:hover {
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+}
+.topbar-tool-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 4px 12px;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 500;
+}
+.topbar-tool-btn:hover {
+    background-color: rgba(122, 162, 247, 0.25);
+    border-color: #7aa2f7;
+    color: #93c5fd;
+}
 .server { color: #8a97ad; font-size: 12px; }
 .clock { color: #7aa2f7; font-size: 14px; font-weight: 700; margin-right: 18px; }
 .exitbtn {
@@ -307,12 +333,28 @@ class DesktopShell:
                 "name": "This PC",
                 "icon": "🖥️",
                 "path": "thispc://",
+                "icon_key": "computer",
+            },
+            {
+                "id": "terminal",
+                "name": "Terminal",
+                "icon": "💻",
+                "path": "app://terminal",
+                "icon_key": "terminal",
+            },
+            {
+                "id": "task_manager",
+                "name": "Task Manager",
+                "icon": "📊",
+                "path": "app://task_manager",
+                "icon_key": "task_manager",
             },
             {
                 "id": "web_root",
                 "name": "Web Root",
                 "icon": "🌐",
                 "path": "/var/www",
+                "icon_key": "webroot",
             },
         ]
         self.wallpaper_path = DEFAULT_WALLPAPER
@@ -331,7 +373,12 @@ class DesktopShell:
                             it["name"] = "This PC"
                             it["icon"] = "🖥️"
                             it["path"] = "thispc://"
-                            it["id"] = "this_pc"
+                    # Ensure essential shortcuts exist if upgrading from earlier version
+                    existing_ids = {it.get("id") for it in items}
+                    for default_it in default_items:
+                        if default_it["id"] not in existing_ids and default_it["id"] in ("terminal", "task_manager"):
+                            items.append(default_it)
+
                     self.desktop_items = items
                     self.wallpaper_path = data.get("wallpaper", DEFAULT_WALLPAPER)
                     self.wallpaper_mode = data.get("wallpaper_mode", "fill")
@@ -420,17 +467,36 @@ class DesktopShell:
         self.info_panel.set_margin_bottom(60)
 
     def _build_topbar(self) -> Gtk.Widget:
-        bar = Gtk.Box(spacing=12)
+        bar = Gtk.Box(spacing=10)
         bar.get_style_context().add_class("topbar")
-        bar.set_margin_start(18)
-        bar.set_margin_end(18)
+        bar.set_margin_start(14)
+        bar.set_margin_end(14)
         bar.set_size_request(-1, 48)
+
+        # 1. Start Menu Button
+        self.start_btn = Gtk.Button.new_with_label("Start")
+        self.start_btn.get_style_context().add_class("start-btn")
+        self.start_btn.connect("clicked", lambda *_: self._popup_start_menu())
+        bar.pack_start(self.start_btn, False, False, 0)
 
         brand = Gtk.Label(label="ease-Desk")
         brand.get_style_context().add_class("brand")
-        bar.pack_start(brand, False, False, 0)
+        bar.pack_start(brand, False, False, 4)
 
-        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 0)
+        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 2)
+
+        # 2. Quick Action Buttons
+        term_btn = Gtk.Button.new_with_label("Terminal")
+        term_btn.get_style_context().add_class("topbar-tool-btn")
+        term_btn.connect("clicked", lambda *_: self._launch_path("app://terminal"))
+        bar.pack_start(term_btn, False, False, 0)
+
+        task_btn = Gtk.Button.new_with_label("Task Manager")
+        task_btn.get_style_context().add_class("topbar-tool-btn")
+        task_btn.connect("clicked", lambda *_: self._launch_path("app://task_manager"))
+        bar.pack_start(task_btn, False, False, 0)
+
+        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 2)
 
         self.server_label = Gtk.Label()
         self.server_label.get_style_context().add_class("server")
@@ -448,6 +514,36 @@ class DesktopShell:
         bar.pack_end(self.clock_label, False, False, 16)
 
         return bar
+
+    def _popup_start_menu(self) -> None:
+        menu = Gtk.Menu()
+
+        items = [
+            ("🖥️ This PC", lambda: self._launch_path("thispc://")),
+            ("📁 File Manager", lambda: self._launch_path(os.path.expanduser("~"))),
+            ("💻 Terminal Console", lambda: self._launch_path("app://terminal")),
+            ("📊 Task Manager", lambda: self._launch_path("app://task_manager")),
+            (None, None),
+            ("🌐 Web Root (/var/www)", lambda: self._launch_path("/var/www")),
+            ("⚙️ System Config (/etc)", lambda: self._launch_path("/etc")),
+            ("🏠 User Home", lambda: self._launch_path(os.path.expanduser("~"))),
+            (None, None),
+            ("🎨 Change Wallpaper & Theme…", lambda: self._dialog_change_wallpaper()),
+            ("➕ Add Desktop Shortcut…", lambda: self._dialog_add_shortcut()),
+            (None, None),
+            ("🚪 Exit Desktop", lambda: self._exit()),
+        ]
+
+        for label, callback in items:
+            if label is None:
+                menu.append(Gtk.SeparatorMenuItem())
+            else:
+                mi = Gtk.MenuItem.new_with_label(label)
+                mi.connect("activate", lambda *_, cb=callback: cb())
+                menu.append(mi)
+
+        menu.show_all()
+        menu.popup_at_widget(self.start_btn, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None)
 
     # ---------------------------------------------------- ICON COLUMN
     def _build_icon_column(self) -> None:
@@ -475,6 +571,10 @@ class DesktopShell:
         item_name = item.get("name", "").lower()
         if "pc" in item_id or "this pc" in item_name or "computer" in item_name:
             icon_key = "computer"
+        elif "terminal" in item_id or "terminal" in item_name or "console" in item_name or "bash" in item_name:
+            icon_key = "terminal"
+        elif "task" in item_id or "task manager" in item_name or "activity" in item_name or "monitor" in item_name:
+            icon_key = "task_manager"
         elif "web" in item_id or "www" in item_name or "web root" in item_name:
             icon_key = "webroot"
         elif "trash" in item_id or "trash" in item_name:
@@ -966,7 +1066,13 @@ class DesktopShell:
 
     # ---------------------------------------------------------- RUNNERS
     def _launch_path(self, target_path: str) -> None:
-        cmd = [sys.executable, "-m", "file_manager.app", target_path]
+        if target_path in ("app://terminal", "terminal"):
+            cmd = [sys.executable, "-m", "desktop.terminal.app", os.path.expanduser("~")]
+        elif target_path in ("app://task_manager", "task_manager"):
+            cmd = [sys.executable, "-m", "desktop.task_manager.app"]
+        else:
+            cmd = [sys.executable, "-m", "file_manager.app", target_path]
+
         try:
             p = subprocess.Popen(
                 cmd,

@@ -942,10 +942,16 @@ class FileManagerWindow(Gtk.Window):
 
         # Dynamically build menu based on selection
         selected_file = self._first_selected()
+        selected_paths = self._selected_paths()
         is_image = bool(
             selected_file
             and os.path.isfile(selected_file)
             and wallpaper.is_image_file(selected_file)
+        )
+        is_arch = bool(
+            selected_file
+            and os.path.isfile(selected_file)
+            and fs.is_archive(selected_file)
         )
 
         menu = Gtk.Menu()
@@ -953,9 +959,23 @@ class FileManagerWindow(Gtk.Window):
             ("Open", self._open_selected),
         ]
         if is_image:
-            menu_items.append(("🖼️ Set as Desktop Wallpaper", self._set_as_wallpaper))
+            menu_items.append(("Set as Desktop Wallpaper", self._set_as_wallpaper))
+
+        if is_arch:
+            menu_items.extend([
+                ("Extract Here", self._extract_selected_here),
+                ("Extract to Subfolder…", self._extract_selected_to_folder),
+            ])
+
+        if selected_paths:
+            menu_items.extend([
+                ("Compress to .ZIP", self._compress_selected_zip),
+                ("Compress to .TAR.GZ", self._compress_selected_tar),
+            ])
 
         menu_items.extend([
+            (None, None),
+            ("Open Terminal Here", self._open_terminal_here),
             (None, None),
             ("New Folder", self._new_folder),
             ("Rename", self._rename_selected),
@@ -979,6 +999,97 @@ class FileManagerWindow(Gtk.Window):
 
         menu.show_all()
         menu.popup_at_pointer(event) if event else menu.popup_at_pointer(None)
+
+    def _extract_selected_here(self) -> None:
+        selected = self._first_selected()
+        if not selected or not fs.is_archive(selected):
+            return
+        dest_dir = self.current_dir
+        try:
+            fs.extract_archive(selected, dest_dir)
+            self._toast(f"Extracted '{os.path.basename(selected)}'")
+            self._reload()
+        except (fs.FileOpError, fs.SecurityError) as exc:
+            self._error(str(exc))
+
+    def _extract_selected_to_folder(self) -> None:
+        selected = self._first_selected()
+        if not selected or not fs.is_archive(selected):
+            return
+        base = os.path.basename(selected)
+        folder_name = base
+        for ext in fs.ARCHIVE_EXTENSIONS:
+            if folder_name.lower().endswith(ext):
+                folder_name = folder_name[:-len(ext)]
+                break
+        dest_dir = os.path.join(self.current_dir, folder_name or "extracted")
+        try:
+            fs.extract_archive(selected, dest_dir)
+            self._toast(f"Extracted to '{os.path.basename(dest_dir)}'")
+            self._reload()
+        except (fs.FileOpError, fs.SecurityError) as exc:
+            self._error(str(exc))
+
+    def _compress_selected_zip(self) -> None:
+        selected = self._selected_paths()
+        if not selected:
+            return
+        if len(selected) == 1:
+            base = os.path.basename(selected[0].rstrip(os.sep)) or "archive"
+            default_name = f"{base}.zip"
+        else:
+            default_name = "Archive.zip"
+
+        output_path = os.path.join(self.current_dir, default_name)
+        counter = 1
+        while os.path.exists(output_path):
+            name_part, _ = os.path.splitext(default_name)
+            output_path = os.path.join(self.current_dir, f"{name_part}_{counter}.zip")
+            counter += 1
+
+        try:
+            fs.compress_archive(selected, output_path)
+            self._toast(f"Created '{os.path.basename(output_path)}'")
+            self._reload()
+        except fs.FileOpError as exc:
+            self._error(str(exc))
+
+    def _compress_selected_tar(self) -> None:
+        selected = self._selected_paths()
+        if not selected:
+            return
+        if len(selected) == 1:
+            base = os.path.basename(selected[0].rstrip(os.sep)) or "archive"
+            default_name = f"{base}.tar.gz"
+        else:
+            default_name = "Archive.tar.gz"
+
+        output_path = os.path.join(self.current_dir, default_name)
+        counter = 1
+        while os.path.exists(output_path):
+            output_path = os.path.join(self.current_dir, f"Archive_{counter}.tar.gz")
+            counter += 1
+
+        try:
+            fs.compress_archive(selected, output_path)
+            self._toast(f"Created '{os.path.basename(output_path)}'")
+            self._reload()
+        except fs.FileOpError as exc:
+            self._error(str(exc))
+
+    def _open_terminal_here(self) -> None:
+        target_dir = self.current_dir
+        if not os.path.isdir(target_dir):
+            target_dir = os.path.expanduser("~")
+        cmd = [sys.executable, "-m", "desktop.terminal.app", target_dir]
+        try:
+            subprocess.Popen(
+                cmd,
+                cwd=ROOT,
+                env=dict(os.environ, PYTHONPATH=ROOT + os.pathsep + os.environ.get("PYTHONPATH", "")),
+            )
+        except OSError:
+            pass
 
     def _on_path_activate(self, entry) -> None:
         path = entry.get_text().strip()

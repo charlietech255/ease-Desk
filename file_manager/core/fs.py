@@ -289,3 +289,111 @@ def is_text_like(path: str) -> bool:
     except OSError:
         return False
     return b"\x00" not in head
+
+
+# ---------------------------------------------------- ARCHIVE OPERATIONS
+ARCHIVE_EXTENSIONS = (
+    ".zip",
+    ".tar",
+    ".tar.gz",
+    ".tgz",
+    ".tar.bz2",
+    ".tbz2",
+    ".tar.xz",
+    ".txz",
+)
+
+
+def is_archive(path: str) -> bool:
+    """Return True if path points to a supported archive file."""
+    lower = path.lower()
+    return any(lower.endswith(ext) for ext in ARCHIVE_EXTENSIONS)
+
+
+def compress_archive(sources: list[str], output_path: str) -> str:
+    """Compress one or more files/folders into a ZIP or TAR archive."""
+    import tarfile
+    import zipfile
+
+    if not sources:
+        raise FileOpError("No files or folders selected for compression")
+
+    output_path = os.path.abspath(output_path)
+    parent_dir = os.path.dirname(output_path)
+    if not os.path.isdir(parent_dir):
+        raise FileOpError(f"Target directory does not exist: {parent_dir}")
+
+    is_tar = any(output_path.lower().endswith(ext) for ext in (".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz"))
+
+    try:
+        if is_tar:
+            mode = "w"
+            if output_path.lower().endswith((".tar.gz", ".tgz")):
+                mode = "w:gz"
+            elif output_path.lower().endswith((".tar.bz2", ".tbz2")):
+                mode = "w:bz2"
+            elif output_path.lower().endswith((".tar.xz", ".txz")):
+                mode = "w:xz"
+
+            with tarfile.open(output_path, mode) as tf:
+                for src in sources:
+                    src_real = os.path.abspath(src)
+                    base_name = os.path.basename(src_real.rstrip(os.sep)) or "archive"
+                    tf.add(src_real, arcname=base_name)
+        else:
+            # Default to standard ZIP archive
+            with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for src in sources:
+                    src_real = os.path.abspath(src)
+                    base_name = os.path.basename(src_real.rstrip(os.sep)) or "item"
+                    if os.path.isdir(src_real):
+                        for root, _, files in os.walk(src_real):
+                            rel_root = os.path.relpath(root, os.path.dirname(src_real))
+                            for file in files:
+                                full_file = os.path.join(root, file)
+                                zf.write(full_file, os.path.join(rel_root, file))
+                    else:
+                        zf.write(src_real, base_name)
+    except Exception as exc:
+        raise _translate("compress", output_path, exc) from exc
+
+    return output_path
+
+
+def extract_archive(archive_path: str, dest_dir: str) -> str:
+    """Safely extract an archive file into the target destination directory."""
+    import tarfile
+    import zipfile
+
+    archive_path = os.path.abspath(archive_path)
+    if not os.path.isfile(archive_path):
+        raise FileOpError(f"Archive file not found: {archive_path}")
+
+    dest_dir = os.path.abspath(dest_dir)
+    os.makedirs(dest_dir, exist_ok=True)
+
+    try:
+        if zipfile.is_zipfile(archive_path):
+            with zipfile.ZipFile(archive_path, "r") as zf:
+                # Traversal check
+                for member in zf.infolist():
+                    target_path = os.path.abspath(os.path.join(dest_dir, member.filename))
+                    if not target_path.startswith(dest_dir):
+                        raise SecurityError(f"Suspicious zip entry path traversal: {member.filename}")
+                zf.extractall(dest_dir)
+        elif tarfile.is_tarfile(archive_path):
+            with tarfile.open(archive_path, "r:*") as tf:
+                for member in tf.getmembers():
+                    target_path = os.path.abspath(os.path.join(dest_dir, member.name))
+                    if not target_path.startswith(dest_dir):
+                        raise SecurityError(f"Suspicious tar entry path traversal: {member.name}")
+                if hasattr(tarfile, "data_filter"):
+                    tf.extractall(dest_dir, filter="data")
+                else:
+                    tf.extractall(dest_dir)
+        else:
+            raise FileOpError(f"Unsupported archive format: {os.path.basename(archive_path)}")
+    except Exception as exc:
+        raise _translate("extract", archive_path, exc) from exc
+
+    return dest_dir
