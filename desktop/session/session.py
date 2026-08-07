@@ -103,15 +103,11 @@ class SessionManager:
             print("         🌐 ease-Desk Server is Running!         ")
             print("=" * 64)
             print("  Open this link in your browser (Phone / PC / Tablet):")
-            print(f"  👉 http://{primary_ip}/vnc.html{url_params}")
-            print(f"     (requires Nginx reverse proxy on port 80)")
-            print("")
-            print("  Or using SSH Tunnel (Secure):")
-            print(f"  👉 http://localhost:{self.novnc_port}/vnc.html{url_params}")
+            print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html{url_params}")
             print("-" * 64)
             print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
             if self.enable_vnc:
-                print(f"  🖥️  Native VNC Client (SSH Tunnel): localhost:{self.vnc_port}")
+                print(f"  🖥️  Native VNC Client: {primary_ip}:{self.vnc_port}")
             print(f"  🖥️  Display ID:       {self.display_str}")
             print("=" * 64)
             print("(Press Ctrl+C in this terminal to shutdown ease-Desk)\n")
@@ -209,7 +205,6 @@ class SessionManager:
                 str(self.vnc_port),
                 "-forever",
                 "-shared",
-                "-localhost",
                 "-nopw",
                 "-quiet",
                 "-bg",
@@ -231,7 +226,7 @@ class SessionManager:
                         "websockify",
                         "--web",
                         web_dir,
-                        f"localhost:{self.novnc_port}",
+                        str(self.novnc_port),
                         f"localhost:{self.vnc_port}",
                     ]
                 else:
@@ -240,7 +235,7 @@ class SessionManager:
                         "--vnc",
                         f"localhost:{self.vnc_port}",
                         "--listen",
-                        f"localhost:{self.novnc_port}",
+                        str(self.novnc_port),
                     ]
                 novnc = subprocess.Popen(
                     ws_cmd,

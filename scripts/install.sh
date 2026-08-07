@@ -43,7 +43,6 @@ if command -v apt-get >/dev/null 2>&1; then
         x11vnc \
         novnc \
         websockify \
-        nginx \
         procps \
         scrot \
         curl \
@@ -65,36 +64,6 @@ fi
 # 2. Setup noVNC index.html symlink for root URL convenience
 if [ -d "/usr/share/novnc" ] && [ -f "/usr/share/novnc/vnc.html" ]; then
     ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html 2>/dev/null || true
-fi
-
-# 2.1 Setup Nginx Reverse Proxy for noVNC
-if command -v nginx >/dev/null 2>&1; then
-    echo "🔒 Configuring Nginx Reverse Proxy for ease-Desk..."
-    cat << 'EOF' > /tmp/easedesk.conf
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:6080/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-EOF
-    if [ -d "/etc/nginx/sites-available" ] && [ -d "/etc/nginx/sites-enabled" ]; then
-        if [ "$(id -u)" -eq 0 ]; then
-            mv /tmp/easedesk.conf /etc/nginx/sites-available/easedesk
-            ln -sf /etc/nginx/sites-available/easedesk /etc/nginx/sites-enabled/
-            rm -f /etc/nginx/sites-enabled/default
-            systemctl restart nginx || true
-        else
-            echo "Skipping Nginx configuration: requires root privileges (run with sudo)"
-        fi
-    fi
 fi
 
 # 3. Deploy ease-Desk files
@@ -130,5 +99,5 @@ echo "    desktop"
 echo ""
 echo "• If you are on a Desktop monitor: It will open directly."
 echo "• If you are on a VPS/headless: It will display a web URL"
-echo "  (e.g., http://YOUR_IP/vnc.html) to open in browser (via Nginx proxy)."
+echo "  (e.g., http://YOUR_IP:6080/vnc.html) to open in browser."
 echo "====================================================="
