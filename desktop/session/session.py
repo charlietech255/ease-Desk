@@ -104,6 +104,11 @@ class SessionManager:
             print("=" * 64)
             print("  Open this link in your browser (Phone / PC / Tablet):")
             print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html{url_params}")
+            print("\n  ⚠️  If the site can't be reached on a VPS:")
+            print(f"     1. Ensure Port {self.novnc_port} is OPEN in your Cloud Firewall (AWS/DigitalOcean/etc)")
+            print("     2. OR use an SSH Tunnel to bypass the firewall securely:")
+            print(f"        ssh -L {self.novnc_port}:localhost:{self.novnc_port} charlie@{primary_ip}")
+            print(f"        Then open: http://localhost:{self.novnc_port}/vnc.html")
             print("-" * 64)
             print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
             if self.enable_vnc:
@@ -226,7 +231,7 @@ class SessionManager:
                         "websockify",
                         "--web",
                         web_dir,
-                        str(self.novnc_port),
+                        f"0.0.0.0:{self.novnc_port}",
                         f"localhost:{self.vnc_port}",
                     ]
                 else:
@@ -235,7 +240,7 @@ class SessionManager:
                         "--vnc",
                         f"localhost:{self.vnc_port}",
                         "--listen",
-                        str(self.novnc_port),
+                        f"0.0.0.0:{self.novnc_port}",
                     ]
                 novnc = subprocess.Popen(
                     ws_cmd,
