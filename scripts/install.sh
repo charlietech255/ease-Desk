@@ -46,6 +46,7 @@ cp -r "${ROOT_DIR}/desktop" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/file_manager" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/shared" "${INSTALL_DIR}/"
 cp -r "${ROOT_DIR}/scripts" "${INSTALL_DIR}/"
+[ -f "${ROOT_DIR}/unnamed.png" ] && cp "${ROOT_DIR}/unnamed.png" "${INSTALL_DIR}/"
 
 # Set permissions
 chmod +x "${INSTALL_DIR}/scripts/desktop"

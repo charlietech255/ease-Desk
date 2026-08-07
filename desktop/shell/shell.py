@@ -1,6 +1,6 @@
 """ease-Desk Shell — minimal desktop environment shell.
 
-Renders the background, top bar (server name, clock, Exit Desktop),
+Renders custom wallpaper background, top bar (server name, clock, Exit Desktop),
 desktop icons in a clean left-column grid, and a compact VPS status panel.
 """
 
@@ -16,17 +16,30 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
-from shared.utilities import animate, sysinfo  # noqa: E402
+from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
+from shared.utilities.wallpaper import (  # noqa: E402
+    CONFIG_DIR,
+    CONFIG_FILE,
+    DEFAULT_WALLPAPER,
+    IMAGE_EXTENSIONS,
+    SOLID_COLOR_PRESETS,
+    WALLPAPER_MODES,
+    WALLPAPER_PRESETS,
+    cycle_next_wallpaper,
+    get_thumbnail_pixbuf,
+    get_wallpaper_config,
+    hex_to_rgb,
+    set_wallpaper,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CONFIG_DIR = os.path.expanduser("~/.config/ease-desk")
-CONFIG_FILE = os.path.join(CONFIG_DIR, "desktop_config.json")
 
 ICON_PRESETS = [
+    ("🖥️", "This PC"),
     ("📁", "Folder"),
-    ("🖥️", "Server"),
     ("🗄️", "Drive / Storage"),
     ("⚡", "Quick Launch"),
     ("🌐", "Web (/var/www)"),
@@ -39,58 +52,109 @@ ICON_PRESETS = [
 
 _CSS = b"""
 window.shell {
-    background-image: linear-gradient(180deg, #161b29, #0e121c);
+    background-color: #0b0e14;
 }
 .topbar {
-    background-color: rgba(14, 18, 28, 0.88);
+    background-color: rgba(10, 14, 23, 0.85);
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .brand { color: #dce3f0; font-weight: 700; font-size: 15px; }
 .server { color: #8a97ad; font-size: 12px; }
 .clock { color: #7aa2f7; font-size: 14px; font-weight: 700; margin-right: 18px; }
 .exitbtn {
-    background: rgba(255, 255, 255, 0.05); color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.06); color: #cbd5e1;
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 6px; font-weight: 600; padding: 4px 14px;
 }
-.exitbtn:hover { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: #ef4444; }
+.exitbtn:hover { background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: #ef4444; }
 
 /* Desktop icon button */
 .icon-btn {
-    background: transparent;
-    border: 1px solid transparent;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 10px 8px;
     min-width: 96px;
     min-height: 96px;
+    transition: all 120ms ease-in-out;
 }
 .icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-.icon-btn:active {
-    background-color: rgba(122, 162, 247, 0.22);
+    background-color: rgba(30, 41, 59, 0.75);
     border-color: rgba(122, 162, 247, 0.50);
 }
-.icon-btn.selected {
-    background-color: rgba(122, 162, 247, 0.22);
-    border-color: rgba(122, 162, 247, 0.50);
+.icon-btn:active, .icon-btn.selected {
+    background-color: rgba(122, 162, 247, 0.30);
+    border-color: #7aa2f7;
 }
 .icon-name {
     color: #f1f5f9;
     font-weight: 600;
     font-size: 12px;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    text-shadow: 0 2px 6px rgba(0,0,0,0.95);
 }
 .vps-frame {
-    background-color: rgba(15, 23, 42, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(10, 14, 23, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 10px;
 }
 .vps-title { color: #7aa2f7; font-weight: 700; font-size: 12px; }
 .vps-key { color: #64748b; font-size: 12px; font-weight: 600; }
 .vps-val { color: #cbd5e1; font-size: 12px; }
-.hint { color: #475569; font-size: 11px; }
+.hint { color: #64748b; font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+/* Wallpaper Dialog Styles */
+.wp-section-lbl {
+    color: #7aa2f7;
+    font-weight: 700;
+    font-size: 12px;
+}
+.wp-card {
+    background: rgba(15, 23, 42, 0.65);
+    border: 2px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 6px;
+    transition: all 120ms ease-in-out;
+}
+.wp-card:hover {
+    background-color: rgba(30, 41, 59, 0.85);
+    border-color: rgba(122, 162, 247, 0.50);
+}
+.wp-card.active {
+    background-color: rgba(122, 162, 247, 0.25);
+    border-color: #7aa2f7;
+}
+.wp-card-name {
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+.color-btn {
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    min-width: 48px;
+    min-height: 38px;
+    padding: 2px;
+}
+.color-btn:hover {
+    border-color: #7aa2f7;
+}
+.color-btn.active {
+    border-color: #ffffff;
+}
+.wallpaper-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: #f1f5f9;
+    font-weight: 500;
+}
+.wallpaper-btn:hover {
+    background-color: rgba(122, 162, 247, 0.25);
+    border-color: #7aa2f7;
+    color: #93c5fd;
+}
 """
 
 
@@ -100,17 +164,30 @@ class DesktopShell:
         self.desktop_items: list[dict] = []
         self.icon_buttons: dict[str, Gtk.Button] = {}
         self.selected_id: str | None = None
+        self.wallpaper_path: str = DEFAULT_WALLPAPER
+        self.wallpaper_mode: str = "fill"
+        self.solid_color: str = "#0b0e14"
+        self.wallpaper_pixbuf: GdkPixbuf.Pixbuf | None = None
+        self._cached_scaled_pixbuf: GdkPixbuf.Pixbuf | None = None
+        self._cached_draw_params: tuple[int, int, str, str, str] | None = None
+        self._cached_offsets: tuple[int, int] = (0, 0)
+        self._cached_bg_rgb: tuple[float, float, float] = (0.043, 0.055, 0.078)
+        self._config_mtime: float = 0.0
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        self.window.set_app_paintable(True)
         self.window.get_style_context().add_class("shell")
         self.window.set_title("ease-Desk")
         self.window.set_decorated(False)
         self.window.set_default_size(1280, 800)
         self.window.fullscreen()
+
+        self.window.connect("draw", self._on_draw_background)
         self.window.connect("delete-event", self._on_delete_event)
         self.window.connect("key-press-event", self._on_key_press)
 
         self._load_config()
+        self._load_wallpaper()
         self._load_css()
         self._build_ui()
         self._tick_clock()
@@ -120,6 +197,105 @@ class DesktopShell:
         GLib.timeout_add_seconds(1, self._tick_clock)
         GLib.timeout_add_seconds(5, self._refresh_info)
         animate.fade_in(self.window, duration_ms=300)
+
+    # --------------------------------------------------------------- WALLPAPER
+    def _load_wallpaper(self) -> None:
+        wp_conf = get_wallpaper_config(CONFIG_FILE)
+        self.wallpaper_path = wp_conf.get("wallpaper", DEFAULT_WALLPAPER)
+        self.wallpaper_mode = wp_conf.get("wallpaper_mode", "fill")
+        self.solid_color = wp_conf.get("solid_color", "#0b0e14")
+
+        if self.wallpaper_mode == "solid":
+            self.wallpaper_pixbuf = None
+        elif self.wallpaper_path and os.path.exists(self.wallpaper_path):
+            try:
+                self.wallpaper_pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.wallpaper_path)
+            except Exception:
+                self.wallpaper_pixbuf = None
+        else:
+            self.wallpaper_pixbuf = None
+
+        self._cached_draw_params = None
+        if os.path.exists(CONFIG_FILE):
+            try:
+                self._config_mtime = os.path.getmtime(CONFIG_FILE)
+            except Exception:
+                pass
+        self.window.queue_draw()
+
+    def _compute_scaled_wallpaper(self, w: int, h: int) -> None:
+        """Compute and cache the scaled pixbuf and offsets for current window size."""
+        if self.wallpaper_mode == "solid" or self.wallpaper_pixbuf is None:
+            self._cached_scaled_pixbuf = None
+            self._cached_offsets = (0, 0)
+            self._cached_bg_rgb = hex_to_rgb(self.solid_color)
+            return
+
+        pw = max(1, self.wallpaper_pixbuf.get_width())
+        ph = max(1, self.wallpaper_pixbuf.get_height())
+
+        if self.wallpaper_mode == "fill":
+            scale = max(w / pw, h / ph)
+            dw = max(1, int(pw * scale))
+            dh = max(1, int(ph * scale))
+            dx = (w - dw) // 2
+            dy = (h - dh) // 2
+            self._cached_scaled_pixbuf = self.wallpaper_pixbuf.scale_simple(
+                dw, dh, GdkPixbuf.InterpType.BILINEAR
+            )
+            self._cached_offsets = (dx, dy)
+            self._cached_bg_rgb = (0.043, 0.055, 0.078)
+        elif self.wallpaper_mode == "fit":
+            scale = min(w / pw, h / ph)
+            dw = max(1, int(pw * scale))
+            dh = max(1, int(ph * scale))
+            dx = (w - dw) // 2
+            dy = (h - dh) // 2
+            self._cached_scaled_pixbuf = self.wallpaper_pixbuf.scale_simple(
+                dw, dh, GdkPixbuf.InterpType.BILINEAR
+            )
+            self._cached_offsets = (dx, dy)
+            self._cached_bg_rgb = hex_to_rgb(self.solid_color)
+        elif self.wallpaper_mode == "stretch":
+            self._cached_scaled_pixbuf = self.wallpaper_pixbuf.scale_simple(
+                w, h, GdkPixbuf.InterpType.BILINEAR
+            )
+            self._cached_offsets = (0, 0)
+            self._cached_bg_rgb = (0.0, 0.0, 0.0)
+        elif self.wallpaper_mode == "center":
+            dx = (w - pw) // 2
+            dy = (h - ph) // 2
+            self._cached_scaled_pixbuf = self.wallpaper_pixbuf
+            self._cached_offsets = (dx, dy)
+            self._cached_bg_rgb = hex_to_rgb(self.solid_color)
+        else:
+            self._cached_scaled_pixbuf = None
+            self._cached_offsets = (0, 0)
+            self._cached_bg_rgb = (0.043, 0.055, 0.078)
+
+    def _on_draw_background(self, widget: Gtk.Widget, cr) -> bool:
+        alloc = widget.get_allocation()
+        w, h = max(1, alloc.width), max(1, alloc.height)
+        draw_key = (w, h, self.wallpaper_path, self.wallpaper_mode, self.solid_color)
+
+        if self._cached_draw_params != draw_key:
+            self._compute_scaled_wallpaper(w, h)
+            self._cached_draw_params = draw_key
+
+        bg_r, bg_g, bg_b = self._cached_bg_rgb
+        cr.set_source_rgb(bg_r, bg_g, bg_b)
+        cr.paint()
+
+        if self._cached_scaled_pixbuf is not None:
+            dx, dy = self._cached_offsets
+            Gdk.cairo_set_source_pixbuf(cr, self._cached_scaled_pixbuf, dx, dy)
+            cr.paint()
+            # Subtle dark scrim so icons and panels stay readable
+            if self.wallpaper_mode in ("fill", "stretch"):
+                cr.set_source_rgba(0, 0, 0, 0.12)
+                cr.paint()
+
+        return False  # Allow children to render on top
 
     # --------------------------------------------------------------- CONFIG
     def _load_config(self) -> None:
@@ -138,12 +314,15 @@ class DesktopShell:
                 "path": "/var/www",
             },
         ]
+        self.wallpaper_path = DEFAULT_WALLPAPER
+        self.wallpaper_mode = "fill"
+        self.solid_color = "#0b0e14"
+
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     items = data.get("items", default_items)
-                    # Migrate legacy file_manager / fm item to This PC
                     for it in items:
                         it.pop("x", None)
                         it.pop("y", None)
@@ -153,6 +332,9 @@ class DesktopShell:
                             it["path"] = "thispc://"
                             it["id"] = "this_pc"
                     self.desktop_items = items
+                    self.wallpaper_path = data.get("wallpaper", DEFAULT_WALLPAPER)
+                    self.wallpaper_mode = data.get("wallpaper_mode", "fill")
+                    self.solid_color = data.get("solid_color", "#0b0e14")
                     return
             except Exception:
                 pass
@@ -162,7 +344,13 @@ class DesktopShell:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump({"items": self.desktop_items}, f, indent=2)
+                json.dump({
+                    "items": self.desktop_items,
+                    "wallpaper": self.wallpaper_path,
+                    "wallpaper_mode": self.wallpaper_mode,
+                    "solid_color": self.solid_color,
+                }, f, indent=2)
+            self._config_mtime = os.path.getmtime(CONFIG_FILE)
         except Exception:
             pass
 
@@ -208,13 +396,13 @@ class DesktopShell:
         desk_event.connect("button-press-event", self._on_desktop_click)
         right.pack_start(desk_event, True, True, 0)
 
-        # Bottom status + hint overlay inside a fixed at the window level
+        # Bottom status + hint overlay
         overlay = Gtk.Overlay()
         right.pack_start(overlay, False, False, 0)
 
         # Hint text
         self.hint_label = Gtk.Label(
-            label="Double-click icon to open  ·  Right-click for options"
+            label="Double-click icon to open  ·  Right-click desktop for options"
         )
         self.hint_label.get_style_context().add_class("hint")
         self.hint_label.set_halign(Gtk.Align.CENTER)
@@ -247,7 +435,7 @@ class DesktopShell:
         self.server_label.get_style_context().add_class("server")
         bar.pack_start(self.server_label, False, False, 0)
 
-        bar.pack_start(Gtk.Box(), True, True, 0)  # spacer
+        bar.pack_start(Gtk.Box(), True, True, 0)
 
         exit_btn = Gtk.Button.new_with_label("Exit Desktop")
         exit_btn.get_style_context().add_class("exitbtn")
@@ -260,98 +448,88 @@ class DesktopShell:
 
         return bar
 
+    # ---------------------------------------------------- ICON COLUMN
     def _build_icon_column(self) -> None:
-        """Rebuild all icon buttons in the left column."""
-        # Remove existing children
         for child in self.icons_col.get_children():
             self.icons_col.remove(child)
         self.icon_buttons.clear()
 
         for item in self.desktop_items:
-            btn = self._make_icon_button(item)
+            btn = self._create_icon_button(item)
             self.icon_buttons[item["id"]] = btn
             self.icons_col.pack_start(btn, False, False, 4)
 
         self.icons_col.show_all()
 
-    def _make_icon_button(self, item: dict) -> Gtk.Button:
-        """Create one desktop icon as a styled Gtk.Button."""
+    def _create_icon_button(self, item: dict) -> Gtk.Button:
         btn = Gtk.Button()
         btn.get_style_context().add_class("icon-btn")
         btn.set_relief(Gtk.ReliefStyle.NONE)
-        btn.set_focus_on_click(False)
 
-        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        inner.set_halign(Gtk.Align.CENTER)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.set_halign(Gtk.Align.CENTER)
 
         icon_lbl = Gtk.Label()
-        icon_lbl.set_markup(f"<span font='48'>{item.get('icon', '📁')}</span>")
+        icon_lbl.set_markup(f"<span font='36'>{item.get('icon', '📁')}</span>")
+        box.pack_start(icon_lbl, False, False, 0)
 
         name_lbl = Gtk.Label(label=item.get("name", "Item"))
         name_lbl.get_style_context().add_class("icon-name")
+        name_lbl.set_line_wrap(True)
         name_lbl.set_max_width_chars(12)
-        name_lbl.set_ellipsize(3)
+        name_lbl.set_justify(Gtk.Justification.CENTER)
+        box.pack_start(name_lbl, False, False, 0)
 
-        inner.pack_start(icon_lbl, False, False, 0)
-        inner.pack_start(name_lbl, False, False, 0)
-        btn.add(inner)
-
-        # Single click → select
-        btn.connect(
-            "clicked",
-            lambda *_, b=btn, i=item: self._on_icon_click(b, i),
-        )
-        # Double click via button-press-event
-        btn.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        btn.connect(
-            "button-press-event",
-            lambda w, ev, i=item: self._on_icon_press(w, ev, i),
-        )
-        # Right-click
-        btn.connect(
-            "button-release-event",
-            lambda w, ev, i=item: self._on_icon_right(w, ev, i),
-        )
-
-        btn.set_tooltip_text(f"{item.get('name')}  —  {item.get('path', '')}")
+        btn.add(box)
+        btn.connect("button-press-event", lambda w, ev, it=item: self._on_icon_click(w, ev, it))
         return btn
 
-    # ---------------------------------------------------------- ICON EVENTS
-    def _on_icon_press(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
+    # ------------------------------------------------------------ EVENTS
+    def _on_icon_click(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
+        item_id = item["id"]
+
+        # Double click (left): Launch
         if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
             self._launch_path(item.get("path", os.path.expanduser("~")))
             return True
-        return False
 
-    def _on_icon_click(self, btn: Gtk.Button, item: dict) -> None:
-        """Single-click → select the icon."""
-        self._select(item["id"])
-
-    def _on_icon_right(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
-        if event.button == 3:
-            self._show_icon_menu(item, event)
+        # Single click (left): Select
+        if event.button == 1:
+            self._select_icon(item_id)
             return True
-        return False
 
-    def _select(self, item_id: str | None) -> None:
-        self.selected_id = item_id
-        for iid, btn in self.icon_buttons.items():
-            ctx = btn.get_style_context()
-            if iid == item_id:
-                ctx.add_class("selected")
-            else:
-                ctx.remove_class("selected")
+        # Right click: Context menu
+        if event.button == 3:
+            self._select_icon(item_id)
+            self._show_icon_menu(event, item)
+            return True
+
+        return False
 
     def _on_desktop_click(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
-        """Right-click on empty desktop area → context menu."""
-        self._select(None)
+        if event.button == 1:
+            self._deselect_all()
+            return False
         if event.button == 3:
+            self._deselect_all()
             self._show_desktop_menu(event)
             return True
         return False
 
-    # ------------------------------------------------------ CONTEXT MENUS
-    def _show_icon_menu(self, item: dict, event: Gdk.EventButton) -> None:
+    def _select_icon(self, item_id: str) -> None:
+        self._deselect_all()
+        self.selected_id = item_id
+        btn = self.icon_buttons.get(item_id)
+        if btn:
+            btn.get_style_context().add_class("selected")
+
+    def _deselect_all(self) -> None:
+        self.selected_id = None
+        for btn in self.icon_buttons.values():
+            btn.get_style_context().remove_class("selected")
+
+    # ----------------------------------------------------- CONTEXT MENUS
+    def _show_icon_menu(self, event: Gdk.EventButton, item: dict) -> None:
         menu = Gtk.Menu()
 
         open_mi = Gtk.MenuItem.new_with_label(f"Open '{item.get('name')}'")
@@ -390,6 +568,14 @@ class DesktopShell:
         add_mi.connect("activate", lambda *_: self._dialog_add_shortcut())
         menu.append(add_mi)
 
+        wp_mi = Gtk.MenuItem.new_with_label("🎨 Change Wallpaper…")
+        wp_mi.connect("activate", lambda *_: self._dialog_change_wallpaper())
+        menu.append(wp_mi)
+
+        next_wp = Gtk.MenuItem.new_with_label("🔀 Next Wallpaper")
+        next_wp.connect("activate", lambda *_: self._cycle_wallpaper())
+        menu.append(next_wp)
+
         menu.append(Gtk.SeparatorMenuItem())
 
         ref_mi = Gtk.MenuItem.new_with_label("Refresh Server Info")
@@ -399,44 +585,246 @@ class DesktopShell:
         menu.show_all()
         menu.popup(None, None, None, None, event.button, event.time)
 
-    # --------------------------------------------------------- DIALOGS
+    def _cycle_wallpaper(self) -> None:
+        name, path = cycle_next_wallpaper(CONFIG_FILE)
+        self._load_wallpaper()
+
+    # ----------------------------------------------------------- DIALOGS
+    def _dialog_change_wallpaper(self) -> None:
+        dialog = Gtk.Dialog(
+            title="Desktop Wallpaper & Themes",
+            transient_for=self.window,
+            modal=True,
+            destroy_with_parent=True,
+        )
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        dialog.set_default_size(580, 500)
+        dialog.get_style_context().add_class("wp-dialog")
+
+        content = dialog.get_content_area()
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        main_box.set_margin_start(20)
+        main_box.set_margin_end(20)
+        main_box.set_margin_top(16)
+        main_box.set_margin_bottom(12)
+
+        # 1. Preset Wallpapers Section
+        wp_lbl = Gtk.Label(label="WALLPAPER PRESETS", xalign=0)
+        wp_lbl.get_style_context().add_class("wp-section-lbl")
+        main_box.pack_start(wp_lbl, False, False, 0)
+
+        # Scrolled grid of wallpaper cards
+        card_grid = Gtk.Grid(column_spacing=12, row_spacing=12)
+        card_buttons: dict[str, Gtk.Button] = {}
+
+        def update_active_card() -> None:
+            for p_path, btn in card_buttons.items():
+                if self.wallpaper_mode != "solid" and os.path.abspath(self.wallpaper_path) == os.path.abspath(p_path):
+                    btn.get_style_context().add_class("active")
+                else:
+                    btn.get_style_context().remove_class("active")
+
+        for idx, (name, path) in enumerate(WALLPAPER_PRESETS):
+            if not os.path.exists(path):
+                continue
+            card_btn = Gtk.Button()
+            card_btn.get_style_context().add_class("wp-card")
+            card_btn.set_relief(Gtk.ReliefStyle.NONE)
+
+            card_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            card_vbox.set_size_request(150, 115)
+
+            # Thumbnail
+            thumb_pixbuf = get_thumbnail_pixbuf(path, 140, 85)
+            if thumb_pixbuf:
+                img = Gtk.Image.new_from_pixbuf(thumb_pixbuf)
+            else:
+                img = Gtk.Image.new_from_icon_name("image-x-generic", Gtk.IconSize.DIALOG)
+            card_vbox.pack_start(img, True, True, 0)
+
+            title_lbl = Gtk.Label(label=name)
+            title_lbl.get_style_context().add_class("wp-card-name")
+            title_lbl.set_ellipsize(3)
+            card_vbox.pack_start(title_lbl, False, False, 0)
+
+            card_btn.add(card_vbox)
+            card_btn.connect("clicked", lambda *_, p=path: (
+                self._set_wallpaper(p, mode=self.wallpaper_mode if self.wallpaper_mode != "solid" else "fill"),
+                update_active_card()
+            ))
+
+            card_buttons[path] = card_btn
+            card_grid.attach(card_btn, idx % 3, idx // 3, 1, 1)
+
+        update_active_card()
+        main_box.pack_start(card_grid, False, False, 0)
+
+        # 2. Solid Colors Section
+        color_lbl = Gtk.Label(label="SOLID COLOR THEMES", xalign=0)
+        color_lbl.get_style_context().add_class("wp-section-lbl")
+        main_box.pack_start(color_lbl, False, False, 2)
+
+        color_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        color_buttons: dict[str, Gtk.Button] = {}
+
+        def update_active_color() -> None:
+            for hex_col, btn in color_buttons.items():
+                if self.wallpaper_mode == "solid" and self.solid_color.lower() == hex_col.lower():
+                    btn.get_style_context().add_class("active")
+                else:
+                    btn.get_style_context().remove_class("active")
+
+        for col_name, hex_code in SOLID_COLOR_PRESETS:
+            c_btn = Gtk.Button()
+            c_btn.get_style_context().add_class("color-btn")
+            c_btn.set_tooltip_text(f"{col_name} ({hex_code})")
+            c_btn.set_size_request(56, 36)
+
+            # Custom draw color square
+            r, g, b = hex_to_rgb(hex_code)
+            c_label = Gtk.Label(label=f"<span foreground='{hex_code}'>████</span>")
+            c_label.set_use_markup(True)
+            c_btn.add(c_label)
+
+            c_btn.connect("clicked", lambda *_, col=hex_code: (
+                self._set_solid_color(col),
+                update_active_color(),
+                update_active_card()
+            ))
+            color_buttons[hex_code] = c_btn
+            color_box.pack_start(c_btn, False, False, 0)
+
+        update_active_color()
+        main_box.pack_start(color_box, False, False, 0)
+
+        main_box.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 4)
+
+        # 3. Display Mode & Custom Wallpaper Row
+        ctrl_grid = Gtk.Grid(column_spacing=12, row_spacing=8)
+
+        ctrl_grid.attach(Gtk.Label(label="Display Mode:", xalign=0), 0, 0, 1, 1)
+        mode_combo = Gtk.ComboBoxText()
+        for mode_key, mode_title in WALLPAPER_MODES:
+            mode_combo.append(mode_key, mode_title)
+        mode_combo.set_active_id(self.wallpaper_mode)
+
+        def on_mode_changed(combo: Gtk.ComboBoxText) -> None:
+            new_mode = combo.get_active_id() or "fill"
+            if new_mode == "solid":
+                self._set_solid_color(self.solid_color)
+            else:
+                self._set_wallpaper(self.wallpaper_path, mode=new_mode)
+            update_active_color()
+            update_active_card()
+
+        mode_combo.connect("changed", on_mode_changed)
+        ctrl_grid.attach(mode_combo, 1, 0, 1, 1)
+
+        custom_btn = Gtk.Button.new_with_label("📁  Choose Custom Image…")
+        custom_btn.get_style_context().add_class("wallpaper-btn")
+        custom_btn.connect("clicked", lambda *_: (
+            self._dialog_browse_wallpaper(dialog),
+            update_active_card(),
+            update_active_color()
+        ))
+        ctrl_grid.attach(custom_btn, 2, 0, 1, 1)
+
+        main_box.pack_start(ctrl_grid, False, False, 4)
+
+        content.add(main_box)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+    def _set_wallpaper(self, path: str, mode: str = "fill") -> None:
+        if os.path.exists(path):
+            self.wallpaper_path = path
+            self.wallpaper_mode = mode
+            set_wallpaper(path, mode=mode, solid_color=self.solid_color, config_path=CONFIG_FILE)
+            self._load_wallpaper()
+
+    def _set_solid_color(self, color_hex: str) -> None:
+        self.solid_color = color_hex
+        self.wallpaper_mode = "solid"
+        set_wallpaper(self.wallpaper_path, mode="solid", solid_color=color_hex, config_path=CONFIG_FILE)
+        self._load_wallpaper()
+
+    def _dialog_browse_wallpaper(self, parent_dialog: Gtk.Dialog) -> None:
+        chooser = Gtk.FileChooserDialog(
+            title="Select Wallpaper Image",
+            transient_for=parent_dialog,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        chooser.add_buttons(
+            "Cancel", Gtk.ResponseType.CANCEL, "Set Wallpaper", Gtk.ResponseType.OK
+        )
+
+        filter_img = Gtk.FileFilter()
+        filter_img.set_name("Images (*.png, *.jpg, *.jpeg, *.webp)")
+        for ext in IMAGE_EXTENSIONS:
+            filter_img.add_pattern(f"*{ext}")
+            filter_img.add_pattern(f"*{ext.upper()}")
+        chooser.add_filter(filter_img)
+
+        # Image preview in file chooser
+        preview_img = Gtk.Image()
+        chooser.set_preview_widget(preview_img)
+
+        def update_preview(c) -> None:
+            filename = c.get_preview_filename()
+            if filename and is_image_file(filename):
+                thumb = get_thumbnail_pixbuf(filename, 160, 100)
+                if thumb:
+                    preview_img.set_from_pixbuf(thumb)
+                    c.set_preview_widget_active(True)
+                    return
+            c.set_preview_widget_active(False)
+
+        chooser.connect("update-preview", update_preview)
+
+        if chooser.run() == Gtk.ResponseType.OK:
+            selected = chooser.get_filename()
+            if selected and os.path.exists(selected):
+                mode = self.wallpaper_mode if self.wallpaper_mode != "solid" else "fill"
+                self._set_wallpaper(selected, mode=mode)
+        chooser.destroy()
+
     def _dialog_change_icon(self, item: dict) -> None:
         dialog = Gtk.Dialog(
-            title=f"Change Icon — {item.get('name')}",
+            title=f"Icon for '{item.get('name')}'",
             transient_for=self.window,
             modal=True,
             destroy_with_parent=True,
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Apply", Gtk.ResponseType.OK)
-        dialog.set_default_size(360, 280)
+        dialog.set_default_size(360, 240)
 
         content = dialog.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        vbox.set_margin_start(16); vbox.set_margin_end(16)
-        vbox.set_margin_top(14); vbox.set_margin_bottom(14)
+        vbox.set_margin_start(16)
+        vbox.set_margin_end(16)
+        vbox.set_margin_top(14)
+        vbox.set_margin_bottom(14)
 
-        lbl = Gtk.Label(label="Pick a preset or enter a custom emoji:")
-        lbl.set_halign(Gtk.Align.START)
-        vbox.pack_start(lbl, False, False, 0)
+        vbox.pack_start(Gtk.Label(label="Choose an icon / symbol:"), False, False, 0)
 
         grid = Gtk.Grid(column_spacing=8, row_spacing=8)
+        grid.set_halign(Gtk.Align.CENTER)
         selected = [item.get("icon", "📁")]
+
+        for i, (sym, label) in enumerate(ICON_PRESETS):
+            btn = Gtk.Button.new_with_label(sym)
+            btn.set_tooltip_text(label)
+            btn.set_size_request(44, 44)
+            btn.connect("clicked", lambda *_, s=sym: selected.__setitem__(0, s))
+            grid.attach(btn, i % 5, i // 5, 1, 1)
+
+        vbox.pack_start(grid, False, False, 0)
+
+        vbox.pack_start(Gtk.Label(label="Or custom emoji / text:"), False, False, 0)
         custom = Gtk.Entry()
         custom.set_text(item.get("icon", "📁"))
-        custom.set_placeholder_text("Custom emoji or text…")
-
-        def pick(sym: str) -> None:
-            selected[0] = sym
-            custom.set_text(sym)
-
-        for i, (sym, txt) in enumerate(ICON_PRESETS):
-            b = Gtk.Button.new_with_label(f"{sym} {txt}")
-            b.connect("clicked", lambda *_, s=sym: pick(s))
-            grid.attach(b, i % 2, i // 2, 1, 1)
-
-        vbox.pack_start(grid, True, True, 0)
-        vbox.pack_start(Gtk.Label(label="Custom:"), False, False, 0)
         vbox.pack_start(custom, False, False, 0)
         content.add(vbox)
         dialog.show_all()
@@ -460,8 +848,10 @@ class DesktopShell:
 
         content = dialog.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        vbox.set_margin_start(16); vbox.set_margin_end(16)
-        vbox.set_margin_top(14); vbox.set_margin_bottom(14)
+        vbox.set_margin_start(16)
+        vbox.set_margin_end(16)
+        vbox.set_margin_top(14)
+        vbox.set_margin_bottom(14)
         vbox.pack_start(Gtk.Label(label="New name:"), False, False, 0)
         entry = Gtk.Entry()
         entry.set_text(item.get("name", ""))
@@ -491,19 +881,24 @@ class DesktopShell:
 
         content = dialog.get_content_area()
         grid = Gtk.Grid(column_spacing=10, row_spacing=10)
-        grid.set_margin_start(16); grid.set_margin_end(16)
-        grid.set_margin_top(14); grid.set_margin_bottom(14)
+        grid.set_margin_start(16)
+        grid.set_margin_end(16)
+        grid.set_margin_top(14)
+        grid.set_margin_bottom(14)
 
         grid.attach(Gtk.Label(label="Name:"), 0, 0, 1, 1)
-        name_e = Gtk.Entry(); name_e.set_placeholder_text("e.g. Web Root")
+        name_e = Gtk.Entry()
+        name_e.set_placeholder_text("e.g. Web Root")
         grid.attach(name_e, 1, 0, 1, 1)
 
         grid.attach(Gtk.Label(label="Path:"), 0, 1, 1, 1)
-        path_e = Gtk.Entry(); path_e.set_placeholder_text("e.g. /var/www")
+        path_e = Gtk.Entry()
+        path_e.set_placeholder_text("e.g. /var/www")
         grid.attach(path_e, 1, 1, 1, 1)
 
         grid.attach(Gtk.Label(label="Icon:"), 0, 2, 1, 1)
-        icon_e = Gtk.Entry(); icon_e.set_text("🌐")
+        icon_e = Gtk.Entry()
+        icon_e.set_text("🌐")
         grid.attach(icon_e, 1, 2, 1, 1)
 
         content.add(grid)
@@ -531,8 +926,10 @@ class DesktopShell:
         frame = Gtk.Frame()
         frame.get_style_context().add_class("vps-frame")
         g = Gtk.Grid(column_spacing=16, row_spacing=5)
-        g.set_margin_start(16); g.set_margin_end(16)
-        g.set_margin_top(12); g.set_margin_bottom(12)
+        g.set_margin_start(16)
+        g.set_margin_end(16)
+        g.set_margin_top(12)
+        g.set_margin_bottom(12)
 
         title = Gtk.Label(label="Server Status")
         title.get_style_context().add_class("vps-title")
@@ -555,77 +952,73 @@ class DesktopShell:
         frame.add(g)
         return frame
 
-    # ---------------------------------------------------------- KEY / EVENTS
-    def _on_key_press(self, window: Gtk.Window, event: Gdk.EventKey) -> bool:
-        if event.keyval == Gdk.KEY_Escape:
-            self._exit()
-            return True
-        if event.keyval == Gdk.KEY_F5:
-            self._refresh_info()
-            return True
-        if event.keyval == Gdk.KEY_Delete and self.selected_id:
-            for item in self.desktop_items:
-                if item.get("id") == self.selected_id and item.get("id") != "file_manager":
-                    self._remove_shortcut(item)
-                    return True
-        return False
-
-    def _on_delete_event(self, window: Gtk.Window, event: Gdk.Event) -> bool:
-        self._exit()
-        return True
-
-    # -------------------------------------------------------------- ACTIONS
-    def _launch_path(self, path: str) -> None:
-        target = os.path.expanduser(path)
-        env = dict(os.environ)
-        env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
+    # ---------------------------------------------------------- RUNNERS
+    def _launch_path(self, target_path: str) -> None:
+        cmd = [sys.executable, "-m", "file_manager.app", target_path]
         try:
-            proc = subprocess.Popen(
-                [sys.executable, "-m", "file_manager", target],
-                env=env, cwd=ROOT,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+            p = subprocess.Popen(
+                cmd,
+                cwd=ROOT,
+                env=dict(os.environ, PYTHONPATH=ROOT + os.pathsep + os.environ.get("PYTHONPATH", "")),
             )
-            self.children.append(proc.pid)
+            self.children.append(p.pid)
         except OSError:
             pass
+
+    def _tick_clock(self) -> bool:
+        import time
+        self.clock_label.set_text(time.strftime("%H:%M"))
+        return True
+
+    def _refresh_info(self) -> bool:
+        # Check if external processes (like File Manager) updated desktop_config.json
+        if os.path.exists(CONFIG_FILE):
+            try:
+                mtime = os.path.getmtime(CONFIG_FILE)
+                if mtime > self._config_mtime:
+                    self._config_mtime = mtime
+                    self._load_wallpaper()
+            except Exception:
+                pass
+
+        info = sysinfo.summary()
+        self.server_label.set_text(f"Server: {info['hostname']}")
+        if hasattr(self, "vps_rows") and len(self.vps_rows) >= 5:
+            self.vps_rows[0][1].set_text(info["hostname"])
+            self.vps_rows[1][1].set_text(info["os"])
+            self.vps_rows[2][1].set_text(f"{info['cpu']} cores")
+            self.vps_rows[3][1].set_text(f"{info['mem_used']} / {info['mem_total']}")
+            self.vps_rows[4][1].set_text(f"{info['disk_used']} / {info['disk_total']}")
+        return True
+
+    def _on_key_press(self, window: Gtk.Window, event: Gdk.EventKey) -> bool:
+        if event.keyval == Gdk.KEY_Delete and self.selected_id:
+            item = next((i for i in self.desktop_items if i.get("id") == self.selected_id), None)
+            if item and item.get("id") not in ("file_manager", "this_pc"):
+                self._remove_shortcut(item)
+                return True
+        return False
+
+    def _on_delete_event(self, window, event) -> bool:
+        self._exit()
+        return True
 
     def _exit(self) -> None:
         for pid in self.children:
             try:
                 os.kill(pid, signal.SIGTERM)
-            except (OSError, ProcessLookupError):
+            except OSError:
                 pass
-        self.children.clear()
-        animate.fade_out(self.window, duration_ms=260, on_done=self._quit)
-
-    def _quit(self) -> None:
-        self.window.destroy()
-        Gtk.main_quit()
-
-    # --------------------------------------------------------------- TIMERS
-    def _tick_clock(self) -> bool:
-        import datetime
-        self.clock_label.set_text(datetime.datetime.now().strftime("%H:%M"))
-        return True
-
-    def _refresh_info(self) -> bool:
-        info = sysinfo.summary()
-        self.server_label.set_text(f"Server: {info['hostname']}")
-        values = [
-            info["hostname"], info["os"],
-            f"{info['cpu']} cores",
-            f"{info['mem_used']} / {info['mem_total']}",
-            f"{info['disk_used']} / {info['disk_total']}",
-        ]
-        for (_, v_label), value in zip(self.vps_rows, values):
-            v_label.set_text(value)
-        return True
+        animate.fade_out(self.window, duration_ms=250, on_done=Gtk.main_quit)
 
 
 def main() -> int:
-    shell = DesktopShell()
+    if not os.environ.get("DISPLAY") or not os.environ["DISPLAY"].strip():
+        from desktop.session.session import SessionManager
+        print("No active $DISPLAY detected. Launching ease-Desk session manager...")
+        return SessionManager().start()
+
+    DesktopShell()
     Gtk.main()
     return 0
 

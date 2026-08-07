@@ -19,7 +19,7 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 from file_manager.core import fs, types  # noqa: E402
 from file_manager.viewer import ImageViewerWindow, TextViewerWindow  # noqa: E402
-from shared.utilities import animate, sysinfo  # noqa: E402
+from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
 
 DRAG_TARGET_URI = 0
 DRAG_TARGET_TEXT = 1
@@ -872,6 +872,20 @@ class FileManagerWindow(Gtk.Window):
             rows.append(("Link target", props["link_target"] or ""))
         self._info_table("Properties", rows)
 
+    def _set_as_wallpaper(self) -> None:
+        target = self._first_selected()
+        if not target or not os.path.isfile(target):
+            return
+        if not wallpaper.is_image_file(target):
+            self._toast("Selected file is not a supported image format.")
+            return
+
+        try:
+            wallpaper.set_wallpaper(target, mode="fill")
+            self._toast(f"Desktop wallpaper set to '{os.path.basename(target)}'")
+        except Exception as exc:
+            self._error(f"Failed to set wallpaper:\n{exc}")
+
     # --------------------------------------------------------------- EVENTS
     def _on_delete_event(self, window, event) -> bool:
         animate.fade_out(self, duration_ms=180, on_done=self.destroy)
@@ -928,7 +942,46 @@ class FileManagerWindow(Gtk.Window):
     def _popup_menu(self, event) -> None:
         if self.current_dir == THIS_PC_URI:
             return
-        self.menu.popup_at_pointer(event) if event else self.menu.popup_at_pointer(None)
+
+        # Dynamically build menu based on selection
+        selected_file = self._first_selected()
+        is_image = bool(
+            selected_file
+            and os.path.isfile(selected_file)
+            and wallpaper.is_image_file(selected_file)
+        )
+
+        menu = Gtk.Menu()
+        menu_items = [
+            ("Open", self._open_selected),
+        ]
+        if is_image:
+            menu_items.append(("🖼️ Set as Desktop Wallpaper", self._set_as_wallpaper))
+
+        menu_items.extend([
+            (None, None),
+            ("New Folder", self._new_folder),
+            ("Rename", self._rename_selected),
+            ("Delete", self._delete_selected),
+            (None, None),
+            ("Copy", self._copy_selected),
+            ("Cut", self._cut_selected),
+            ("Paste", self._paste),
+            (None, None),
+            ("Arrange / Sort By…", self._popup_sort_menu),
+            ("Properties", self._properties_selected),
+        ])
+
+        for label, callback in menu_items:
+            if label is None:
+                menu.append(Gtk.SeparatorMenuItem())
+            else:
+                item = Gtk.MenuItem.new_with_label(label)
+                item.connect("activate", lambda *_, cb=callback: cb())
+                menu.append(item)
+
+        menu.show_all()
+        menu.popup_at_pointer(event) if event else menu.popup_at_pointer(None)
 
     def _on_path_activate(self, entry) -> None:
         path = entry.get_text().strip()
