@@ -2,6 +2,7 @@
 
 Renders the background, top bar (server name, clock, Exit Desktop),
 draggable and customizable desktop icons, and a compact VPS info panel.
+Desktop icons can be dragged freely to any position just like Windows/GNOME.
 """
 
 from __future__ import annotations
@@ -54,19 +55,25 @@ window.shell {
 }
 .exitbtn:hover { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: #ef4444; }
 .icon-box {
-    padding: 8px 12px;
+    padding: 10px 14px;
     border-radius: 8px;
     border: 1px solid transparent;
-    transition: all 150ms ease;
+    transition: background-color 150ms ease, border-color 150ms ease;
+    cursor: pointer;
 }
 .icon-box:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.icon-box.selected {
+    background-color: rgba(122, 162, 247, 0.18);
+    border: 1px solid rgba(122, 162, 247, 0.45);
 }
 .icon-box.dragging {
-    background-color: rgba(122, 162, 247, 0.15);
+    background-color: rgba(122, 162, 247, 0.25);
     border: 1px dashed #7aa2f7;
-    opacity: 0.85;
+    opacity: 0.90;
+    cursor: grabbing;
 }
 .icon-name {
     color: #f1f5f9;
@@ -91,7 +98,8 @@ class DesktopShell:
         self.children: list[int] = []
         self.desktop_items: list[dict] = []
         self.item_widgets: dict[str, Gtk.Widget] = {}
-        self.has_initial_layout = False
+        self.active_drag: dict | None = None
+        self.selected_item_id: str | None = None
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.get_style_context().add_class("shell")
@@ -99,8 +107,15 @@ class DesktopShell:
         self.window.set_decorated(False)
         self.window.set_default_size(1280, 800)
         self.window.fullscreen()
+        self.window.add_events(
+            Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+        )
         self.window.connect("delete-event", self._on_delete_event)
         self.window.connect("key-press-event", self._on_key_press)
+        self.window.connect("motion-notify-event", self._on_window_motion)
+        self.window.connect("button-release-event", self._on_window_button_release)
 
         self._load_config()
         self._load_css()
@@ -223,7 +238,6 @@ class DesktopShell:
         for item in self.desktop_items:
             widget = self._create_icon_widget(item)
             self.item_widgets[item["id"]] = widget
-            # Put initially at 0, 0 (positioned in _on_resize or from config)
             self.fixed.put(widget, item.get("x") or 0, item.get("y") or 0)
 
     def _create_icon_widget(self, item: dict) -> Gtk.Widget:
@@ -251,70 +265,85 @@ class DesktopShell:
         event.add(box)
         event.set_tooltip_text(f"{item.get('name')} — double-click to open, drag to move")
 
-        # Drag state tracking
-        drag_state = {
-            "dragging": False,
-            "moved": False,
-            "start_root_x": 0.0,
-            "start_root_y": 0.0,
-            "widget_start_x": 0,
-            "widget_start_y": 0,
-        }
-
         def on_press(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
             if event_gdk.type == Gdk.EventType._2BUTTON_PRESS and event_gdk.button == 1:
                 self._launch_path(item.get("path", os.path.expanduser("~")))
                 return True
-            if event_gdk.button == 1:
-                drag_state["dragging"] = True
-                drag_state["moved"] = False
-                drag_state["start_root_x"] = event_gdk.x_root
-                drag_state["start_root_y"] = event_gdk.y_root
 
-                # Retrieve current coordinates on the Fixed container
+            if event_gdk.button == 1:
+                # Select item
+                self._select_item(item["id"])
                 alloc = w.get_allocation()
-                drag_state["widget_start_x"] = alloc.x
-                drag_state["widget_start_y"] = alloc.y
+                # Start drag tracking
+                self.active_drag = {
+                    "item": item,
+                    "widget": w,
+                    "box": box,
+                    "start_root_x": event_gdk.x_root,
+                    "start_root_y": event_gdk.y_root,
+                    "start_widget_x": alloc.x,
+                    "start_widget_y": alloc.y,
+                    "moved": False,
+                }
                 box.get_style_context().add_class("dragging")
                 return True
-            if event_gdk.button == 3:  # Right Click Context Menu
+
+            if event_gdk.button == 3:  # Right-click context menu
+                self._select_item(item["id"])
                 self._show_icon_context_menu(item, event_gdk)
                 return True
             return False
 
-        def on_motion(w: Gtk.Widget, event_gdk: Gdk.EventMotion) -> bool:
-            if not drag_state["dragging"]:
-                return False
-            dx = event_gdk.x_root - drag_state["start_root_x"]
-            dy = event_gdk.y_root - drag_state["start_root_y"]
-            if abs(dx) > 3 or abs(dy) > 3:
-                drag_state["moved"] = True
-                win_w, win_h = self.window.get_size()
-                alloc = w.get_allocation()
-                new_x = int(drag_state["widget_start_x"] + dx)
-                new_y = int(drag_state["widget_start_y"] + dy)
-                # Constrain inside window
-                new_x = max(10, min(win_w - alloc.width - 10, new_x))
-                new_y = max(10, min(win_h - alloc.height - 80, new_y))
-                self.fixed.move(w, new_x, new_y)
-            return True
+        event.connect("button-press-event", on_press)
+        return event
 
-        def on_release(w: Gtk.Widget, event_gdk: Gdk.EventButton) -> bool:
-            if event_gdk.button == 1 and drag_state["dragging"]:
-                drag_state["dragging"] = False
-                box.get_style_context().remove_class("dragging")
-                if drag_state["moved"]:
-                    alloc = w.get_allocation()
-                    item["x"] = alloc.x
-                    item["y"] = alloc.y
-                    self._save_config()
-                    return True
+    def _select_item(self, item_id: str | None) -> None:
+        self.selected_item_id = item_id
+        for i_id, w in self.item_widgets.items():
+            child_box = w.get_child()
+            if child_box:
+                ctx = child_box.get_style_context()
+                if i_id == item_id:
+                    ctx.add_class("selected")
+                else:
+                    ctx.remove_class("selected")
+
+    def _on_window_motion(self, window: Gtk.Window, event_gdk: Gdk.EventMotion) -> bool:
+        if not self.active_drag:
             return False
 
-        event.connect("button-press-event", on_press)
-        event.connect("motion-notify-event", on_motion)
-        event.connect("button-release-event", on_release)
-        return event
+        dx = event_gdk.x_root - self.active_drag["start_root_x"]
+        dy = event_gdk.y_root - self.active_drag["start_root_y"]
+
+        if abs(dx) > 3 or abs(dy) > 3 or self.active_drag["moved"]:
+            self.active_drag["moved"] = True
+            win_w, win_h = self.window.get_size()
+            w = self.active_drag["widget"]
+            alloc = w.get_allocation()
+
+            new_x = int(self.active_drag["start_widget_x"] + dx)
+            new_y = int(self.active_drag["start_widget_y"] + dy)
+
+            # Constrain within bounds
+            new_x = max(10, min(win_w - alloc.width - 10, new_x))
+            new_y = max(10, min(win_h - alloc.height - 70, new_y))
+
+            self.fixed.move(w, new_x, new_y)
+        return True
+
+    def _on_window_button_release(self, window: Gtk.Window, event_gdk: Gdk.EventButton) -> bool:
+        if event_gdk.button == 1 and self.active_drag:
+            drag = self.active_drag
+            self.active_drag = None
+            drag["box"].get_style_context().remove_class("dragging")
+
+            if drag["moved"]:
+                alloc = drag["widget"].get_allocation()
+                drag["item"]["x"] = alloc.x
+                drag["item"]["y"] = alloc.y
+                self._save_config()
+                return True
+        return False
 
     def _build_info_panel(self) -> Gtk.Widget:
         frame = Gtk.Frame()
@@ -378,6 +407,7 @@ class DesktopShell:
         menu.popup(None, None, None, None, event.button, event.time)
 
     def _on_bg_click(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
+        self._select_item(None)
         if event.button == 3:  # Right-click on empty desktop
             menu = Gtk.Menu()
 
@@ -427,7 +457,6 @@ class DesktopShell:
         lbl.set_halign(Gtk.Align.START)
         box.pack_start(lbl, False, False, 0)
 
-        # Preset grid
         grid = Gtk.Grid(column_spacing=8, row_spacing=8)
         selected_icon = [item.get("icon", "📁")]
 
