@@ -1,8 +1,8 @@
-"""ease-Desk File Manager main window.
+"""ease-Desk This PC & File Manager main window.
 
-Implements navigation, icon view, file operations, drag-and-drop file organization,
-replace/overwrite handling, custom sorting/arrangement, context menu, keyboard
-shortcuts, history (back/forward) and the status bar.
+Implements Windows "This PC" partition & storage overview, plus full file explorer
+with icon view, drag-and-drop file organization, sorting, context menus,
+keyboard shortcuts, navigation history and system status.
 """
 
 from __future__ import annotations
@@ -19,10 +19,11 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 from file_manager.core import fs, types  # noqa: E402
 from file_manager.viewer import ImageViewerWindow, TextViewerWindow  # noqa: E402
-from shared.utilities import animate  # noqa: E402
+from shared.utilities import animate, sysinfo  # noqa: E402
 
 DRAG_TARGET_URI = 0
 DRAG_TARGET_TEXT = 1
+THIS_PC_URI = "thispc://"
 
 
 def _mk(tooltip: str) -> Gtk.Button:
@@ -32,22 +33,22 @@ def _mk(tooltip: str) -> Gtk.Button:
 
 
 class FileManagerWindow(Gtk.Window):
-    def __init__(self, start_path: str):
+    def __init__(self, start_path: str = THIS_PC_URI):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
-        self.set_title("ease-Desk File Manager")
-        self.set_default_size(920, 580)
+        self.set_title("This PC — ease-Desk")
+        self.set_default_size(960, 620)
         self.set_position(Gtk.WindowPosition.CENTER)
 
-        header = Gtk.HeaderBar()
-        header.set_show_close_button(True)
-        header.set_title("ease-Desk File Manager")
-        header.set_subtitle("VPS File Browser")
-        self.set_titlebar(header)
+        self.header = Gtk.HeaderBar()
+        self.header.set_show_close_button(True)
+        self.header.set_title("This PC")
+        self.header.set_subtitle("Devices and drives")
+        self.set_titlebar(self.header)
 
         self.history: list[str] = []
         self.history_index: int = -1
         self.clipboard: tuple[str, list[str]] | None = None  # (mode, paths)
-        self.current_dir: str = os.path.realpath(start_path)
+        self.current_dir: str = THIS_PC_URI
         self.sort_field: str = "name"
         self.sort_reverse: bool = False
 
@@ -61,32 +62,35 @@ class FileManagerWindow(Gtk.Window):
         self.view.connect("button-press-event", self._on_view_button_press)
         self.path_entry.connect("activate", self._on_path_activate)
 
-        self._navigate(self.current_dir, record=False)
+        # Start navigation
+        init_target = start_path if start_path else THIS_PC_URI
+        self._navigate(init_target, record=False)
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         root.pack_start(self._build_toolbar(), False, False, 0)
-        root.pack_start(self._build_actions(), False, False, 0)
 
-        # Model columns: markup, name, path, desc, is_dir, size, mtime
-        self.model = Gtk.ListStore(str, str, str, str, bool, int, float)
-        self.view = Gtk.IconView.new_with_model(self.model)
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", 3)  # END
-        self.view.pack_start(renderer, True)
-        self.view.add_attribute(renderer, "markup", 0)
-        self.view.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
-        self.view.set_item_width(150)
-        self.view.set_spacing(12)
-        self.view.set_column_spacing(20)
-        self.view.set_margin(14)
+        # Action bar (visible in folder view)
+        self.action_bar = self._build_actions()
+        root.pack_start(self.action_bar, False, False, 0)
 
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled.add(self.view)
-        root.pack_start(scrolled, True, True, 0)
+        # Main Stack: page 1 = This PC overview, page 2 = File Explorer
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(180)
 
+        # ---- PAGE 1: THIS PC (Drives & Partitions Overview) ----
+        self.thispc_container = self._build_thispc_view()
+        self.stack.add_named(self.thispc_container, "thispc")
+
+        # ---- PAGE 2: FOLDER EXPLORER (IconView) ----
+        self.explorer_container = self._build_explorer_view()
+        self.stack.add_named(self.explorer_container, "explorer")
+
+        root.pack_start(self.stack, True, True, 0)
+
+        # Bottom status bar
         self.status_label = Gtk.Label(label="")
         self.status_label.set_xalign(0)
         self.status_label.get_style_context().add_class("statusbar")
@@ -101,10 +105,10 @@ class FileManagerWindow(Gtk.Window):
         self.back_btn = _mk("← Back")
         self.forward_btn = _mk("→ Forward")
         self.up_btn = _mk("↑ Up")
+        self.thispc_btn = _mk("🖥️ This PC")
         self.home_btn = _mk("~ Home")
-        self.root_btn = _mk("/ Root")
 
-        for btn in (self.back_btn, self.forward_btn, self.up_btn, self.home_btn, self.root_btn):
+        for btn in (self.back_btn, self.forward_btn, self.up_btn, self.thispc_btn, self.home_btn):
             item = Gtk.ToolItem()
             item.add(btn)
             bar.insert(item, -1)
@@ -113,12 +117,12 @@ class FileManagerWindow(Gtk.Window):
         self.back_btn.connect("clicked", lambda *_: self._history_move(-1))
         self.forward_btn.connect("clicked", lambda *_: self._history_move(1))
         self.up_btn.connect("clicked", lambda *_: self._go_up())
+        self.thispc_btn.connect("clicked", lambda *_: self._navigate(THIS_PC_URI))
         self.home_btn.connect("clicked", lambda *_: self._navigate(os.path.expanduser("~")))
-        self.root_btn.connect("clicked", lambda *_: self._navigate("/"))
 
         self.path_entry = Gtk.Entry()
         self.path_entry.set_hexpand(True)
-        self.path_entry.set_placeholder_text("Path…")
+        self.path_entry.set_placeholder_text("Enter path or 'thispc'…")
         path_item = Gtk.ToolItem()
         path_item.set_expand(True)
         path_item.add(self.path_entry)
@@ -156,6 +160,7 @@ class FileManagerWindow(Gtk.Window):
             ("Properties", self._properties_selected),
         ]
         bar = Gtk.Box(spacing=6)
+        bar.set_no_show_all(True)
         bar.get_style_context().add_class("action-bar")
         for label, callback in actions:
             btn = _mk(label)
@@ -163,6 +168,248 @@ class FileManagerWindow(Gtk.Window):
             btn.connect("clicked", lambda *_, cb=callback: cb())
             bar.pack_start(btn, False, False, 0)
         return bar
+
+    # ---------------------------------------------------- THIS PC VIEW
+    def _build_thispc_view(self) -> Gtk.Widget:
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        vbox.get_style_context().add_class("thispc-container")
+
+        # System Banner
+        self.banner_label = Gtk.Label()
+        self.banner_label.get_style_context().add_class("thispc-banner")
+        self.banner_label.set_xalign(0)
+        vbox.pack_start(self.banner_label, False, False, 0)
+
+        # Section 1: Devices and drives
+        drives_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl_drives = Gtk.Label(label="Devices and drives")
+        lbl_drives.get_style_context().add_class("thispc-sec-title")
+        lbl_drives.set_xalign(0)
+        drives_header.pack_start(lbl_drives, False, False, 0)
+        drives_header.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), True, True, 0)
+        vbox.pack_start(drives_header, False, False, 0)
+
+        self.drives_flow = Gtk.FlowBox()
+        self.drives_flow.set_valign(Gtk.Align.START)
+        self.drives_flow.set_max_children_per_line(3)
+        self.drives_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.drives_flow.set_row_spacing(10)
+        self.drives_flow.set_column_spacing(12)
+        vbox.pack_start(self.drives_flow, False, False, 0)
+
+        # Section 2: Quick Folders
+        folders_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl_folders = Gtk.Label(label="Quick Folders")
+        lbl_folders.get_style_context().add_class("thispc-sec-title")
+        lbl_folders.set_xalign(0)
+        folders_header.pack_start(lbl_folders, False, False, 0)
+        folders_header.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), True, True, 0)
+        vbox.pack_start(folders_header, False, False, 0)
+
+        self.folders_flow = Gtk.FlowBox()
+        self.folders_flow.set_valign(Gtk.Align.START)
+        self.folders_flow.set_max_children_per_line(4)
+        self.folders_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.folders_flow.set_row_spacing(10)
+        self.folders_flow.set_column_spacing(12)
+        vbox.pack_start(self.folders_flow, False, False, 0)
+
+        scrolled.add(vbox)
+        return scrolled
+
+    def _render_thispc_content(self) -> None:
+        # 1. Update Banner
+        s = sysinfo.summary()
+        self.banner_label.set_markup(
+            f"<span font='13' weight='bold' foreground='#7aa2f7'>🖥️ {escape(s['hostname'])}</span>   "
+            f"<span font='11' foreground='#94a3b8'>•  OS: {escape(s['os'])}  •  CPU: {s['cpu']} cores  "
+            f"•  RAM: {s['mem_used']} / {s['mem_total']}  •  Root Disk: {s['disk_used']} / {s['disk_total']}</span>"
+        )
+
+        # 2. Render Devices and Drives
+        for child in self.drives_flow.get_children():
+            self.drives_flow.remove(child)
+
+        parts = sysinfo.partitions()
+        for p in parts:
+            card = self._make_drive_card(p)
+            self.drives_flow.add(card)
+
+        # 3. Render Quick Folders
+        for child in self.folders_flow.get_children():
+            self.folders_flow.remove(child)
+
+        qf = sysinfo.quick_folders()
+        for f in qf:
+            fcard = self._make_folder_card(f)
+            self.folders_flow.add(fcard)
+
+        self.thispc_container.show_all()
+
+    def _make_drive_card(self, p: dict) -> Gtk.Widget:
+        """Create a Windows 'This PC' style storage partition card."""
+        event_box = Gtk.EventBox()
+        event_box.set_visible_window(False)
+
+        card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        card.get_style_context().add_class("drive-card")
+        card.set_size_request(270, 76)
+
+        # Large Drive Icon
+        icon_lbl = Gtk.Label()
+        icon_lbl.set_markup(f"<span font='32'>{p.get('icon', '🗄️')}</span>")
+        card.pack_start(icon_lbl, False, False, 0)
+
+        # Info Box
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        info.set_valign(Gtk.Align.CENTER)
+
+        name_lbl = Gtk.Label(label=p.get("name", "Local Disk"))
+        name_lbl.get_style_context().add_class("drive-title")
+        name_lbl.set_xalign(0)
+        info.pack_start(name_lbl, False, False, 0)
+
+        # Progress bar
+        pbar = Gtk.ProgressBar()
+        pct = p.get("percent", 0.0)
+        pbar.set_fraction(max(0.0, min(1.0, pct)))
+        if pct >= 0.95:
+            pbar.get_style_context().add_class("drive-crit")
+        elif pct >= 0.85:
+            pbar.get_style_context().add_class("drive-warn")
+        info.pack_start(pbar, False, False, 2)
+
+        # Space label
+        space_txt = f"{p.get('free_str', '')} free of {p.get('total_str', '')}"
+        space_lbl = Gtk.Label(label=space_txt)
+        space_lbl.get_style_context().add_class("drive-sub")
+        space_lbl.set_xalign(0)
+        info.pack_start(space_lbl, False, False, 0)
+
+        meta_txt = f"{p.get('fstype', 'ext4')} • {p.get('device', '')}"
+        meta_lbl = Gtk.Label(label=meta_txt)
+        meta_lbl.get_style_context().add_class("drive-meta")
+        meta_lbl.set_xalign(0)
+        info.pack_start(meta_lbl, False, False, 0)
+
+        card.pack_start(info, True, True, 0)
+        event_box.add(card)
+
+        # Events
+        mount = p.get("mount", "/")
+        event_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        event_box.connect(
+            "button-press-event",
+            lambda w, ev, m=mount, part=p: self._on_drive_press(w, ev, m, part),
+        )
+        return event_box
+
+    def _make_folder_card(self, f: dict) -> Gtk.Widget:
+        """Create a quick access folder card."""
+        event_box = Gtk.EventBox()
+        event_box.set_visible_window(False)
+
+        card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        card.get_style_context().add_class("folder-card")
+        card.set_size_request(175, 48)
+
+        icon_lbl = Gtk.Label()
+        icon_lbl.set_markup(f"<span font='22'>{f.get('icon', '📁')}</span>")
+        card.pack_start(icon_lbl, False, False, 0)
+
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        info.set_valign(Gtk.Align.CENTER)
+
+        name_lbl = Gtk.Label(label=f.get("name", "Folder"))
+        name_lbl.get_style_context().add_class("drive-title")
+        name_lbl.set_xalign(0)
+        info.pack_start(name_lbl, False, False, 0)
+
+        path_lbl = Gtk.Label(label=f.get("path", ""))
+        path_lbl.get_style_context().add_class("drive-meta")
+        path_lbl.set_xalign(0)
+        info.pack_start(path_lbl, False, False, 0)
+
+        card.pack_start(info, True, True, 0)
+        event_box.add(card)
+
+        target = os.path.expanduser(f.get("path", "~"))
+        event_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        event_box.connect(
+            "button-press-event",
+            lambda w, ev, t=target: self._on_folder_press(w, ev, t),
+        )
+        return event_box
+
+    def _on_drive_press(self, widget: Gtk.Widget, event: Gdk.EventButton, mount: str, part: dict) -> bool:
+        if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
+            self._navigate(mount)
+            return True
+        if event.button == 3:
+            self._show_drive_menu(event, mount, part)
+            return True
+        return False
+
+    def _on_folder_press(self, widget: Gtk.Widget, event: Gdk.EventButton, path: str) -> bool:
+        if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
+            self._navigate(path)
+            return True
+        if event.button == 1:
+            # Single click also navigates for quick folders
+            self._navigate(path)
+            return True
+        return False
+
+    def _show_drive_menu(self, event: Gdk.EventButton, mount: str, part: dict) -> None:
+        menu = Gtk.Menu()
+
+        op = Gtk.MenuItem.new_with_label(f"Open '{part.get('name', 'Drive')}'")
+        op.connect("activate", lambda *_: self._navigate(mount))
+        menu.append(op)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
+        prop = Gtk.MenuItem.new_with_label("Properties…")
+        prop.connect("activate", lambda *_: self._drive_properties(part))
+        menu.append(prop)
+
+        menu.show_all()
+        menu.popup_at_pointer(event)
+
+    def _drive_properties(self, p: dict) -> None:
+        rows = [
+            ("Drive Name", p.get("name", "")),
+            ("Mount Point", p.get("mount", "")),
+            ("Device", p.get("device", "")),
+            ("Filesystem Type", p.get("fstype", "")),
+            ("Used Space", f"{p.get('used_str', '')} ({p.get('percent', 0)*100:.1f}%)"),
+            ("Free Space", p.get("free_str", "")),
+            ("Total Capacity", p.get("total_str", "")),
+        ]
+        self._info_table(f"Properties — {p.get('name')}", rows)
+
+    # ---------------------------------------------------- EXPLORER VIEW
+    def _build_explorer_view(self) -> Gtk.Widget:
+        # Model columns: markup, name, path, desc, is_dir, size, mtime
+        self.model = Gtk.ListStore(str, str, str, str, bool, int, float)
+        self.view = Gtk.IconView.new_with_model(self.model)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", 3)  # END
+        self.view.pack_start(renderer, True)
+        self.view.add_attribute(renderer, "markup", 0)
+        self.view.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
+        self.view.set_item_width(150)
+        self.view.set_spacing(12)
+        self.view.set_column_spacing(20)
+        self.view.set_margin(14)
+
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.add(self.view)
+        return scrolled
 
     def _build_menu(self) -> None:
         self.menu = Gtk.Menu()
@@ -187,7 +434,7 @@ class FileManagerWindow(Gtk.Window):
                 self.menu.append(item)
         self.menu.show_all()
 
-    # ------------------------------------------------------------ DND (Drag and Drop)
+    # ------------------------------------------------------------ DND
     def _setup_dnd(self) -> None:
         targets = [
             Gtk.TargetEntry.new("text/uri-list", 0, DRAG_TARGET_URI),
@@ -232,7 +479,10 @@ class FileManagerWindow(Gtk.Window):
         info: int,
         time: int,
     ) -> None:
-        # Determine target directory
+        if self.current_dir == THIS_PC_URI:
+            context.finish(False, False, time)
+            return
+
         dest_dir = self.current_dir
         path_at = self.view.get_path_at_pos(x, y)
         if path_at is not None:
@@ -243,7 +493,6 @@ class FileManagerWindow(Gtk.Window):
                 if is_dir:
                     dest_dir = item_path
 
-        # Parse source paths
         sources = []
         if info == DRAG_TARGET_URI:
             uris = selection_data.get_uris() or []
@@ -264,7 +513,6 @@ class FileManagerWindow(Gtk.Window):
             context.finish(False, False, time)
             return
 
-        # Perform move or copy
         action = context.get_selected_action()
         is_move = action == Gdk.DragAction.MOVE
         errors = []
@@ -272,13 +520,12 @@ class FileManagerWindow(Gtk.Window):
 
         for src in sources:
             if os.path.dirname(os.path.realpath(src)) == dest_dir and is_move:
-                continue  # moving into same folder
+                continue
             src_name = os.path.basename(src)
             dest_target = os.path.join(dest_dir, src_name)
 
             overwrite = False
             if os.path.exists(dest_target):
-                # Prompt Replace / Keep Both
                 choice = self._confirm_replace(src_name)
                 if choice == "cancel":
                     continue
@@ -296,7 +543,7 @@ class FileManagerWindow(Gtk.Window):
         if errors:
             self._error("\n".join(errors))
         if done:
-            self._toast(f"{'Moved' if is_move else 'Copied'} {done} item{'s' if done > 1 else ''} to {os.path.basename(dest_dir) or dest_dir}")
+            self._toast(f"{'Moved' if is_move else 'Copied'} {done} item{'s' if done > 1 else ''}")
         self._reload()
         context.finish(True, is_move, time)
 
@@ -327,6 +574,8 @@ class FileManagerWindow(Gtk.Window):
 
     # ------------------------------------------------------------ ARRANGE / SORT
     def _popup_sort_menu(self) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         menu = Gtk.Menu()
 
         def set_sort(field: str, reverse: bool = False) -> None:
@@ -354,6 +603,8 @@ class FileManagerWindow(Gtk.Window):
 
     # ------------------------------------------------------------ SELECTION
     def _selected_paths(self) -> list[str]:
+        if self.current_dir == THIS_PC_URI:
+            return []
         items = self.view.get_selected_items()
         paths = []
         for tree_path in items:
@@ -368,10 +619,15 @@ class FileManagerWindow(Gtk.Window):
 
     # -------------------------------------------------------------- ACTIONS
     def _navigate(self, path: str, record: bool = True) -> None:
-        real = os.path.realpath(path)
-        if not os.path.isdir(real):
-            self._error(f"Not a directory:\n{real}")
-            return
+        target = path.strip()
+        if target.lower() in ("thispc", "thispc://", "pc", "pc://", "mycomputer", "computer://", "this pc"):
+            real = THIS_PC_URI
+        else:
+            real = os.path.realpath(os.path.expanduser(target))
+            if not os.path.isdir(real):
+                self._error(f"Not a directory:\n{real}")
+                return
+
         if record:
             self.history = self.history[: self.history_index + 1]
             if not self.history or self.history[-1] != real:
@@ -381,6 +637,7 @@ class FileManagerWindow(Gtk.Window):
             if not self.history or self.history[-1] != real:
                 self.history.append(real)
                 self.history_index = len(self.history) - 1
+
         self.current_dir = real
         self._reload()
 
@@ -392,18 +649,43 @@ class FileManagerWindow(Gtk.Window):
             self._reload()
 
     def _go_up(self) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         parent = os.path.dirname(self.current_dir)
-        if parent and parent != self.current_dir:
+        if parent == self.current_dir or self.current_dir == "/":
+            self._navigate(THIS_PC_URI)
+        elif parent:
             self._navigate(parent)
 
     def _reload(self) -> None:
+        self.back_btn.set_sensitive(self.history_index > 0)
+        self.forward_btn.set_sensitive(self.history_index < len(self.history) - 1)
+
+        # MODE 1: THIS PC OVERVIEW
+        if self.current_dir == THIS_PC_URI:
+            self.stack.set_visible_child_name("thispc")
+            self.action_bar.hide()
+            self.sort_btn.set_sensitive(False)
+            self.path_entry.set_text("🖥️ This PC")
+            self.header.set_title("This PC")
+            self.header.set_subtitle("Devices and drives")
+            self.set_title("This PC — ease-Desk")
+            self._render_thispc_content()
+            parts_count = len(sysinfo.partitions())
+            self.status_label.set_text(f"{parts_count} Drives / Partitions available  •  Windows This PC Mode")
+            return
+
+        # MODE 2: FOLDER EXPLORER
+        self.stack.set_visible_child_name("explorer")
+        self.action_bar.show()
+        self.sort_btn.set_sensitive(True)
+
         try:
             entries = fs.list_dir(self.current_dir)
         except fs.FileOpError as exc:
             self._error(str(exc))
             entries = []
 
-        # Sort entries according to current sort field
         if self.sort_field == "size":
             entries.sort(key=lambda e: (not e.is_dir, e.size), reverse=self.sort_reverse)
         elif self.sort_field == "mtime":
@@ -421,13 +703,16 @@ class FileManagerWindow(Gtk.Window):
                 f"<span font='11' foreground='#e2e8f0'>{escape(entry.name)}</span>"
             )
             self.model.append([markup, entry.name, entry.path, desc, entry.is_dir, entry.size, entry.mtime])
+
         self.path_entry.set_text(self.current_dir)
+        self.header.set_title(f"📁 {os.path.basename(self.current_dir) or '/'}")
+        self.header.set_subtitle(self.current_dir)
         self.set_title(f"File Manager — {self.current_dir}")
         self._update_status()
-        self.back_btn.set_sensitive(self.history_index > 0)
-        self.forward_btn.set_sensitive(self.history_index < len(self.history) - 1)
 
     def _update_status(self) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         count = len(self.model)
         selected = len(self.view.get_selected_items())
         text = f"{count} item{'s' if count != 1 else ''}"
@@ -474,6 +759,8 @@ class FileManagerWindow(Gtk.Window):
         self._open_path(path)
 
     def _new_folder(self) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         name = self._prompt("New Folder", "Folder name:", "New Folder")
         if not name:
             return
@@ -533,6 +820,8 @@ class FileManagerWindow(Gtk.Window):
             self._toast(f"Cut {len(selected)} item{'s' if len(selected) > 1 else ''}")
 
     def _paste(self) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         if not self.clipboard:
             self._toast("Clipboard is empty")
             return
@@ -541,7 +830,7 @@ class FileManagerWindow(Gtk.Window):
         done = 0
         for src in sources:
             if os.path.dirname(os.path.realpath(src)) == self.current_dir and mode == "move":
-                continue  # already here
+                continue
             try:
                 if mode == "copy":
                     fs.copy(src, self.current_dir)
@@ -618,7 +907,7 @@ class FileManagerWindow(Gtk.Window):
         if key == Gdk.KEY_BackSpace:
             self._go_up()
             return True
-        if key == Gdk.KEY_Return:
+        if key == Gdk.KEY_Return and self.current_dir != THIS_PC_URI:
             self._open_selected()
             return True
         return False
@@ -637,6 +926,8 @@ class FileManagerWindow(Gtk.Window):
         return False
 
     def _popup_menu(self, event) -> None:
+        if self.current_dir == THIS_PC_URI:
+            return
         self.menu.popup_at_pointer(event) if event else self.menu.popup_at_pointer(None)
 
     def _on_path_activate(self, entry) -> None:
@@ -650,7 +941,7 @@ class FileManagerWindow(Gtk.Window):
         GLib.timeout_add(2500, lambda: self._update_status())
 
     def _prompt(self, title: str, label: str, default: str = "") -> str | None:
-        dialog = Gtk.Dialog(title=title, transient_for=self, modal=True)
+        dialog = Gtk.Dialog(title=title, transient_for=self, modal=True, destroy_with_parent=True)
         dialog.set_default_size(360, -1)
         content = dialog.get_content_area()
         content.set_margin_start(14)
@@ -675,6 +966,7 @@ class FileManagerWindow(Gtk.Window):
         dialog = Gtk.MessageDialog(
             transient_for=self,
             modal=True,
+            destroy_with_parent=True,
             message_type=Gtk.MessageType.WARNING,
             buttons=Gtk.ButtonsType.NONE,
         )
@@ -690,7 +982,7 @@ class FileManagerWindow(Gtk.Window):
         return response == Gtk.ResponseType.OK
 
     def _info_table(self, title: str, rows: list[tuple[str, str]]) -> None:
-        dialog = Gtk.Dialog(title=title, transient_for=self, modal=True)
+        dialog = Gtk.Dialog(title=title, transient_for=self, modal=True, destroy_with_parent=True)
         dialog.set_default_size(480, -1)
         content = dialog.get_content_area()
         grid = Gtk.Grid()
@@ -717,10 +1009,11 @@ class FileManagerWindow(Gtk.Window):
         dialog = Gtk.MessageDialog(
             transient_for=self,
             modal=True,
+            destroy_with_parent=True,
             message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,
         )
-        dialog.set_title("File Manager")
+        dialog.set_title("ease-Desk")
         dialog.set_markup(f"<b>Operation failed</b>\n\n{escape(message)}")
         dialog.show_all()
         dialog.run()

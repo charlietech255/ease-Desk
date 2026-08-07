@@ -132,14 +132,30 @@ def main() -> int:
         else:
             print("✗ Failed to capture desktop-empty.png")
 
-        # 2. Capture Desktop with File Manager Open
+        # 2. Capture Desktop with This PC (Partitions & Storage) Open
+        print("Launching This PC (Partitions overview)...")
+        thispc = subprocess.Popen(
+            [sys.executable, "-m", "file_manager.app", "thispc://"],
+            env=env,
+            cwd=ROOT_DIR,
+        )
+        time.sleep(1.8)
+
+        thispc_out = os.path.join(SCREENSHOTS_DIR, "desktop-this-pc.png")
+        print(f"Capturing {thispc_out}...")
+        if capture_display(display_num, thispc_out):
+            print("✓ Successfully captured desktop-this-pc.png")
+        else:
+            print("✗ Failed to capture desktop-this-pc.png")
+
+        # 3. Capture Desktop with File Manager Open
         print(f"Launching File Manager in {sample_path}...")
         fm = subprocess.Popen(
             [sys.executable, "-m", "file_manager.app", sample_path],
             env=env,
             cwd=ROOT_DIR,
         )
-        time.sleep(1.5)  # allow File Manager to render over desktop
+        time.sleep(1.8)
 
         fm_out = os.path.join(SCREENSHOTS_DIR, "desktop-file-manager.png")
         print(f"Capturing {fm_out}...")
@@ -150,6 +166,7 @@ def main() -> int:
 
         # Terminate applications
         fm.terminate()
+        thispc.terminate()
         shell.terminate()
         time.sleep(0.5)
 

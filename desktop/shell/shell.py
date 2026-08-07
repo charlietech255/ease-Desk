@@ -126,21 +126,32 @@ class DesktopShell:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         default_items = [
             {
-                "id": "file_manager",
-                "name": "File Manager",
-                "icon": "📁",
-                "path": os.path.expanduser("~"),
-            }
+                "id": "this_pc",
+                "name": "This PC",
+                "icon": "🖥️",
+                "path": "thispc://",
+            },
+            {
+                "id": "web_root",
+                "name": "Web Root",
+                "icon": "🌐",
+                "path": "/var/www",
+            },
         ]
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     items = data.get("items", default_items)
-                    # Strip old x/y — layout is now purely grid-driven
+                    # Migrate legacy file_manager / fm item to This PC
                     for it in items:
                         it.pop("x", None)
                         it.pop("y", None)
+                        if it.get("id") in ("file_manager", "fm") or it.get("name") in ("File Manager", "Files"):
+                            it["name"] = "This PC"
+                            it["icon"] = "🖥️"
+                            it["path"] = "thispc://"
+                            it["id"] = "this_pc"
                     self.desktop_items = items
                     return
             except Exception:
@@ -357,7 +368,7 @@ class DesktopShell:
         rename.connect("activate", lambda *_: self._dialog_rename(item))
         menu.append(rename)
 
-        if item.get("id") != "file_manager":
+        if item.get("id") not in ("file_manager", "this_pc"):
             menu.append(Gtk.SeparatorMenuItem())
             rem = Gtk.MenuItem.new_with_label("Remove Shortcut")
             rem.connect("activate", lambda *_: self._remove_shortcut(item))
@@ -369,8 +380,8 @@ class DesktopShell:
     def _show_desktop_menu(self, event: Gdk.EventButton) -> None:
         menu = Gtk.Menu()
 
-        fm_mi = Gtk.MenuItem.new_with_label("Open File Manager")
-        fm_mi.connect("activate", lambda *_: self._launch_path(os.path.expanduser("~")))
+        fm_mi = Gtk.MenuItem.new_with_label("Open This PC")
+        fm_mi.connect("activate", lambda *_: self._launch_path("thispc://"))
         menu.append(fm_mi)
 
         menu.append(Gtk.SeparatorMenuItem())

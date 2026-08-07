@@ -30,6 +30,26 @@ class SysinfoTests(unittest.TestCase):
         self.assertEqual(sysinfo.human_size(1024), "1.0 KB")
         self.assertEqual(sysinfo.human_size(1048576), "1.0 MB")
 
+    def test_partitions_returns_root(self):
+        parts = sysinfo.partitions()
+        self.assertIsInstance(parts, list)
+        self.assertGreaterEqual(len(parts), 1)
+        root = next((p for p in parts if p["mount"] == "/"), None)
+        self.assertIsNotNone(root)
+        self.assertIn("name", root)
+        self.assertIn("total", root)
+        self.assertIn("free_str", root)
+        self.assertIn("percent", root)
+
+    def test_quick_folders(self):
+        folders = sysinfo.quick_folders()
+        self.assertIsInstance(folders, list)
+        self.assertGreaterEqual(len(folders), 1)
+        for f in folders:
+            self.assertIn("name", f)
+            self.assertIn("path", f)
+            self.assertIn("icon", f)
+
 
 class SessionManagerTests(unittest.TestCase):
     def test_session_init(self):
