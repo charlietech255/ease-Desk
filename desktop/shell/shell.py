@@ -588,8 +588,9 @@ class DesktopShell:
     def _dialog_change_icon(self, item: dict) -> None:
         dialog = Gtk.Dialog(
             title=f"Change Icon — {item.get('name')}",
-            parent=self.window,
-            flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            transient_for=self.window,
+            modal=True,
+            destroy_with_parent=True,
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Apply", Gtk.ResponseType.OK)
@@ -641,8 +642,9 @@ class DesktopShell:
     def _dialog_rename_item(self, item: dict) -> None:
         dialog = Gtk.Dialog(
             title="Rename Shortcut",
-            parent=self.window,
-            flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            transient_for=self.window,
+            modal=True,
+            destroy_with_parent=True,
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Save", Gtk.ResponseType.OK)
@@ -677,8 +679,9 @@ class DesktopShell:
     def _dialog_add_shortcut(self) -> None:
         dialog = Gtk.Dialog(
             title="Add Desktop Shortcut",
-            parent=self.window,
-            flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            transient_for=self.window,
+            modal=True,
+            destroy_with_parent=True,
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Add Shortcut", Gtk.ResponseType.OK)
