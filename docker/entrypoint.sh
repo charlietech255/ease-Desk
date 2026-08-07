@@ -10,21 +10,25 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
 fi
 
 echo "====================================================="
-echo "   ease-Desk — VPS Simulation Environment            "
+echo "   ease-Desk — Docker VPS Environment                "
 echo "====================================================="
-echo "SSH Server:  Port 22 (Mapped to host port 2222)"
-echo "User:        charlie"
-echo "Password:    charlie"
-echo "-----------------------------------------------------"
-echo "Connect with:  ssh -X -p 2222 charlie@localhost"
-echo "Then execute:  desktop"
+echo "Web Desktop: http://localhost:6080/vnc.html"
+echo "VNC Server:  localhost:5900"
+echo "SSH Server:  localhost:2222 (User: charlie | Pass: charlie)"
 echo "====================================================="
 
-# Start SSH daemon in foreground or execute command
-if [ "$#" -eq 0 ]; then
-    exec /usr/sbin/sshd -D -e
-else
-    # Start sshd in background then run command
-    /usr/sbin/sshd
+# Start SSH daemon
+/usr/sbin/sshd
+
+if [ "$#" -gt 0 ]; then
     exec "$@"
+fi
+
+if [ "${AUTOSTART_DESKTOP:-1}" = "1" ] || [ "${AUTOSTART_DESKTOP:-1}" = "true" ]; then
+    echo "Starting ease-Desk graphical environment..."
+    export HOME=/home/charlie
+    exec su - charlie -c "/opt/ease-desk/scripts/desktop"
+else
+    # Keep container alive with logs
+    tail -f /dev/null
 fi

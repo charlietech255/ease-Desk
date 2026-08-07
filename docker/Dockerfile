@@ -6,6 +6,8 @@ FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+ENV PYTHONPATH=/opt/ease-desk
+ENV AUTOSTART_DESKTOP=1
 
 # Install system dependencies, graphical stack, OpenSSH, and tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -30,7 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     fonts-noto-color-emoji \
     adwaita-icon-theme \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ( [ -f /usr/share/novnc/vnc.html ] && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html || true )
 
 # Configure locales
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen

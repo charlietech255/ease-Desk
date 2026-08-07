@@ -121,7 +121,7 @@ class SessionManager:
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid,
+            start_new_session=True,
         )
         self.spawned_processes.append(xvfb)
         time.sleep(0.35)
@@ -171,7 +171,7 @@ class SessionManager:
                     ws_cmd,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    preexec_fn=os.setsid,
+                    start_new_session=True,
                 )
                 self.spawned_processes.append(novnc)
 
@@ -184,7 +184,7 @@ class SessionManager:
             env=os.environ.copy(),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid,
+            start_new_session=True,
         )
         self.spawned_processes.append(wm)
         time.sleep(0.15)
@@ -195,7 +195,7 @@ class SessionManager:
         proc = subprocess.Popen(
             [sys.executable, "-m", shell_module],
             env=os.environ.copy(),
-            preexec_fn=os.setsid,
+            start_new_session=True,
         )
         self.spawned_processes.append(proc)
         return proc
