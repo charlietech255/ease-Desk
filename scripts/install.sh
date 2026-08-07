@@ -134,8 +134,11 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
         systemctl disable apache2 || true
     fi
 
-    cat << 'EOF' > /tmp/easedesk.conf
-map $http_upgrade $connection_upgrade {
+    PUBLIC_IP="$(curl -s -m 3 https://api.ipify.org 2>/dev/null | tr -d '[:space:]')"
+    [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+    cat << EOF > /tmp/easedesk.conf
+map \$http_upgrade \$connection_upgrade {
     default upgrade;
     ''      close;
 }
@@ -143,32 +146,49 @@ map $http_upgrade $connection_upgrade {
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
+    server_name _ ${PUBLIC_IP} localhost;
 
     location / {
         proxy_pass http://127.0.0.1:6080;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$connection_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
 }
 EOF
-    if [ -d "/etc/nginx/sites-available" ]; then
-        mv /tmp/easedesk.conf /etc/nginx/sites-available/easedesk
-        ln -sf /etc/nginx/sites-available/easedesk /etc/nginx/sites-enabled/
-        rm -f /etc/nginx/sites-enabled/default
-        
-        if nginx -t >/dev/null 2>&1; then
-            systemctl restart nginx || true
-            echo "✓ Nginx configured successfully with 0 errors."
-        else
-            echo "❌ Nginx configuration test failed."
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    mv /tmp/easedesk.conf /etc/nginx/sites-available/easedesk
+
+    # Clean out any old/conflicting sites in sites-enabled
+    for site in /etc/nginx/sites-enabled/*; do
+        [ -e "$site" ] || [ -L "$site" ] || continue
+        [ "$(basename "$site")" = "easedesk" ] && continue
+        echo "⚠️ Disabling conflicting Nginx site: $(basename "$site")"
+        rm -f "$site"
+    done
+
+    # Disable conflicting files in conf.d
+    for cfile in /etc/nginx/conf.d/*.conf; do
+        [ -f "$cfile" ] || continue
+        if grep -qE "3000|listen.*80" "$cfile" 2>/dev/null; then
+            echo "⚠️ Disabling conflicting conf.d file: $(basename "$cfile")"
+            mv "$cfile" "${cfile}.disabled" 2>/dev/null || true
         fi
+    done
+
+    ln -sf /etc/nginx/sites-available/easedesk /etc/nginx/sites-enabled/easedesk
+    
+    if nginx -t >/dev/null 2>&1; then
+        systemctl restart nginx || true
+        echo "✓ Nginx configured and pointing to ease-Desk (:6080) successfully."
+    else
+        echo "❌ Nginx configuration test failed."
+    fi
 
         if command -v certbot >/dev/null 2>&1; then
             echo -n "Do you have a custom domain name to configure SSL/HTTPS? (y/N): "
