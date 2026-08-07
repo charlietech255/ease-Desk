@@ -59,7 +59,6 @@ window.shell {
     border-radius: 8px;
     border: 1px solid transparent;
     transition: background-color 150ms ease, border-color 150ms ease;
-    cursor: pointer;
 }
 .icon-box:hover {
     background-color: rgba(255, 255, 255, 0.08);
@@ -73,7 +72,6 @@ window.shell {
     background-color: rgba(122, 162, 247, 0.25);
     border: 1px dashed #7aa2f7;
     opacity: 0.90;
-    cursor: grabbing;
 }
 .icon-name {
     color: #f1f5f9;
