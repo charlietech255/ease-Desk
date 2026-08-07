@@ -1136,6 +1136,26 @@ def main() -> int:
         print("No active $DISPLAY detected. Launching ease-Desk session manager...")
         return SessionManager().start()
 
+    import time
+    initialized = False
+    for _ in range(25):
+        try:
+            res = Gtk.init_check()
+            if isinstance(res, (tuple, list)) and res:
+                if res[0]:
+                    initialized = True
+                    break
+            elif bool(res):
+                initialized = True
+                break
+        except Exception:
+            pass
+        time.sleep(0.2)
+
+    if not initialized:
+        print(f"Error: Unable to initialize GTK on display {os.environ.get('DISPLAY')}", file=sys.stderr)
+        return 1
+
     DesktopShell()
     Gtk.main()
     return 0

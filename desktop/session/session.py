@@ -190,6 +190,16 @@ class SessionManager:
                 "Xvfb not found. Please install xvfb to use virtual display mode."
             )
 
+        num = self.display_str.lstrip(":")
+        lock_file = f"/tmp/.X{num}-lock"
+        sock_file = f"/tmp/.X11-unix/X{num}"
+        for f in (lock_file, sock_file):
+            if os.path.exists(f):
+                try:
+                    os.unlink(f)
+                except OSError:
+                    pass
+
         cmd = ["Xvfb", self.display_str, "-screen", "0", self.resolution]
         xvfb = subprocess.Popen(
             cmd,
@@ -198,7 +208,13 @@ class SessionManager:
             start_new_session=True,
         )
         self.spawned_processes.append(xvfb)
-        time.sleep(0.35)
+
+        # Wait up to 5 seconds for X11 socket to become ready
+        for _ in range(50):
+            if os.path.exists(sock_file):
+                break
+            time.sleep(0.1)
+        time.sleep(0.2)
 
         if self.enable_vnc and shutil.which("x11vnc"):
             pwd_file = os.path.expanduser("~/.vnc/passwd")
