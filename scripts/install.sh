@@ -48,7 +48,10 @@ if command -v apt-get >/dev/null 2>&1; then
         curl \
         net-tools \
         fonts-dejavu-core \
+        fonts-noto-color-emoji \
+        fonts-symbola \
         adwaita-icon-theme \
+        hicolor-icon-theme \
         >/dev/null 2>&1 || {
             echo "Standard apt-get install complete with warnings (retrying essentials)..."
             apt-get install -y python3 python3-gi gir1.2-gtk-3.0 xvfb x11vnc novnc websockify

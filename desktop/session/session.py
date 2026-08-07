@@ -98,14 +98,16 @@ class SessionManager:
         if self.is_virtual_display:
             ips = self._get_ip_addresses()
             primary_ip = ips[0] if ips else "localhost"
+            url_params = "?autoconnect=true&resize=scale"
             print("\n" + "=" * 64)
             print("         🌐 ease-Desk Server is Running!         ")
             print("=" * 64)
             print("  Open this link in your browser (Phone / PC / Tablet):")
-            print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html")
+            print(f"  👉 http://{primary_ip}:{self.novnc_port}/vnc.html{url_params}")
             if primary_ip != "localhost" and primary_ip != "127.0.0.1":
-                print(f"  👉 http://localhost:{self.novnc_port}/vnc.html")
+                print(f"  👉 http://localhost:{self.novnc_port}/vnc.html{url_params}")
             print("-" * 64)
+            print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
             if self.enable_vnc:
                 print(f"  🖥️  Native VNC Client: {primary_ip}:{self.vnc_port}")
             print(f"  🖥️  Display ID:       {self.display_str}")

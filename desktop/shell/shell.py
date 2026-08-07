@@ -20,6 +20,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
+from shared.utilities.icons import get_icon_pixbuf  # noqa: E402
 from shared.utilities.wallpaper import (  # noqa: E402
     CONFIG_DIR,
     CONFIG_FILE,
@@ -469,9 +470,20 @@ class DesktopShell:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         box.set_halign(Gtk.Align.CENTER)
 
-        icon_lbl = Gtk.Label()
-        icon_lbl.set_markup(f"<span font='36'>{item.get('icon', '📁')}</span>")
-        box.pack_start(icon_lbl, False, False, 0)
+        # Detect appropriate icon key
+        item_id = item.get("id", "").lower()
+        item_name = item.get("name", "").lower()
+        if "pc" in item_id or "this pc" in item_name or "computer" in item_name:
+            icon_key = "computer"
+        elif "web" in item_id or "www" in item_name or "web root" in item_name:
+            icon_key = "webroot"
+        elif "trash" in item_id or "trash" in item_name:
+            icon_key = "trash"
+        else:
+            icon_key = item.get("icon_key", "folder")
+
+        img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(icon_key, size=48))
+        box.pack_start(img, False, False, 2)
 
         name_lbl = Gtk.Label(label=item.get("name", "Item"))
         name_lbl.get_style_context().add_class("icon-name")

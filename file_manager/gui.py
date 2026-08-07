@@ -15,11 +15,13 @@ from html import escape
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 from file_manager.core import fs, types  # noqa: E402
 from file_manager.viewer import ImageViewerWindow, TextViewerWindow  # noqa: E402
 from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
+from shared.utilities.icons import get_icon_pixbuf  # noqa: E402
 
 DRAG_TARGET_URI = 0
 DRAG_TARGET_TEXT = 1
@@ -259,9 +261,8 @@ class FileManagerWindow(Gtk.Window):
         card.set_size_request(270, 76)
 
         # Large Drive Icon
-        icon_lbl = Gtk.Label()
-        icon_lbl.set_markup(f"<span font='32'>{p.get('icon', '🗄️')}</span>")
-        card.pack_start(icon_lbl, False, False, 0)
+        img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf("drive", size=38))
+        card.pack_start(img, False, False, 0)
 
         # Info Box
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
@@ -316,9 +317,9 @@ class FileManagerWindow(Gtk.Window):
         card.get_style_context().add_class("folder-card")
         card.set_size_request(175, 48)
 
-        icon_lbl = Gtk.Label()
-        icon_lbl.set_markup(f"<span font='22'>{f.get('icon', '📁')}</span>")
-        card.pack_start(icon_lbl, False, False, 0)
+        icon_key = f.get("icon_key", "folder")
+        img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(icon_key, size=28))
+        card.pack_start(img, False, False, 0)
 
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         info.set_valign(Gtk.Align.CENTER)
@@ -393,18 +394,17 @@ class FileManagerWindow(Gtk.Window):
 
     # ---------------------------------------------------- EXPLORER VIEW
     def _build_explorer_view(self) -> Gtk.Widget:
-        # Model columns: markup, name, path, desc, is_dir, size, mtime
-        self.model = Gtk.ListStore(str, str, str, str, bool, int, float)
+        # Model columns: pixbuf (0), name (1), path (2), desc (3), is_dir (4), size (5), mtime (6)
+        self.model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, str, str, bool, int, float)
         self.view = Gtk.IconView.new_with_model(self.model)
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", 3)  # END
-        self.view.pack_start(renderer, True)
-        self.view.add_attribute(renderer, "markup", 0)
+        self.view.set_pixbuf_column(0)
+        self.view.set_text_column(1)
         self.view.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
-        self.view.set_item_width(150)
-        self.view.set_spacing(12)
-        self.view.set_column_spacing(20)
-        self.view.set_margin(14)
+        self.view.set_item_width(108)
+        self.view.set_spacing(6)
+        self.view.set_column_spacing(12)
+        self.view.set_row_spacing(12)
+        self.view.set_margin(12)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -697,15 +697,12 @@ class FileManagerWindow(Gtk.Window):
 
         self.model.clear()
         for entry in entries:
-            cat, desc, icon = types.categorize(entry.name, entry.is_dir, entry.is_link)
-            markup = (
-                f"<span font='26'>{icon}</span>\n"
-                f"<span font='11' foreground='#e2e8f0'>{escape(entry.name)}</span>"
-            )
-            self.model.append([markup, entry.name, entry.path, desc, entry.is_dir, entry.size, entry.mtime])
+            cat, desc, _ = types.categorize(entry.name, entry.is_dir, entry.is_link)
+            pixbuf = get_icon_pixbuf(cat, size=48)
+            self.model.append([pixbuf, entry.name, entry.path, desc, entry.is_dir, entry.size, entry.mtime])
 
         self.path_entry.set_text(self.current_dir)
-        self.header.set_title(f"📁 {os.path.basename(self.current_dir) or '/'}")
+        self.header.set_title(os.path.basename(self.current_dir) or "/")
         self.header.set_subtitle(self.current_dir)
         self.set_title(f"File Manager — {self.current_dir}")
         self._update_status()

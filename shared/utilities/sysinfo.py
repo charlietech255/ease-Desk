@@ -173,14 +173,14 @@ def partitions() -> list[dict]:
 def quick_folders() -> list[dict]:
     """Return common quick-access system and user folders."""
     candidates = [
-        {"name": "Home", "icon": "🏠", "path": os.path.expanduser("~"), "desc": "Personal folder"},
-        {"name": "Desktop", "icon": "🖥️", "path": os.path.expanduser("~/Desktop"), "desc": "Desktop files"},
-        {"name": "Documents", "icon": "📄", "path": os.path.expanduser("~/Documents"), "desc": "Documents"},
-        {"name": "Downloads", "icon": "📥", "path": os.path.expanduser("~/Downloads"), "desc": "Downloads"},
-        {"name": "Web Root", "icon": "🌐", "path": "/var/www", "desc": "Web server (/var/www)"},
-        {"name": "Config", "icon": "⚙️", "path": "/etc", "desc": "System configuration (/etc)"},
-        {"name": "Logs", "icon": "📋", "path": "/var/log", "desc": "System logs (/var/log)"},
-        {"name": "Root (FS)", "icon": "🗄️", "path": "/", "desc": "Root filesystem (/)"},
+        {"name": "Home", "icon_key": "home", "icon": "🏠", "path": os.path.expanduser("~"), "desc": "Personal folder"},
+        {"name": "Desktop", "icon_key": "desktop", "icon": "🖥️", "path": os.path.expanduser("~/Desktop"), "desc": "Desktop files"},
+        {"name": "Documents", "icon_key": "documents", "icon": "📄", "path": os.path.expanduser("~/Documents"), "desc": "Documents"},
+        {"name": "Downloads", "icon_key": "downloads", "icon": "📥", "path": os.path.expanduser("~/Downloads"), "desc": "Downloads"},
+        {"name": "Web Root", "icon_key": "webroot", "icon": "🌐", "path": "/var/www", "desc": "Web server (/var/www)"},
+        {"name": "Config", "icon_key": "config", "icon": "⚙️", "path": "/etc", "desc": "System configuration (/etc)"},
+        {"name": "Logs", "icon_key": "text", "icon": "📋", "path": "/var/log", "desc": "System logs (/var/log)"},
+        {"name": "Root (FS)", "icon_key": "server", "icon": "🗄️", "path": "/", "desc": "Root filesystem (/)"},
     ]
     return [c for c in candidates if os.path.exists(os.path.expanduser(c["path"]))]
 
