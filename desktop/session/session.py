@@ -204,7 +204,7 @@ class SessionManager:
         xvfb = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=None,
             start_new_session=True,
         )
         self.spawned_processes.append(xvfb)
@@ -218,7 +218,7 @@ class SessionManager:
 
         if self.enable_vnc and shutil.which("x11vnc"):
             pwd_file = os.path.expanduser("~/.vnc/passwd")
-            auth_args = ["-rfbauth", pwd_file] if os.path.exists(pwd_file) else ["-nopw"]
+            auth_args = ["-rfbauth", pwd_file] if (os.path.exists(pwd_file) and os.path.getsize(pwd_file) > 0) else ["-nopw"]
 
             vnc_cmd = [
                 "x11vnc",
@@ -234,23 +234,30 @@ class SessionManager:
             subprocess.run(
                 vnc_cmd,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=None,
             )
 
             # Optional noVNC HTML5 WebSocket proxy
             novnc_proxy = shutil.which("novnc_proxy") or shutil.which("websockify")
             if novnc_proxy:
-                web_dir = "/usr/share/novnc"
-                if not os.path.exists(web_dir):
-                    web_dir = "/usr/share/novnc-core"
+                web_dirs = [
+                    "/usr/share/novnc",
+                    "/usr/share/novnc-core",
+                    "/opt/novnc",
+                    "/usr/local/share/novnc",
+                ]
+                web_dir = next((d for d in web_dirs if os.path.exists(d)), None)
+                
                 if shutil.which("websockify"):
-                    ws_cmd = [
-                        "websockify",
-                        "--web",
-                        web_dir,
-                        f"0.0.0.0:{self.novnc_port}",
-                        f"127.0.0.1:{self.vnc_port}",
-                    ]
+                    web_arg = ["--web", web_dir] if web_dir else []
+                    ws_cmd = (
+                        ["websockify"]
+                        + web_arg
+                        + [
+                            f"0.0.0.0:{self.novnc_port}",
+                            f"127.0.0.1:{self.vnc_port}",
+                        ]
+                    )
                 else:
                     ws_cmd = [
                         "novnc_proxy",
@@ -262,7 +269,7 @@ class SessionManager:
                 novnc = subprocess.Popen(
                     ws_cmd,
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    stderr=None,
                     start_new_session=True,
                 )
                 self.spawned_processes.append(novnc)
