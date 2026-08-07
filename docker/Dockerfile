@@ -42,13 +42,12 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 RUN mkdir -p /var/run/sshd && \
     echo "X11Forwarding yes" >> /etc/ssh/sshd_config && \
     echo "X11UseLocalhost no" >> /etc/ssh/sshd_config && \
-    echo "PermitUserEnvironment yes" >> /etc/ssh/sshd_config && \
+    echo "PermitUserEnvironment no" >> /etc/ssh/sshd_config && \
     echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
 
 # Create user 'charlie' with password 'charlie'
 RUN useradd -m -s /bin/bash -G sudo charlie && \
-    echo "charlie:charlie" | chpasswd && \
-    echo "charlie ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "charlie:charlie" | chpasswd
 
 # Create realistic sample VPS filesystem structure
 RUN mkdir -p /var/www/html \

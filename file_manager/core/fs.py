@@ -13,7 +13,7 @@ import shutil
 import stat
 from dataclasses import dataclass
 
-from shared.utilities.secure import SecurityError, assert_destructible, safe_child
+from shared.utilities.secure import SecurityError, assert_destructible, ensure_within, safe_child
 
 MAX_TEXT_BYTES = 1024 * 1024  # refuse to slurp files larger than 1 MiB
 COPY_SUFFIX = " (copy)"
@@ -378,15 +378,16 @@ def extract_archive(archive_path: str, dest_dir: str) -> str:
                 # Traversal check
                 for member in zf.infolist():
                     target_path = os.path.abspath(os.path.join(dest_dir, member.filename))
-                    if not target_path.startswith(dest_dir):
-                        raise SecurityError(f"Suspicious zip entry path traversal: {member.filename}")
+                    ensure_within(dest_dir, target_path)
                 zf.extractall(dest_dir)
         elif tarfile.is_tarfile(archive_path):
             with tarfile.open(archive_path, "r:*") as tf:
                 for member in tf.getmembers():
                     target_path = os.path.abspath(os.path.join(dest_dir, member.name))
-                    if not target_path.startswith(dest_dir):
-                        raise SecurityError(f"Suspicious tar entry path traversal: {member.name}")
+                    ensure_within(dest_dir, target_path)
+                    if member.issym() or member.islnk():
+                        link_target = os.path.abspath(os.path.join(os.path.dirname(target_path), member.linkname))
+                        ensure_within(dest_dir, link_target)
                 if hasattr(tarfile, "data_filter"):
                     tf.extractall(dest_dir, filter="data")
                 else:

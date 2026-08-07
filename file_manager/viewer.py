@@ -54,6 +54,11 @@ class ImageViewerWindow(Gtk.Window):
     def __init__(self, path: str):
         super().__init__(title=f"Preview — {os.path.basename(path)}")
         try:
+            info = GdkPixbuf.Pixbuf.get_file_info(path)[0]
+            if info:
+                w, h = info.get_width(), info.get_height()
+                if w > 8192 or h > 8192:
+                    raise fs.FileOpError(f"Image too large ({w}x{h}). Max supported is 8192x8192.")
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
         except Exception as exc:
             raise fs.FileOpError(f"Could not load image: {exc}") from exc
