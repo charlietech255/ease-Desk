@@ -357,8 +357,27 @@ XSESSION_EOF
         # Enable & start XRDP
         systemctl enable xrdp >/dev/null 2>&1 || true
         systemctl restart xrdp >/dev/null 2>&1 || true
+        systemctl restart xrdp-sesman >/dev/null 2>&1 || true
         echo -e "${GREEN}✓ Native Remote Desktop Protocol (XRDP) active on port 3389.${NC}"
     fi
+
+    # Configure Firewall Rules (UFW / Firewalld / iptables)
+    if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
+        echo -e "${CYAN}🛡️ Configuring UFW firewall rules...${NC}"
+        ufw allow 3389/tcp comment "ease-Desk XRDP" >/dev/null 2>&1 || true
+        ufw allow 80/tcp comment "ease-Desk Web Desktop" >/dev/null 2>&1 || true
+        ufw allow 443/tcp comment "ease-Desk SSL" >/dev/null 2>&1 || true
+        ufw allow 6080/tcp comment "ease-Desk WebSocket" >/dev/null 2>&1 || true
+        ufw reload >/dev/null 2>&1 || true
+        echo -e "${GREEN}✓ UFW firewall rules updated.${NC}"
+    elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
+        echo -e "${CYAN}🛡️ Configuring Firewalld rules...${NC}"
+        firewall-cmd --permanent --add-port={3389/tcp,80/tcp,443/tcp,6080/tcp} >/dev/null 2>&1 || true
+        firewall-cmd --reload >/dev/null 2>&1 || true
+        echo -e "${GREEN}✓ Firewalld rules updated.${NC}"
+    fi
+    # Also ensure iptables accepts port 3389
+    iptables -I INPUT -p tcp --dport 3389 -j ACCEPT 2>/dev/null || true
 fi
 
 # ------------------------------------------------------------------------------
