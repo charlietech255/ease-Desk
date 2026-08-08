@@ -1082,7 +1082,7 @@ class DesktopShell:
         elif target_path in ("app://browser", "browser"):
             # Locate installed real web browser with sandbox-safe flags for VPS environments
             browser_bin = None
-            for b in ("firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "epiphany", "x-www-browser"):
+            for b in ("firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "epiphany-browser", "epiphany", "x-www-browser"):
                 if shutil.which(b):
                     browser_bin = b
                     break
