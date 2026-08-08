@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-gi-cairo \
     gir1.2-gtk-3.0 \
     gir1.2-gdkpixbuf-2.0 \
+    gir1.2-vte-2.91 \
     openbox \
     xvfb \
     x11vnc \
