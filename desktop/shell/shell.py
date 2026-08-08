@@ -578,7 +578,12 @@ class DesktopShell:
                             items.append(default_it)
 
                     self.desktop_items = items
-                    self.wallpaper_path = data.get("wallpaper", DEFAULT_WALLPAPER)
+                    saved_wp = data.get("wallpaper", DEFAULT_WALLPAPER)
+                    # Auto-upgrade previous default or missing wallpapers to new signature Horizon
+                    if (not os.path.exists(saved_wp)) or any(w in saved_wp for w in ("charlie-tech.png", "kali-cubes-purple.jpg", "kali-waves.png")):
+                        self.wallpaper_path = DEFAULT_WALLPAPER
+                    else:
+                        self.wallpaper_path = saved_wp
                     self.wallpaper_mode = data.get("wallpaper_mode", "fill")
                     self.solid_color = data.get("solid_color", "#080b11")
                     return
