@@ -25,7 +25,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango  # noqa: E402
 
 from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
 from shared.utilities.icons import get_icon_pixbuf  # noqa: E402
@@ -96,6 +96,54 @@ PINNED_APPS_CONFIG = [
         "tooltip": "Personalize Desktop & Wallpapers",
     },
 ]
+
+
+def _get_browser_command() -> tuple[list[str], dict[str, str]] | None:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
+    env["WEBKIT_FORCE_SANDBOX"] = "0"
+    env["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
+    if not env.get("DISPLAY"):
+        env["DISPLAY"] = ":0"
+
+    # 1. Chromium / Chrome (requires sandbox & GPU flags when run as root on VPS)
+    for b in (
+        "google-chrome-stable",
+        "google-chrome",
+        "chromium-browser",
+        "chromium",
+    ):
+        bin_path = shutil.which(b)
+        if bin_path:
+            cmd = [
+                bin_path,
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--password-store=basic",
+                "https://google.com",
+            ]
+            return cmd, env
+
+    # 2. Firefox / Firefox ESR
+    for b in ("firefox-esr", "firefox"):
+        bin_path = shutil.which(b)
+        if bin_path:
+            cmd = [bin_path, "-no-remote", "https://google.com"]
+            return cmd, env
+
+    # 3. Epiphany / WebKit / Midori / Min
+    for b in ("epiphany-browser", "epiphany", "midori", "min", "x-www-browser"):
+        bin_path = shutil.which(b)
+        if bin_path:
+            cmd = [bin_path, "https://google.com"]
+            return cmd, env
+
+    return None
+
 
 _CSS = b"""
 /* ease-Desk Next-Gen Modern Glass Theme */
@@ -174,19 +222,32 @@ window.shell {
 
 /* Running Tasks Section */
 .running-task-btn {
-    background: rgba(30, 41, 59, 0.65);
-    border: 1px solid rgba(56, 189, 248, 0.35);
+    background: rgba(30, 41, 59, 0.70);
+    border: 1px solid rgba(56, 189, 248, 0.40);
     border-radius: 8px;
-    padding: 3px 10px;
-    color: #e2e8f0;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 0 4px;
     transition: all 120ms ease-in-out;
 }
 .running-task-btn:hover {
-    background: rgba(56, 189, 248, 0.25);
+    background: rgba(56, 189, 248, 0.22);
     border-color: #38bdf8;
-    color: #ffffff;
+}
+.running-task-inner-btn {
+    padding: 3px 6px;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+}
+.running-task-close-btn {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 6px;
+}
+.running-task-close-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.25);
 }
 
 /* Live System Badges */
@@ -1405,6 +1466,12 @@ class DesktopShell:
         app_id = "files"
         title = "Files"
         icon_key = "computer"
+        env = os.environ.copy()
+        env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
+        env["WEBKIT_FORCE_SANDBOX"] = "0"
+        env["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
+        if not env.get("DISPLAY"):
+            env["DISPLAY"] = ":0"
 
         if target_path in ("app://terminal", "terminal"):
             cmd = [sys.executable, "-m", "desktop.terminal.app", os.path.expanduser("~")]
@@ -1423,23 +1490,10 @@ class DesktopShell:
             app_id = "browser"
             title = "Web Browser"
             icon_key = "browser"
-            browser_bin = None
-            for b in ("epiphany-browser", "epiphany", "midori", "min", "firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "x-www-browser"):
-                if shutil.which(b):
-                    browser_bin = b
-                    break
-            if browser_bin:
-                if "chromium" in browser_bin or "chrome" in browser_bin:
-                    cmd = [
-                        browser_bin,
-                        "--no-sandbox",
-                        "--disable-dev-shm-usage",
-                        "--disable-gpu",
-                        "--password-store=basic",
-                        "https://google.com",
-                    ]
-                else:
-                    cmd = [browser_bin, "https://google.com"]
+            browser_spec = _get_browser_command()
+            if browser_spec:
+                cmd, browser_env = browser_spec
+                env.update(browser_env)
             else:
                 cmd = [
                     sys.executable,
@@ -1462,7 +1516,8 @@ class DesktopShell:
             p = subprocess.Popen(
                 cmd,
                 cwd=ROOT,
-                env=dict(os.environ, PYTHONPATH=ROOT + os.pathsep + os.environ.get("PYTHONPATH", "")),
+                env=env,
+                start_new_session=True,
             )
             self.children.append(p.pid)
             self.tracked_processes[p.pid] = {
@@ -1473,15 +1528,21 @@ class DesktopShell:
                 "popen": p,
             }
             self._update_running_tasks_ui()
-        except OSError:
-            pass
+        except Exception as err:
+            print(f"[ease-Desk] Error launching {target_path}: {err}", file=sys.stderr)
 
     def _poll_processes(self) -> None:
         dead_pids = []
-        for pid, meta in self.tracked_processes.items():
+        for pid, meta in list(self.tracked_processes.items()):
             popen = meta.get("popen")
-            if popen and popen.poll() is not None:
-                dead_pids.append(pid)
+            if popen is not None:
+                if popen.poll() is not None:
+                    dead_pids.append(pid)
+            else:
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    dead_pids.append(pid)
 
         for pid in dead_pids:
             self.tracked_processes.pop(pid, None)
@@ -1492,38 +1553,80 @@ class DesktopShell:
     def _update_running_tasks_ui(self) -> None:
         active_app_ids = {meta["app_id"] for meta in self.tracked_processes.values()}
 
-        # Update indicators on pinned dock icons
+        # 1. Update indicators on pinned dock icons
         for app_id, indicator in self.pinned_indicators.items():
+            ctx = indicator.get_style_context()
             if app_id in active_app_ids:
-                indicator.get_style_context().add_class("active")
+                if not ctx.has_class("active"):
+                    ctx.add_class("active")
             else:
-                indicator.get_style_context().remove_class("active")
+                if ctx.has_class("active"):
+                    ctx.remove_class("active")
 
-        # Update center running tasks box
+        # 2. Prevent redundant widget rebuilds
+        current_snapshot = tuple(
+            sorted((pid, meta["title"], meta["icon_key"]) for pid, meta in self.tracked_processes.items())
+        )
+        if hasattr(self, "_last_tasks_snapshot") and self._last_tasks_snapshot == current_snapshot:
+            return
+        self._last_tasks_snapshot = current_snapshot
+
         for child in self.running_tasks_box.get_children():
             self.running_tasks_box.remove(child)
 
         for pid, meta in list(self.tracked_processes.items()):
+            task_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+            task_box.get_style_context().add_class("running-task-btn")
+
             btn = Gtk.Button()
-            btn.get_style_context().add_class("running-task-btn")
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.get_style_context().add_class("running-task-inner-btn")
 
             h = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(meta["icon_key"], size=16))
             h.pack_start(img, False, False, 0)
 
             lbl = Gtk.Label(label=meta["title"])
+            lbl.set_max_width_chars(16)
+            lbl.set_ellipsize(Pango.EllipsizeMode.END)
             h.pack_start(lbl, False, False, 0)
 
             btn.add(h)
             btn.connect("clicked", lambda *_, p=pid: self._focus_or_signal_proc(p))
-            self.running_tasks_box.pack_start(btn, False, False, 0)
+            task_box.pack_start(btn, True, True, 0)
+
+            close_btn = Gtk.Button.new_with_label("✕")
+            close_btn.set_relief(Gtk.ReliefStyle.NONE)
+            close_btn.get_style_context().add_class("running-task-close-btn")
+            close_btn.set_tooltip_text(f"Close {meta['title']}")
+            close_btn.connect("clicked", lambda *_, p=pid: self._terminate_proc(p))
+            task_box.pack_start(close_btn, False, False, 0)
+
+            self.running_tasks_box.pack_start(task_box, False, False, 0)
 
         self.running_tasks_box.show_all()
 
+    def _terminate_proc(self, pid: int) -> None:
+        meta = self.tracked_processes.get(pid)
+        if meta and meta.get("popen"):
+            try:
+                meta["popen"].terminate()
+            except Exception:
+                pass
+        else:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
+        self.tracked_processes.pop(pid, None)
+        self._update_running_tasks_ui()
+
     def _focus_or_signal_proc(self, pid: int) -> None:
-        # If wmctrl or xdotool is present, activate window, otherwise pass
-        if shutil.which("wmctrl"):
-            subprocess.Popen(["wmctrl", "-a", self.tracked_processes.get(pid, {}).get("title", "")])
+        title = self.tracked_processes.get(pid, {}).get("title", "")
+        if shutil.which("wmctrl") and title:
+            subprocess.Popen(["wmctrl", "-a", title])
+        elif shutil.which("xdotool") and title:
+            subprocess.Popen(["xdotool", "search", "--name", title, "windowactivate"])
 
     # ---------------------------------------------------------- TICK & STATS
     def _tick_clock_and_stats(self) -> bool:
