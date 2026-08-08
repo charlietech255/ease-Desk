@@ -156,25 +156,13 @@ if command -v apt-get >/dev/null 2>&1; then
             apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx git curl wget >/dev/null 2>&1 || true
         }
 
-    # Ensure a real standalone GUI browser is installed (Google Chrome or Epiphany)
-    if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1 && ! command -v firefox >/dev/null 2>&1 && ! command -v epiphany-browser >/dev/null 2>&1; then
-        echo -e "${CYAN}🌐 Installing Web Browser (Google Chrome / Epiphany)...${NC}"
-        if [ "$(uname -m)" = "x86_64" ]; then
-            wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O /tmp/google-chrome.deb 2>/dev/null || true
-            if [ -f /tmp/google-chrome.deb ]; then
-                dpkg -i /tmp/google-chrome.deb >/dev/null 2>&1 || apt-get install -f -y -qq >/dev/null 2>&1 || true
-                rm -f /tmp/google-chrome.deb
-            fi
-        fi
-        # Fallback to Epiphany or Debian Chromium if Chrome deb was not installed
-        if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
-            apt-get install -y -qq epiphany-browser 2>/dev/null || apt-get install -y -qq chromium 2>/dev/null || true
-        fi
-    fi
+    # Install ultra-lightweight native WebKit browser (Epiphany) for fast startup & minimal RAM (<80MB)
+    echo -e "${CYAN}🌐 Installing Lightweight WebKit Browser (Epiphany)...${NC}"
+    apt-get install -y -qq epiphany-browser 2>/dev/null || true
 elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp firefox chromium openbox nginx git curl wget
+    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget
 elif command -v pacman >/dev/null 2>&1; then
-    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp firefox chromium openbox nginx git curl wget
+    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget
 elif command -v pkg >/dev/null 2>&1; then
     pkg install -y python x11-repo xwayland tigervnc git
 fi

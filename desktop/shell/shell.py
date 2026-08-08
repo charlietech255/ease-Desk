@@ -1080,9 +1080,9 @@ class DesktopShell:
         elif target_path in ("app://task_manager", "task_manager"):
             cmd = [sys.executable, "-m", "desktop.task_manager.app"]
         elif target_path in ("app://browser", "browser"):
-            # Locate installed real web browser with sandbox-safe flags for VPS environments
+            # Prioritize ultra-fast lightweight browsers (Epiphany WebKit, Midori) over heavy Chrome
             browser_bin = None
-            for b in ("firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "epiphany-browser", "epiphany", "x-www-browser"):
+            for b in ("epiphany-browser", "epiphany", "midori", "min", "firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "x-www-browser"):
                 if shutil.which(b):
                     browser_bin = b
                     break
