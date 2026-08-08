@@ -202,24 +202,29 @@ class PtyTextViewTerminal(Gtk.Box):
         # 2. Strip DEC private mode sequences (e.g. \x1b[?1h, \x1b[?2004h, \x1b[?25h, etc.)
         clean_text = re.sub(r"\x1b\[\?[0-9;]*[a-zA-Z]", "", clean_text)
 
-        # 3. Strip other non-color escape codes (cursor moves, keypad modes, charset designations)
+        # 3. Handle line clear sequences (\x1b[K or \x1b[2K)
+        if "\x1b[K" in clean_text or "\x1b[2K" in clean_text:
+            clean_text = clean_text.replace("\x1b[K", "").replace("\x1b[2K", "")
+
+        # 4. Strip cursor movement / non-color escape codes
         clean_text = re.sub(r"\x1b\[[0-9;]*[A-LN-Za-ln-zHfJKsu]", "", clean_text)
         clean_text = re.sub(r"\x1b[=><\(\)][0-9A-Za-z]?", "", clean_text)
 
-        # 4. Strip bells, backspace artifacts
-        clean_text = clean_text.replace("\x07", "").replace("\x08", "")
-
-        ansi_regex = re.compile(r"\x1b\[([0-9;]*)m")
-        tokens = ansi_regex.split(clean_text)
+        # 5. Process ANSI colors and text handling backspaces (\x08)
+        ansi_regex = re.compile(r"(\x1b\[[0-9;]*m)")
+        parts = ansi_regex.split(clean_text)
         current_tags: list[str] = []
 
-        for i, token in enumerate(tokens):
-            if i % 2 == 1:
-                # ANSI code chunk (e.g., '0;32;1')
-                if not token or token == "0":
+        for part in parts:
+            if not part:
+                continue
+            if part.startswith("\x1b[") and part.endswith("m"):
+                # ANSI color code
+                code_str = part[2:-1]
+                if not code_str or code_str == "0":
                     current_tags = []
                 else:
-                    codes = [int(c) for c in token.split(";") if c.isdigit()]
+                    codes = [int(c) for c in code_str.split(";") if c.isdigit()]
                     for c in codes:
                         if c == 0:
                             current_tags = []
@@ -236,10 +241,23 @@ class PtyTextViewTerminal(Gtk.Box):
                             current_tags = [t for t in current_tags if not t.startswith("bg_")]
                             current_tags.append(f"bg_{c}")
             else:
-                if token:
-                    self._append_text_with_tags(token, current_tags)
+                # Text content - handle backspaces (\x08)
+                self._insert_text_handling_bs(part, current_tags)
 
         self._scroll_to_bottom()
+
+    def _insert_text_handling_bs(self, text: str, tag_names: list[str]) -> None:
+        """Insert text while properly handling \x08 backspaces by deleting from the buffer."""
+        for char in text:
+            if char == "\x08":
+                end_iter = self.buffer.get_end_iter()
+                start_iter = self.buffer.get_end_iter()
+                if start_iter.backward_char():
+                    self.buffer.delete(start_iter, end_iter)
+            elif char == "\x07":
+                pass
+            else:
+                self._append_text_with_tags(char, tag_names)
 
     def _append_text(self, text: str) -> None:
         end_iter = self.buffer.get_end_iter()
@@ -293,13 +311,14 @@ class PtyTextViewTerminal(Gtk.Box):
             Gdk.KEY_Page_Up: b"\x1b[5~",
             Gdk.KEY_Page_Down: b"\x1b[6~",
             Gdk.KEY_Delete: b"\x1b[3~",
+            Gdk.KEY_KP_Delete: b"\x1b[3~",
         }
 
         if keyval in key_map:
             os.write(self.master_fd, key_map[keyval])
             return True
 
-        # Control key combos (Ctrl+C, Ctrl+D, Ctrl+Z, etc.)
+        # Control key combos (Ctrl+C, Ctrl+D, Ctrl+Z, Ctrl+U, etc.)
         if state & Gdk.ModifierType.CONTROL_MASK:
             if 0x40 <= keyval <= 0x5F:
                 os.write(self.master_fd, bytes([keyval - 0x40]))
@@ -364,6 +383,13 @@ if HAVE_VTE:
                 self.initial_dir = os.path.expanduser("~")
 
             self.terminal = Vte.Terminal()
+
+            # Configure erase/delete bindings for 100% remote browser and noVNC compatibility
+            try:
+                self.terminal.set_backspace_binding(Vte.EraseBinding.ASCII_DELETE)
+                self.terminal.set_delete_binding(Vte.EraseBinding.DELETE_SEQUENCE)
+            except Exception:
+                pass
 
             # Dark theme colors (One Dark / Modern Linux Console)
             fg_color = Gdk.RGBA(0.788, 0.820, 0.851, 1.0)
@@ -436,6 +462,9 @@ if HAVE_VTE:
             scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
             scrolled.add(self.terminal)
             self.pack_start(scrolled, True, True, 0)
+
+            # Auto focus terminal
+            self.terminal.connect("realize", lambda *_: self.terminal.grab_focus())
 
         def copy_selection(self) -> None:
             self.terminal.copy_clipboard_format(Vte.Format.TEXT)
