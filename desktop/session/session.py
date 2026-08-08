@@ -134,18 +134,37 @@ class SessionManager:
         return returncode
 
     def _display_is_alive(self, display: str) -> bool:
-        """Return True only if the given DISPLAY string has a live X server."""
+        """Return True if the given DISPLAY string has a live X server."""
+        # 1. Try xdpyinfo if available
+        if shutil.which("xdpyinfo"):
+            try:
+                result = subprocess.run(
+                    ["xdpyinfo", "-display", display],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=2,
+                )
+                return result.returncode == 0
+            except Exception:
+                pass
+
+        # 2. Check X11 UNIX socket /tmp/.X11-unix/X<num>
         try:
-            result = subprocess.run(
-                ["xdpyinfo", "-display", display],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=2,
-            )
-            return result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-            # xdpyinfo not installed or timed out — assume dead
-            return False
+            disp_num = display.lstrip(":").split(".")[0]
+            sock_path = f"/tmp/.X11-unix/X{disp_num}"
+            if os.path.exists(sock_path):
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.settimeout(1.0)
+                try:
+                    s.connect(sock_path)
+                    s.close()
+                    return True
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        return False
 
     def _get_ip_addresses(self) -> list[str]:
         """Detect local network and external IP addresses."""

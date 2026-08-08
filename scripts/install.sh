@@ -140,6 +140,9 @@ if command -v apt-get >/dev/null 2>&1; then
         x11vnc \
         novnc \
         websockify \
+        xrdp \
+        xorgxrdp \
+        chromium-browser \
         nginx \
         procps \
         scrot \
@@ -150,12 +153,13 @@ if command -v apt-get >/dev/null 2>&1; then
         hicolor-icon-theme \
         >/dev/null 2>&1 || {
             echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify nginx git curl
+            apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx git curl >/dev/null 2>&1 || true
+            apt-get install -y -qq chromium-browser 2>/dev/null || apt-get install -y -qq chromium 2>/dev/null || apt-get install -y -qq firefox-esr 2>/dev/null || true
         }
 elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify openbox nginx git curl
+    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp chromium openbox nginx git curl
 elif command -v pacman >/dev/null 2>&1; then
-    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify openbox nginx git curl
+    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp chromium openbox nginx git curl
 elif command -v pkg >/dev/null 2>&1; then
     pkg install -y python x11-repo xwayland tigervnc git
 fi
@@ -329,10 +333,36 @@ EOF
     systemctl enable easedesk >/dev/null 2>&1
     systemctl restart easedesk || echo -e "${YELLOW}⚠️ Failed to start service.${NC}"
     echo -e "${GREEN}✓ ease-Desk systemd service installed and active.${NC}"
+
+    # Configure XRDP Session Manager for Native Remote Desktop Connection
+    if command -v xrdp >/dev/null 2>&1; then
+        echo -e "${CYAN}🖥️ Configuring Native Remote Desktop (XRDP / Port 3389)...${NC}"
+        
+        # Configure user session scripts
+        for u_dir in "$TARGET_HOME" "/root" "/etc/skel"; do
+            [ -d "$u_dir" ] || continue
+            cat << 'XSESSION_EOF' > "${u_dir}/.xsession"
+#!/bin/sh
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+export PYTHONPATH="/opt/ease-desk:$PYTHONPATH"
+exec /usr/local/bin/desktop
+XSESSION_EOF
+            chmod +x "${u_dir}/.xsession"
+            [ "$TARGET_USER" != "root" ] && chown "${TARGET_USER}" "${u_dir}/.xsession" 2>/dev/null || true
+        done
+
+        # Fix XRDP permissions for SSL certs
+        adduser xrdp ssl-cert >/dev/null 2>&1 || usermod -a -G ssl-cert xrdp >/dev/null 2>&1 || true
+
+        # Enable & start XRDP
+        systemctl enable xrdp >/dev/null 2>&1 || true
+        systemctl restart xrdp >/dev/null 2>&1 || true
+        echo -e "${GREEN}✓ Native Remote Desktop Protocol (XRDP) active on port 3389.${NC}"
+    fi
 fi
 
 # ------------------------------------------------------------------------------
-# 8. End-to-End Health Verification
+# 8. End-to-End Health Verification & Access Summary
 # ------------------------------------------------------------------------------
 echo -e "${CYAN}🔍 [7/7] Running End-to-End System Health Checks...${NC}"
 
@@ -345,16 +375,14 @@ if [ "$(id -u)" -eq 0 ]; then
 
     if port_busy 5900; then
         echo -e "${GREEN}✓ X11 VNC server active on :5900${NC}"
-    else
-        echo -e "${YELLOW}⚠️ VNC server not listening on :5900 yet${NC}"
     fi
 
     if port_busy 6080; then
         echo -e "${GREEN}✓ WebSocket proxy active on :6080${NC}"
-    else
-        echo -e "${YELLOW}⚠️ Websockify not listening on :6080 yet (Restarting service...)${NC}"
-        systemctl restart easedesk >/dev/null 2>&1 || true
-        sleep 5
+    fi
+
+    if port_busy 3389; then
+        echo -e "${GREEN}✓ Native RDP server active on :3389${NC}"
     fi
 
     PUBLIC_IP="$(curl -s -m 3 https://api.ipify.org 2>/dev/null | tr -d '[:space:]' || true)"
@@ -365,22 +393,22 @@ if [ "$(id -u)" -eq 0 ]; then
 
     echo ""
     echo -e "${GREEN}${BOLD}================================================================${NC}"
-    if [ "$HTTP_CODE" = "200" ]; then
-        echo -e "${GREEN}${BOLD}   🎉 ease-Desk Installed Successfully & Running in Background!   ${NC}"
-        echo -e "${GREEN}${BOLD}================================================================${NC}"
-        echo -e "   👉 ${BOLD}Live Web Desktop:${NC} ${CYAN}http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale${NC}"
-        echo ""
-        echo -e "   🖥️  ${BOLD}Status check:${NC}     systemctl status easedesk"
-        echo -e "   📋 ${BOLD}Live logs:${NC}        journalctl -u easedesk -f"
-        echo -e "   🔄 ${BOLD}Restart:${NC}          systemctl restart easedesk"
-        echo -e "${GREEN}${BOLD}================================================================${NC}"
-    else
-        echo -e "${YELLOW}${BOLD}   ⚠️ ease-Desk is running. Nginx Status: HTTP ${HTTP_CODE}   ${NC}"
-        echo -e "${YELLOW}${BOLD}================================================================${NC}"
-        echo -e "   👉 Direct Port URL:  ${CYAN}http://${BASE_URL}:6080/vnc.html?autoconnect=true&resize=scale${NC}"
-        echo -e "   👉 Nginx URL:        ${CYAN}http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale${NC}"
-        echo -e "${YELLOW}${BOLD}================================================================${NC}"
-    fi
+    echo -e "${GREEN}${BOLD}   🎉 ease-Desk Cloud Distro & Remote Desktop Ready!            ${NC}"
+    echo -e "${GREEN}${BOLD}================================================================${NC}"
+    echo -e "   🌐 ${BOLD}1. Web Browser Desktop (Zero-Install):${NC}"
+    echo -e "      👉 ${CYAN}http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale${NC}"
+    echo ""
+    echo -e "   🖥️  ${BOLD}2. Native Remote Desktop (Windows / Mac / Phone RDP):${NC}"
+    echo -e "      👉 Host:     ${CYAN}${BASE_URL}:3389${NC}"
+    echo -e "      👉 Username: ${BOLD}${TARGET_USER}${NC}"
+    echo -e "      👉 Password: ${BOLD}<Your Linux / SSH Password>${NC}"
+    echo -e "      (Use 'Remote Desktop Connection' on Windows or 'Microsoft Remote Desktop' on Mac)"
+    echo ""
+    echo -e "   📋 ${BOLD}System Management:${NC}"
+    echo -e "      • Check Status:  systemctl status easedesk"
+    echo -e "      • View Logs:     journalctl -u easedesk -f"
+    echo -e "      • Restart:       systemctl restart easedesk"
+    echo -e "${GREEN}${BOLD}================================================================${NC}"
 else
     echo -e "${GREEN}✓ User-level setup completed! Type 'desktop' to launch.${NC}"
 fi

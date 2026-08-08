@@ -36,7 +36,7 @@ class TestNewFeatures(unittest.TestCase):
 
     def test_icons_rendering(self):
         """Verify vector rendering of new and updated icons."""
-        for icon_key in ["terminal", "task_manager", "archive", "computer", "webroot", "folder"]:
+        for icon_key in ["terminal", "task_manager", "archive", "computer", "webroot", "folder", "browser", "editor", "settings"]:
             pb = get_icon_pixbuf(icon_key, size=48)
             self.assertIsNotNone(pb, f"Icon {icon_key} should return a valid Pixbuf")
             self.assertEqual(pb.get_width(), 48)
@@ -101,6 +101,7 @@ class TestNewFeatures(unittest.TestCase):
         shell = DesktopShell()
         self.assertIsNotNone(shell.start_btn)
         item_ids = [it["id"] for it in shell.desktop_items]
+        self.assertIn("browser", item_ids)
         self.assertIn("terminal", item_ids)
         self.assertIn("task_manager", item_ids)
         shell.window.destroy()

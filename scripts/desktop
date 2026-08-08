@@ -18,9 +18,6 @@ ROOT_DIR="$(cd -P "${SCRIPT_DIR}/.." && pwd)"
 # Ensure ease-Desk root is on the Python path
 export PYTHONPATH="${ROOT_DIR}:${PYTHONPATH}"
 
-# Unset any stale DISPLAY env var so session.py can detect the environment fresh.
-unset DISPLAY
-
 # Launch session manager directly from ROOT_DIR
 cd "${ROOT_DIR}"
 exec python3 -m desktop.session.session "$@"

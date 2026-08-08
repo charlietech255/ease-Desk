@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     x11vnc \
     novnc \
     websockify \
+    xrdp \
     procps \
     scrot \
     curl \
@@ -84,6 +85,6 @@ RUN chmod +x /opt/ease-desk/scripts/desktop /opt/ease-desk/scripts/*.sh && \
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 22 5900 6080
+EXPOSE 22 5900 6080 3389
 
 ENTRYPOINT ["/entrypoint.sh"]

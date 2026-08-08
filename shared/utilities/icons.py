@@ -46,6 +46,9 @@ THEME_ICON_MAP = {
     "terminal": ["utilities-terminal", "terminal", "org.gnome.Terminal", "xterm"],
     "task_manager": ["utilities-system-monitor", "system-monitor", "org.gnome.SystemMonitor", "preferences-system"],
     "activity": ["utilities-system-monitor", "system-monitor", "org.gnome.SystemMonitor"],
+    "browser": ["web-browser", "applications-internet", "chromium-browser", "firefox", "browser"],
+    "editor": ["accessories-text-editor", "text-editor", "document-edit", "text-x-generic"],
+    "settings": ["preferences-system", "system-settings", "preferences-desktop"],
 }
 
 _PIXBUF_CACHE: dict[tuple[str, int], GdkPixbuf.Pixbuf] = {}
@@ -92,6 +95,12 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
         _draw_terminal(ctx)
     elif key in ("task_manager", "activity", "process", "monitor"):
         _draw_task_manager(ctx)
+    elif key in ("browser", "web", "internet", "chromium", "firefox"):
+        _draw_browser(ctx)
+    elif key in ("editor", "text_editor", "code"):
+        _draw_editor(ctx)
+    elif key in ("settings", "preferences"):
+        _draw_settings(ctx)
     elif key in ("computer", "server"):
         _draw_computer(ctx)
     elif key in ("webroot", "html"):
@@ -439,4 +448,105 @@ def _draw_task_manager(ctx: cairo.Context) -> None:
     ctx.set_source_rgb(0.30, 0.95, 0.65)
     ctx.arc(38, 28, 3, 0, 2 * 3.14159)
     ctx.fill()
+
+
+def _draw_browser(ctx: cairo.Context) -> None:
+    # Outer browser window frame
+    ctx.set_source_rgb(0.14, 0.18, 0.26)
+    ctx.rectangle(12, 16, 76, 68)
+    ctx.fill()
+
+    # Browser titlebar & tab
+    ctx.set_source_rgb(0.20, 0.26, 0.38)
+    ctx.rectangle(12, 16, 76, 18)
+    ctx.fill()
+
+    # Browser tab
+    ctx.set_source_rgb(0.14, 0.18, 0.26)
+    ctx.rectangle(24, 20, 36, 14)
+    ctx.fill()
+
+    # Window dots
+    ctx.set_source_rgb(0.95, 0.35, 0.35)
+    ctx.arc(18, 24, 2, 0, 2 * 3.14159)
+    ctx.fill()
+
+    # URL address bar
+    ctx.set_source_rgb(0.26, 0.34, 0.48)
+    ctx.rectangle(18, 38, 64, 8)
+    ctx.fill()
+
+    # Globe/Compass accent in viewport
+    ctx.set_source_rgb(0.15, 0.60, 0.95)  # Modern vibrant blue
+    ctx.arc(50, 62, 14, 0, 2 * 3.14159)
+    ctx.fill()
+    ctx.set_source_rgb(1.0, 1.0, 1.0)
+    ctx.set_line_width(2)
+    ctx.arc(50, 62, 14, 0, 2 * 3.14159)
+    ctx.stroke()
+    ctx.move_to(36, 62)
+    ctx.line_to(64, 62)
+    ctx.stroke()
+
+
+def _draw_editor(ctx: cairo.Context) -> None:
+    # Code editor window
+    ctx.set_source_rgb(0.12, 0.14, 0.20)
+    ctx.rectangle(14, 16, 72, 68)
+    ctx.fill()
+
+    # Title bar
+    ctx.set_source_rgb(0.18, 0.22, 0.30)
+    ctx.rectangle(14, 16, 72, 14)
+    ctx.fill()
+
+    # Line numbers sidebar
+    ctx.set_source_rgb(0.15, 0.18, 0.25)
+    ctx.rectangle(14, 30, 16, 54)
+    ctx.fill()
+
+    # Code lines
+    ctx.set_source_rgb(0.38, 0.70, 0.95)  # Blue keyword
+    ctx.rectangle(34, 36, 18, 4)
+    ctx.fill()
+    ctx.set_source_rgb(0.95, 0.75, 0.30)  # Yellow function
+    ctx.rectangle(56, 36, 22, 4)
+    ctx.fill()
+
+    ctx.set_source_rgb(0.40, 0.85, 0.50)  # Green string
+    ctx.rectangle(38, 46, 32, 4)
+    ctx.fill()
+
+    ctx.set_source_rgb(0.85, 0.45, 0.90)  # Purple variable
+    ctx.rectangle(38, 56, 24, 4)
+    ctx.fill()
+
+    # Active cursor
+    ctx.set_source_rgb(1.0, 1.0, 1.0)
+    ctx.rectangle(64, 56, 2, 6)
+    ctx.fill()
+
+
+def _draw_settings(ctx: cairo.Context) -> None:
+    # Gear outer circle
+    ctx.set_source_rgb(0.45, 0.52, 0.64)
+    ctx.arc(50, 50, 26, 0, 2 * 3.14159)
+    ctx.fill()
+
+    # Gear teeth (8 teeth)
+    import math
+    for i in range(8):
+        angle = i * (math.pi / 4)
+        ctx.save()
+        ctx.translate(50, 50)
+        ctx.rotate(angle)
+        ctx.rectangle(-5, -34, 10, 12)
+        ctx.fill()
+        ctx.restore()
+
+    # Center hole
+    ctx.set_source_rgb(0.08, 0.10, 0.14)
+    ctx.arc(50, 50, 12, 0, 2 * 3.14159)
+    ctx.fill()
+
 

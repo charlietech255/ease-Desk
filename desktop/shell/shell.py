@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -336,6 +337,13 @@ class DesktopShell:
                 "icon_key": "computer",
             },
             {
+                "id": "browser",
+                "name": "Web Browser",
+                "icon": "🌐",
+                "path": "app://browser",
+                "icon_key": "browser",
+            },
+            {
                 "id": "terminal",
                 "name": "Terminal",
                 "icon": "💻",
@@ -352,7 +360,7 @@ class DesktopShell:
             {
                 "id": "web_root",
                 "name": "Web Root",
-                "icon": "🌐",
+                "icon": "📁",
                 "path": "/var/www",
                 "icon_key": "webroot",
             },
@@ -376,7 +384,7 @@ class DesktopShell:
                     # Ensure essential shortcuts exist if upgrading from earlier version
                     existing_ids = {it.get("id") for it in items}
                     for default_it in default_items:
-                        if default_it["id"] not in existing_ids and default_it["id"] in ("terminal", "task_manager"):
+                        if default_it["id"] not in existing_ids and default_it["id"] in ("browser", "terminal", "task_manager"):
                             items.append(default_it)
 
                     self.desktop_items = items
@@ -520,6 +528,7 @@ class DesktopShell:
 
         items = [
             ("🖥️ This PC", lambda: self._launch_path("thispc://")),
+            ("🌐 Web Browser", lambda: self._launch_path("app://browser")),
             ("📁 File Manager", lambda: self._launch_path(os.path.expanduser("~"))),
             ("💻 Terminal Console", lambda: self._launch_path("app://terminal")),
             ("📊 Task Manager", lambda: self._launch_path("app://task_manager")),
@@ -1070,6 +1079,23 @@ class DesktopShell:
             cmd = [sys.executable, "-m", "desktop.terminal.app", os.path.expanduser("~")]
         elif target_path in ("app://task_manager", "task_manager"):
             cmd = [sys.executable, "-m", "desktop.task_manager.app"]
+        elif target_path in ("app://browser", "browser"):
+            # Locate installed modern web browser with sandbox-safe flags for VPS environments
+            browser_bin = None
+            for b in ("chromium", "chromium-browser", "google-chrome", "firefox", "firefox-esr", "epiphany"):
+                if shutil.which(b):
+                    browser_bin = b
+                    break
+            if browser_bin:
+                if "chromium" in browser_bin or "chrome" in browser_bin:
+                    cmd = [browser_bin, "--no-sandbox", "--disable-dev-shm-usage", "--test-type", "https://google.com"]
+                else:
+                    cmd = [browser_bin, "https://google.com"]
+            else:
+                # Open Web Root in File Manager if no GUI browser binary is installed yet
+                cmd = [sys.executable, "-m", "file_manager.app", "/var/www"]
+        elif target_path in ("app://editor", "editor"):
+            cmd = [sys.executable, "-m", "file_manager.app", os.path.expanduser("~")]
         else:
             cmd = [sys.executable, "-m", "file_manager.app", target_path]
 
