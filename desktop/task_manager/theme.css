@@ -1,0 +1,116 @@
+/* Task Manager Modern Glass Theme */
+
+window {
+    background-color: #080b11;
+}
+
+headerbar {
+    background: rgba(13, 17, 23, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+headerbar label.title {
+    color: #f8fafc;
+    font-weight: 700;
+}
+headerbar label.subtitle {
+    color: #94a3b8;
+}
+
+button {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #e2e8f0;
+    transition: all 150ms ease-in-out;
+}
+button:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.5);
+    color: #ffffff;
+}
+button.destructive-action {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    font-weight: bold;
+}
+button.destructive-action:hover {
+    background: rgba(239, 68, 68, 0.4);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.tm-card {
+    background: rgba(15, 23, 42, 0.60);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.tm-card-title {
+    color: #38bdf8;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+.tm-card-val {
+    color: #f1f5f9;
+    font-size: 24px;
+    font-weight: 300;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+progressbar > trough {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    min-height: 8px;
+}
+progressbar > trough > progress {
+    background-image: linear-gradient(to right, #38bdf8, #3b82f6);
+    border-radius: 6px;
+}
+progressbar.warning > trough > progress {
+    background-image: linear-gradient(to right, #fbbf24, #f59e0b);
+}
+progressbar.critical > trough > progress {
+    background-image: linear-gradient(to right, #f87171, #ef4444);
+}
+
+entry {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #e2e8f0;
+    padding: 6px 10px;
+}
+entry:focus {
+    border-color: #38bdf8;
+    background: rgba(15, 23, 42, 0.8);
+}
+
+.dim-label {
+    color: #64748b;
+    font-size: 12px;
+}
+
+treeview {
+    background-color: rgba(13, 17, 23, 0.85);
+    color: #e2e8f0;
+}
+treeview:hover {
+    background-color: rgba(30, 41, 59, 0.9);
+}
+treeview:selected {
+    background-color: rgba(56, 189, 248, 0.25);
+    color: #ffffff;
+}
+treeview header button {
+    background: rgba(13, 17, 23, 0.95);
+    color: #94a3b8;
+    font-weight: bold;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
+}

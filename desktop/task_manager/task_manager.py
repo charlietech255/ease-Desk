@@ -74,10 +74,23 @@ class TaskManagerWindow(Gtk.Window):
         self.timer_id: Optional[int] = None
         self.refresh_interval = 2  # seconds
 
+        self._load_css()
         self._build_ui()
         self._refresh_data()
         self.timer_id = GLib.timeout_add_seconds(self.refresh_interval, self._refresh_data)
         self.connect("delete-event", self._on_close)
+
+
+    def _load_css(self) -> None:
+        provider = Gtk.CssProvider()
+        css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.css")
+        if os.path.exists(css_path):
+            provider.load_from_path(css_path)
+            screen = Gdk.Screen.get_default()
+            if screen is not None:
+                Gtk.StyleContext.add_provider_for_screen(
+                    screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                )
 
     def _build_ui(self) -> None:
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -144,6 +157,8 @@ class TaskManagerWindow(Gtk.Window):
         self.tree_sort = Gtk.TreeModelSort(model=self.tree_filter)
         self.tree_view = Gtk.TreeView(model=self.tree_sort)
         self.tree_view.set_rules_hint(True)
+        # Enable row striping for better readability (using theme styles)
+        self.tree_view.set_has_tooltip(True)
 
         self._add_columns()
 
@@ -158,27 +173,28 @@ class TaskManagerWindow(Gtk.Window):
 
     def _create_meter_card(self, title: str) -> tuple[Gtk.Frame, Gtk.ProgressBar, Gtk.Label]:
         frame = Gtk.Frame()
-        frame.get_style_context().add_class("task-card")
+        frame.get_style_context().add_class("tm-card")
         frame.set_hexpand(True)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.set_margin_start(10)
-        box.set_margin_end(10)
-        box.set_margin_top(8)
-        box.set_margin_bottom(8)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_margin_start(16)
+        box.set_margin_end(16)
+        box.set_margin_top(16)
+        box.set_margin_bottom(16)
 
         t_lbl = Gtk.Label(label=title, xalign=0)
-        t_lbl.get_style_context().add_class("task-card-title")
+        t_lbl.get_style_context().add_class("tm-card-title")
 
         val_lbl = Gtk.Label(label="0%", xalign=0)
-        val_lbl.get_style_context().add_class("task-card-val")
+        val_lbl.get_style_context().add_class("tm-card-val")
 
         bar = Gtk.ProgressBar()
         bar.set_fraction(0.0)
+        bar.get_style_context().add_class("tm-progress")
 
         box.pack_start(t_lbl, False, False, 0)
         box.pack_start(val_lbl, False, False, 0)
-        box.pack_start(bar, False, False, 2)
+        box.pack_start(bar, False, False, 4)
         frame.add(box)
         return frame, bar, val_lbl
 
@@ -229,6 +245,16 @@ class TaskManagerWindow(Gtk.Window):
         self.filter_text = entry.get_text().strip()
         self.tree_filter.refilter()
 
+
+    def _update_bar_color(self, bar: Gtk.ProgressBar, pct: float) -> None:
+        ctx = bar.get_style_context()
+        ctx.remove_class("warning")
+        ctx.remove_class("critical")
+        if pct >= 90:
+            ctx.add_class("critical")
+        elif pct >= 75:
+            ctx.add_class("warning")
+            
     def _refresh_data(self) -> bool:
         # 1. Update Hardware Meters
         info = sysinfo.summary()
