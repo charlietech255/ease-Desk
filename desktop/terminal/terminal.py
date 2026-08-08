@@ -353,6 +353,103 @@ class PtyTextViewTerminal(Gtk.Box):
                 pass
 
 
+if HAVE_VTE:
+    class VteTerminalWidget(Gtk.Box):
+        """Native VTE Terminal Emulator with complete VT100/ANSI, cursor, and key handling."""
+
+        def __init__(self, initial_dir: Optional[str] = None):
+            super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            self.initial_dir = initial_dir or os.path.expanduser("~")
+            if not os.path.isdir(self.initial_dir):
+                self.initial_dir = os.path.expanduser("~")
+
+            self.terminal = Vte.Terminal()
+
+            # Dark theme colors (One Dark / Modern Linux Console)
+            fg_color = Gdk.RGBA(0.788, 0.820, 0.851, 1.0)
+            bg_color = Gdk.RGBA(0.051, 0.067, 0.090, 1.0)
+            palette = [
+                Gdk.RGBA(0.118, 0.133, 0.169, 1.0),  # Black
+                Gdk.RGBA(0.878, 0.424, 0.459, 1.0),  # Red
+                Gdk.RGBA(0.596, 0.765, 0.475, 1.0),  # Green
+                Gdk.RGBA(0.898, 0.753, 0.482, 1.0),  # Yellow
+                Gdk.RGBA(0.380, 0.686, 0.937, 1.0),  # Blue
+                Gdk.RGBA(0.776, 0.471, 0.867, 1.0),  # Magenta
+                Gdk.RGBA(0.337, 0.714, 0.761, 1.0),  # Cyan
+                Gdk.RGBA(0.671, 0.698, 0.749, 1.0),  # White
+                Gdk.RGBA(0.361, 0.388, 0.439, 1.0),  # Bright Black
+                Gdk.RGBA(1.000, 0.482, 0.525, 1.0),  # Bright Red
+                Gdk.RGBA(0.710, 0.910, 0.565, 1.0),  # Bright Green
+                Gdk.RGBA(1.000, 0.831, 0.494, 1.0),  # Bright Yellow
+                Gdk.RGBA(0.475, 0.753, 1.000, 1.0),  # Bright Blue
+                Gdk.RGBA(0.824, 0.659, 1.000, 1.0),  # Bright Magenta
+                Gdk.RGBA(0.494, 0.906, 0.529, 1.0),  # Bright Cyan
+                Gdk.RGBA(1.000, 1.000, 1.000, 1.0),  # Bright White
+            ]
+            self.terminal.set_colors(fg_color, bg_color, palette)
+
+            font_desc = Pango.FontDescription("Monospace 11")
+            self.terminal.set_font(font_desc)
+            self.terminal.set_cursor_blink_mode(Vte.CursorBlinkMode.ON)
+            self.terminal.set_cursor_shape(Vte.CursorShape.BLOCK)
+            self.terminal.set_scrollback_lines(10000)
+            self.terminal.set_mouse_autohide(True)
+
+            shell = os.environ.get("SHELL", "/bin/bash")
+            if not os.path.exists(shell):
+                shell = "/bin/sh"
+
+            env = [
+                "TERM=xterm-256color",
+                "COLORTERM=truecolor",
+                f"HOME={os.path.expanduser('~')}",
+                f"USER={os.environ.get('USER', 'root')}",
+                f"PATH={os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin')}",
+            ]
+
+            try:
+                self.terminal.spawn_async(
+                    Vte.PtyFlags.DEFAULT,
+                    self.initial_dir,
+                    [shell, "-l"],
+                    env,
+                    GLib.SpawnFlags.DEFAULT,
+                    None,
+                    None,
+                    -1,
+                    None,
+                    None,
+                )
+            except Exception:
+                self.terminal.spawn_sync(
+                    Vte.PtyFlags.DEFAULT,
+                    self.initial_dir,
+                    [shell, "-l"],
+                    env,
+                    GLib.SpawnFlags.DEFAULT,
+                    None,
+                    None,
+                    None,
+                )
+
+            scrolled = Gtk.ScrolledWindow()
+            scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            scrolled.add(self.terminal)
+            self.pack_start(scrolled, True, True, 0)
+
+        def copy_selection(self) -> None:
+            self.terminal.copy_clipboard_format(Vte.Format.TEXT)
+
+        def paste_clipboard(self) -> None:
+            self.terminal.paste_clipboard()
+
+        def clear(self) -> None:
+            self.terminal.reset(True, True)
+
+        def close(self) -> None:
+            pass
+
+
 class TerminalWindow(Gtk.Window):
     """Full-featured standalone Terminal Window for ease-Desk."""
 
@@ -388,8 +485,11 @@ class TerminalWindow(Gtk.Window):
         paste_btn.connect("clicked", lambda *_: self.term.paste_clipboard() if hasattr(self.term, "paste_clipboard") else None)
         header.pack_start(paste_btn)
 
-        # Create Terminal Backend
-        self.term = PtyTextViewTerminal(initial_dir=self.initial_dir)
+        # Create Terminal Backend (Native VTE if available, fallback to PtyTextView)
+        if HAVE_VTE:
+            self.term = VteTerminalWidget(initial_dir=self.initial_dir)
+        else:
+            self.term = PtyTextViewTerminal(initial_dir=self.initial_dir)
         vbox.pack_start(self.term, True, True, 0)
 
         self.add(vbox)

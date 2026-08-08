@@ -134,6 +134,7 @@ if command -v apt-get >/dev/null 2>&1; then
         python3-gi-cairo \
         gir1.2-gtk-3.0 \
         gir1.2-gdkpixbuf-2.0 \
+        gir1.2-vte-2.91 \
         openbox \
         xvfb \
         x11vnc \
@@ -149,12 +150,12 @@ if command -v apt-get >/dev/null 2>&1; then
         hicolor-icon-theme \
         >/dev/null 2>&1 || {
             echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 xvfb x11vnc novnc websockify nginx git curl
+            apt-get install -y python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify nginx git curl
         }
 elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y python3 python3-gobject gtk3 xorg-x11-server-Xvfb x11vnc novnc python3-websockify openbox nginx git curl
+    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify openbox nginx git curl
 elif command -v pacman >/dev/null 2>&1; then
-    pacman -Sy --noconfirm python python-gobject gtk3 xorg-server-xvfb x11vnc novnc websockify openbox nginx git curl
+    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify openbox nginx git curl
 elif command -v pkg >/dev/null 2>&1; then
     pkg install -y python x11-repo xwayland tigervnc git
 fi
