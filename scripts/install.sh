@@ -354,6 +354,18 @@ XSESSION_EOF
         # Fix XRDP permissions for SSL certs
         adduser xrdp ssl-cert >/dev/null 2>&1 || usermod -a -G ssl-cert xrdp >/dev/null 2>&1 || true
 
+        # Suppress colord and packagekit authentication popups in XRDP sessions
+        if [ -d /etc/polkit-1/localauthority/50-local.d ]; then
+            cat << 'PKLA_EOF' > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
+[Allow Colord all Users]
+Identity=unix-user:*
+Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+ResultAny=no
+ResultInactive=no
+ResultActive=yes
+PKLA_EOF
+        fi
+
         # Enable & start XRDP
         systemctl enable xrdp >/dev/null 2>&1 || true
         systemctl restart xrdp >/dev/null 2>&1 || true
