@@ -145,294 +145,6 @@ def _get_browser_command() -> tuple[list[str], dict[str, str]] | None:
     return None
 
 
-_CSS = b"""
-/* ease-Desk Next-Gen Modern Glass Theme */
-window.shell {
-    background-color: #080b11;
-}
-
-/* Glass Topbar / Island Dock */
-.topbar {
-    background: rgba(13, 17, 23, 0.88);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-    padding: 0 12px;
-}
-
-.brand-pill {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 3px 8px;
-}
-.brand-name {
-    color: #f8fafc;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-}
-
-/* Start Button */
-.start-btn {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 8px;
-    padding: 5px 14px;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 12px;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
-    transition: all 150ms ease-in-out;
-}
-.start-btn:hover {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.55);
-}
-
-/* Pinned Dock Icons */
-.dock-item-box {
-    padding: 0 2px;
-}
-.dock-btn {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 4px 8px;
-    min-width: 38px;
-    min-height: 34px;
-    transition: all 140ms ease-in-out;
-}
-.dock-btn:hover {
-    background-color: rgba(56, 189, 248, 0.18);
-    border-color: rgba(56, 189, 248, 0.50);
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
-}
-.dock-indicator {
-    background: transparent;
-    min-height: 3px;
-    min-width: 14px;
-    border-radius: 2px;
-    margin-top: 1px;
-    margin-bottom: 2px;
-}
-.dock-indicator.active {
-    background: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
-}
-
-/* Running Tasks Section */
-.running-task-btn {
-    background: rgba(30, 41, 59, 0.70);
-    border: 1px solid rgba(56, 189, 248, 0.40);
-    border-radius: 8px;
-    padding: 0 4px;
-    transition: all 120ms ease-in-out;
-}
-.running-task-btn:hover {
-    background: rgba(56, 189, 248, 0.22);
-    border-color: #38bdf8;
-}
-.running-task-inner-btn {
-    padding: 3px 6px;
-    color: #f1f5f9;
-    font-size: 11px;
-    font-weight: 600;
-}
-.running-task-close-btn {
-    color: #94a3b8;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 6px;
-}
-.running-task-close-btn:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.25);
-}
-
-/* Live System Badges */
-.status-pill {
-    background: rgba(15, 23, 42, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 4px 10px;
-}
-.status-lbl {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-}
-.status-ok { color: #34d399; }
-.status-warn { color: #fbbf24; }
-.status-crit { color: #f87171; }
-
-/* Clock & Date Widget */
-.clock-widget-box {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 2px 10px;
-    transition: all 120ms ease-in-out;
-}
-.clock-widget-box:hover {
-    background: rgba(56, 189, 248, 0.15);
-    border-color: rgba(56, 189, 248, 0.40);
-}
-.clock-time {
-    color: #f8fafc;
-    font-size: 13px;
-    font-weight: 800;
-}
-.clock-date {
-    color: #94a3b8;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-/* Quick Menu & Power */
-.quick-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 4px 10px;
-    color: #cbd5e1;
-    font-size: 12px;
-    font-weight: 600;
-}
-.quick-btn:hover {
-    background: rgba(56, 189, 248, 0.20);
-    border-color: #38bdf8;
-    color: #f8fafc;
-}
-.power-btn {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.30);
-    border-radius: 8px;
-    padding: 4px 10px;
-    color: #fca5a5;
-    font-size: 11px;
-    font-weight: 700;
-}
-.power-btn:hover {
-    background: rgba(239, 68, 68, 0.35);
-    border-color: #ef4444;
-    color: #ffffff;
-    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
-}
-
-/* Desktop icon button - Modern Glass Card */
-.icon-btn {
-    background: rgba(15, 23, 42, 0.50);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 10px 8px;
-    min-width: 96px;
-    min-height: 96px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.30);
-    transition: all 140ms ease-in-out;
-}
-.icon-btn:hover {
-    background-color: rgba(30, 41, 59, 0.85);
-    border-color: rgba(56, 189, 248, 0.60);
-    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
-}
-.icon-btn:active, .icon-btn.selected {
-    background-color: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    box-shadow: 0 0 16px rgba(56, 189, 248, 0.40);
-}
-.icon-name {
-    color: #f1f5f9;
-    font-weight: 600;
-    font-size: 12px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.95);
-    margin-top: 4px;
-}
-
-/* Floating Server Status Panel */
-.vps-frame {
-    background-color: rgba(13, 17, 23, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
-}
-.vps-title { color: #38bdf8; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; }
-.vps-key { color: #64748b; font-size: 11px; font-weight: 700; }
-.vps-val { color: #cbd5e1; font-size: 11px; font-weight: 500; }
-.hint { color: #64748b; font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-
-/* Calendar & Health Flyout */
-.cal-window {
-    background-color: #0d1117;
-    border: 1px solid rgba(56, 189, 248, 0.40);
-    border-radius: 14px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.80);
-}
-.cal-title {
-    color: #38bdf8;
-    font-weight: 800;
-    font-size: 14px;
-}
-.cal-stat-key { color: #64748b; font-size: 11px; font-weight: 600; }
-.cal-stat-val { color: #e2e8f0; font-size: 11px; font-weight: 700; }
-
-/* Wallpaper Dialog Styles */
-.wp-section-lbl {
-    color: #38bdf8;
-    font-weight: 800;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-}
-.wp-card {
-    background: rgba(15, 23, 42, 0.65);
-    border: 2px solid rgba(255, 255, 255, 0.10);
-    border-radius: 10px;
-    padding: 6px;
-    transition: all 120ms ease-in-out;
-}
-.wp-card:hover {
-    background-color: rgba(30, 41, 59, 0.85);
-    border-color: rgba(56, 189, 248, 0.50);
-}
-.wp-card.active {
-    background-color: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
-}
-.wp-card-name {
-    color: #e2e8f0;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 4px;
-}
-.color-btn {
-    border-radius: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    min-width: 48px;
-    min-height: 38px;
-    padding: 2px;
-}
-.color-btn:hover {
-    border-color: #38bdf8;
-}
-.color-btn.active {
-    border-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
-}
-.wallpaper-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: #f1f5f9;
-    font-weight: 600;
-}
-.wallpaper-btn:hover {
-    background-color: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    color: #ffffff;
-}
-"""
 
 
 class DesktopShell:
@@ -669,7 +381,8 @@ class DesktopShell:
     # ------------------------------------------------------------------ CSS
     def _load_css(self) -> None:
         provider = Gtk.CssProvider()
-        provider.load_from_data(_CSS)
+        css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.css")
+        provider.load_from_path(css_path)
         screen = Gdk.Screen.get_default()
         if screen is not None:
             Gtk.StyleContext.add_provider_for_screen(
@@ -678,50 +391,55 @@ class DesktopShell:
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
+        # We use an Overlay so we can float the bottom dock easily over the desktop
+        self.overlay = Gtk.Overlay()
+        
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         outer.pack_start(self._build_topbar(), False, False, 0)
 
-        # Content row
-        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        outer.pack_start(content, True, True, 0)
-
-        # Left column: desktop shortcuts
-        left_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        left_col.set_margin_top(16)
-        left_col.set_margin_start(18)
-        left_col.set_margin_end(8)
-        content.pack_start(left_col, False, False, 0)
-        self.icons_col = left_col
-
-        self._build_icon_column()
-
-        # Right side: spacer + bottom info overlay
-        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        content.pack_start(right, True, True, 0)
-
+        # Desktop Area (EventBox to catch clicks)
         desk_event = Gtk.EventBox()
         desk_event.set_visible_window(False)
         desk_event.set_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         desk_event.connect("button-press-event", self._on_desktop_click)
-        right.pack_start(desk_event, True, True, 0)
+        outer.pack_start(desk_event, True, True, 0)
+        
+        # Desktop shortcuts (FlowBox) inside the desktop area
+        self.icons_col = Gtk.FlowBox()
+        self.icons_col.set_valign(Gtk.Align.START)
+        self.icons_col.set_halign(Gtk.Align.START)
+        self.icons_col.set_max_children_per_line(10)
+        self.icons_col.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.icons_col.set_margin_top(16)
+        self.icons_col.set_margin_start(18)
+        self.icons_col.set_margin_end(8)
+        
+        desk_event.add(self.icons_col)
+        self._build_icon_column()
 
-        # Bottom hint
-        self.hint_label = Gtk.Label(
-            label="Double-click icon to open  ·  Right-click desktop for options"
-        )
-        self.hint_label.get_style_context().add_class("hint")
-        self.hint_label.set_halign(Gtk.Align.CENTER)
-        self.hint_label.set_margin_bottom(10)
-        self.hint_label.set_margin_top(4)
-
-        self.window.add(outer)
-
-        # Floating Server Status widget positioned at bottom-right
+        self.overlay.add(outer)
+        
+        # Bottom Dock overlay
+        dock_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        dock_container.set_valign(Gtk.Align.END)
+        dock_container.set_halign(Gtk.Align.CENTER)
+        dock = self._build_dock()
+        dock_container.pack_end(dock, False, False, 16)
+        self.overlay.add_overlay(dock_container)
+        
+        # Server Status Info overlay
+        info_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        info_container.set_valign(Gtk.Align.END)
+        info_container.set_halign(Gtk.Align.END)
         self.info_panel = self._build_info_panel()
-        self.info_panel.set_halign(Gtk.Align.END)
-        self.info_panel.set_valign(Gtk.Align.END)
         self.info_panel.set_margin_end(24)
-        self.info_panel.set_margin_bottom(40)
+        self.info_panel.set_margin_bottom(16)
+        info_container.pack_end(self.info_panel, False, False, 0)
+        self.overlay.add_overlay(info_container)
+
+        self.window.add(self.overlay)
+        
+        # Bottom hint (hidden or moved; let's omit for clean look or place in info panel, but omitted is fine)
 
     # ---------------------------------------------------------- TOPBAR & DOCK
     def _build_topbar(self) -> Gtk.Widget:
@@ -743,42 +461,7 @@ class DesktopShell:
         brand_box.pack_start(brand_lbl, False, False, 2)
         bar.pack_start(brand_box, False, False, 2)
 
-        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 2)
-
-        # 2. Pinned Apps Bar
-        self.pinned_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        for app in PINNED_APPS_CONFIG:
-            item_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-            item_box.get_style_context().add_class("dock-item-box")
-
-            btn = Gtk.Button()
-            btn.get_style_context().add_class("dock-btn")
-            btn.set_relief(Gtk.ReliefStyle.NONE)
-            btn.set_tooltip_text(app["tooltip"])
-
-            img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(app["icon_key"], size=22))
-            btn.add(img)
-            btn.connect("clicked", lambda *_, p=app["target"]: self._launch_path(p))
-
-            indicator = Gtk.Box()
-            indicator.get_style_context().add_class("dock-indicator")
-            indicator.set_halign(Gtk.Align.CENTER)
-
-            item_box.pack_start(btn, False, False, 0)
-            item_box.pack_start(indicator, False, False, 0)
-
-            self.pinned_buttons[app["id"]] = btn
-            self.pinned_indicators[app["id"]] = indicator
-            self.pinned_box.pack_start(item_box, False, False, 0)
-
-        bar.pack_start(self.pinned_box, False, False, 2)
-
-        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 4)
-
-        # 3. Dynamic Running Applications Box (Center)
-        self.running_tasks_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        bar.pack_start(self.running_tasks_box, True, True, 4)
-
+        # (Pinned and Running apps moved to bottom dock)
         # 4. Right Controls: Live Stats, Clock & Quick Power
         # Server Label
         self.server_label = Gtk.Label()
@@ -826,6 +509,46 @@ class DesktopShell:
         bar.pack_end(self.cpu_pill, False, False, 2)
 
         return bar
+
+
+    def _build_dock(self) -> Gtk.Widget:
+        dock = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        dock.get_style_context().add_class("bottom-dock")
+        
+        # Pinned Apps Bar
+        self.pinned_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        for app in PINNED_APPS_CONFIG:
+            item_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            item_box.get_style_context().add_class("dock-item-box")
+
+            btn = Gtk.Button()
+            btn.get_style_context().add_class("dock-btn")
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.set_tooltip_text(app["tooltip"])
+
+            img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(app["icon_key"], size=22))
+            btn.add(img)
+            btn.connect("clicked", lambda *_, p=app["target"]: self._launch_path(p))
+
+            indicator = Gtk.Box()
+            indicator.get_style_context().add_class("dock-indicator")
+            indicator.set_halign(Gtk.Align.CENTER)
+
+            item_box.pack_start(btn, False, False, 0)
+            item_box.pack_start(indicator, False, False, 0)
+
+            self.pinned_buttons[app["id"]] = btn
+            self.pinned_indicators[app["id"]] = indicator
+            self.pinned_box.pack_start(item_box, False, False, 0)
+
+        dock.pack_start(self.pinned_box, False, False, 2)
+        dock.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 4)
+
+        # Dynamic Running Applications Box
+        self.running_tasks_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        dock.pack_start(self.running_tasks_box, True, True, 4)
+        
+        return dock
 
     # ---------------------------------------------------- START MENU
     def _popup_start_menu(self) -> None:
@@ -952,7 +675,8 @@ class DesktopShell:
         for item in self.desktop_items:
             btn = self._create_icon_button(item)
             self.icon_buttons[item["id"]] = btn
-            self.icons_col.pack_start(btn, False, False, 6)
+            # FlowBox uses insert or add
+            self.icons_col.insert(btn, -1)
 
         self.icons_col.show_all()
 
