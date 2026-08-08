@@ -212,8 +212,10 @@ chmod -R a+rX "${INSTALL_DIR}"
 
 mkdir -p "${BIN_DIR}"
 ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/desktop"
-chmod +x "${BIN_DIR}/desktop"
-echo -e "${GREEN}✓ Files deployed and global 'desktop' command registered.${NC}"
+ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/ease-desk"
+ln -sf "${INSTALL_DIR}/scripts/desktop" "${BIN_DIR}/easedesk"
+chmod +x "${BIN_DIR}/desktop" "${BIN_DIR}/ease-desk" "${BIN_DIR}/easedesk" 2>/dev/null || true
+echo -e "${GREEN}✓ Files deployed and global 'ease-desk' / 'desktop' commands registered.${NC}"
 
 # ------------------------------------------------------------------------------
 # 6. Nginx Reverse Proxy Setup & Conflict Cleanup
