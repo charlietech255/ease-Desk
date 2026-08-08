@@ -1080,20 +1080,32 @@ class DesktopShell:
         elif target_path in ("app://task_manager", "task_manager"):
             cmd = [sys.executable, "-m", "desktop.task_manager.app"]
         elif target_path in ("app://browser", "browser"):
-            # Locate installed modern web browser with sandbox-safe flags for VPS environments
+            # Locate installed real web browser with sandbox-safe flags for VPS environments
             browser_bin = None
-            for b in ("chromium", "chromium-browser", "google-chrome", "firefox", "firefox-esr", "epiphany"):
+            for b in ("firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "epiphany", "x-www-browser"):
                 if shutil.which(b):
                     browser_bin = b
                     break
             if browser_bin:
                 if "chromium" in browser_bin or "chrome" in browser_bin:
-                    cmd = [browser_bin, "--no-sandbox", "--disable-dev-shm-usage", "--test-type", "https://google.com"]
+                    cmd = [
+                        browser_bin,
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                        "--password-store=basic",
+                        "https://google.com",
+                    ]
                 else:
                     cmd = [browser_bin, "https://google.com"]
             else:
-                # Open Web Root in File Manager if no GUI browser binary is installed yet
-                cmd = [sys.executable, "-m", "file_manager.app", "/var/www"]
+                # Open terminal with easy one-liner to install Firefox / Chromium
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "desktop.terminal.app",
+                    os.path.expanduser("~"),
+                ]
         elif target_path in ("app://editor", "editor"):
             cmd = [sys.executable, "-m", "file_manager.app", os.path.expanduser("~")]
         else:

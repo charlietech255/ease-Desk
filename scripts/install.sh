@@ -142,7 +142,7 @@ if command -v apt-get >/dev/null 2>&1; then
         websockify \
         xrdp \
         xorgxrdp \
-        chromium-browser \
+        firefox-esr \
         nginx \
         procps \
         scrot \
@@ -154,16 +154,18 @@ if command -v apt-get >/dev/null 2>&1; then
         >/dev/null 2>&1 || {
             echo -e "${YELLOW}Retrying essential apt packages...${NC}"
             apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx git curl >/dev/null 2>&1 || true
-            apt-get install -y -qq chromium-browser 2>/dev/null || apt-get install -y -qq chromium 2>/dev/null || apt-get install -y -qq firefox-esr 2>/dev/null || true
+            apt-get install -y -qq firefox-esr 2>/dev/null || apt-get install -y -qq chromium 2>/dev/null || apt-get install -y -qq chromium-browser 2>/dev/null || true
         }
+    # Also attempt installing Chromium for users who prefer Chromium
+    apt-get install -y -qq chromium 2>/dev/null || true
 elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp chromium openbox nginx git curl
+    dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp firefox chromium openbox nginx git curl
 elif command -v pacman >/dev/null 2>&1; then
-    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp chromium openbox nginx git curl
+    pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp firefox chromium openbox nginx git curl
 elif command -v pkg >/dev/null 2>&1; then
     pkg install -y python x11-repo xwayland tigervnc git
 fi
-echo -e "${GREEN}✓ System dependencies installed.${NC}"
+echo -e "${GREEN}✓ System dependencies and real web browser installed.${NC}"
 
 # Store password with x11vnc
 if [ -n "$VNC_PASS" ] && command -v x11vnc >/dev/null 2>&1; then
