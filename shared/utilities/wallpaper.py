@@ -14,22 +14,23 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CONFIG_DIR = os.path.expanduser("~/.config/ease-desk")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "desktop_config.json")
 WALLPAPER_DIR = os.path.join(ROOT, "desktop", "assets", "wallpapers")
-DEFAULT_WALLPAPER = os.path.join(WALLPAPER_DIR, "charlie-tech.png")
+DEFAULT_WALLPAPER = os.path.join(WALLPAPER_DIR, "easedesk-horizon.png")
 
 # Preset wallpapers shipped with ease-Desk
 WALLPAPER_PRESETS: list[tuple[str, str]] = [
-    ("Charlie Tech (Default)", os.path.join(WALLPAPER_DIR, "charlie-tech.png")),
-    ("Kali Cyber Waves", os.path.join(WALLPAPER_DIR, "kali-waves.png")),
-    ("Kali Purple Cubes", os.path.join(WALLPAPER_DIR, "kali-cubes-purple.jpg")),
+    ("ease-Desk Horizon (Default)", os.path.join(WALLPAPER_DIR, "easedesk-horizon.png")),
+    ("Nordic Aurora", os.path.join(WALLPAPER_DIR, "nordic-aurora.png")),
+    ("Cyber Geometry", os.path.join(WALLPAPER_DIR, "cyber-geometry.png")),
+    ("Charlie Tech Classic", os.path.join(WALLPAPER_DIR, "charlie-tech.png")),
 ]
 
 # Preset solid color themes
 SOLID_COLOR_PRESETS: list[tuple[str, str]] = [
-    ("Obsidian Dark", "#0b0e14"),
-    ("Deep Slate", "#0f172a"),
-    ("Cyber Navy", "#1e1b4b"),
-    ("Dark Emerald", "#042f2e"),
-    ("Charcoal Zinc", "#18181b"),
+    ("Deep Obsidian", "#080b11"),
+    ("Midnight Slate", "#0f172a"),
+    ("Cyber Violet", "#130e24"),
+    ("Nordic Teal", "#042427"),
+    ("Minimal Carbon", "#141517"),
 ]
 
 # Supported wallpaper display modes

@@ -1,7 +1,13 @@
-"""ease-Desk Shell — minimal desktop environment shell.
+"""ease-Desk Shell — Next-Gen Modern Desktop Environment Shell.
 
-Renders custom wallpaper background, top bar (server name, clock, Exit Desktop),
-desktop icons in a clean left-column grid, and a compact VPS status panel.
+Features:
+- Translucent Glassmorphism Topbar & Floating Island Dock.
+- Pinned Applications with Active Process Glow Indicators.
+- Dynamic Running Applications Taskbar with Window/Process Focus.
+- Live System Status Tray (Real-time CPU % and RAM % Gauges).
+- Crisp Digital Clock & Date Widget with Interactive Calendar & Uptime Flyout.
+- Signature Wallpaper Engine & Custom Theme Manager.
+- High-definition Desktop Glass Cards with Grid Layout & Context Menus.
 """
 
 from __future__ import annotations
@@ -12,6 +18,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import time
 
 import gi
 
@@ -52,104 +59,284 @@ ICON_PRESETS = [
     ("📦", "Packages"),
 ]
 
+PINNED_APPS_CONFIG = [
+    {
+        "id": "browser",
+        "name": "Web Browser",
+        "icon_key": "browser",
+        "target": "app://browser",
+        "tooltip": "Fast Web Browser (Google Chrome / Epiphany)",
+    },
+    {
+        "id": "this_pc",
+        "name": "This PC",
+        "icon_key": "computer",
+        "target": "thispc://",
+        "tooltip": "Files, Storage & Drives",
+    },
+    {
+        "id": "terminal",
+        "name": "Terminal",
+        "icon_key": "terminal",
+        "target": "app://terminal",
+        "tooltip": "Embedded Terminal Console",
+    },
+    {
+        "id": "task_manager",
+        "name": "Task Manager",
+        "icon_key": "task_manager",
+        "target": "app://task_manager",
+        "tooltip": "Process & Resource Monitor",
+    },
+    {
+        "id": "settings",
+        "name": "Themes & Wallpaper",
+        "icon_key": "settings",
+        "target": "app://wallpaper",
+        "tooltip": "Personalize Desktop & Wallpapers",
+    },
+]
+
 _CSS = b"""
+/* ease-Desk Next-Gen Modern Glass Theme */
 window.shell {
-    background-color: #0b0e14;
+    background-color: #080b11;
 }
+
+/* Glass Topbar / Island Dock */
 .topbar {
-    background-color: rgba(10, 14, 23, 0.85);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(13, 17, 23, 0.88);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+    padding: 0 12px;
 }
-.brand { color: #dce3f0; font-weight: 700; font-size: 15px; }
+
+.brand-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 3px 8px;
+}
+.brand-name {
+    color: #f8fafc;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+/* Start Button */
 .start-btn {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    border-radius: 6px;
-    padding: 4px 14px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 5px 14px;
     color: #ffffff;
     font-weight: 700;
     font-size: 12px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    transition: all 150ms ease-in-out;
 }
 .start-btn:hover {
-    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.55);
 }
-.topbar-tool-btn {
-    background: rgba(255, 255, 255, 0.06);
+
+/* Pinned Dock Icons */
+.dock-item-box {
+    padding: 0 2px;
+}
+.dock-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-width: 38px;
+    min-height: 34px;
+    transition: all 140ms ease-in-out;
+}
+.dock-btn:hover {
+    background-color: rgba(56, 189, 248, 0.18);
+    border-color: rgba(56, 189, 248, 0.50);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+}
+.dock-indicator {
+    background: transparent;
+    min-height: 3px;
+    min-width: 14px;
+    border-radius: 2px;
+    margin-top: 1px;
+    margin-bottom: 2px;
+}
+.dock-indicator.active {
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+/* Running Tasks Section */
+.running-task-btn {
+    background: rgba(30, 41, 59, 0.65);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 8px;
+    padding: 3px 10px;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 120ms ease-in-out;
+}
+.running-task-btn:hover {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+/* Live System Badges */
+.status-pill {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 4px 10px;
+}
+.status-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+.status-ok { color: #34d399; }
+.status-warn { color: #fbbf24; }
+.status-crit { color: #f87171; }
+
+/* Clock & Date Widget */
+.clock-widget-box {
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    padding: 4px 12px;
+    border-radius: 8px;
+    padding: 2px 10px;
+    transition: all 120ms ease-in-out;
+}
+.clock-widget-box:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.40);
+}
+.clock-time {
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 800;
+}
+.clock-date {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* Quick Menu & Power */
+.quick-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 4px 10px;
     color: #cbd5e1;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
 }
-.topbar-tool-btn:hover {
-    background-color: rgba(122, 162, 247, 0.25);
-    border-color: #7aa2f7;
-    color: #93c5fd;
+.quick-btn:hover {
+    background: rgba(56, 189, 248, 0.20);
+    border-color: #38bdf8;
+    color: #f8fafc;
 }
-.server { color: #8a97ad; font-size: 12px; }
-.clock { color: #7aa2f7; font-size: 14px; font-weight: 700; margin-right: 18px; }
-.exitbtn {
-    background: rgba(255, 255, 255, 0.06); color: #cbd5e1;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 6px; font-weight: 600; padding: 4px 14px;
+.power-btn {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.30);
+    border-radius: 8px;
+    padding: 4px 10px;
+    color: #fca5a5;
+    font-size: 11px;
+    font-weight: 700;
 }
-.exitbtn:hover { background-color: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: #ef4444; }
+.power-btn:hover {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+}
 
-/* Desktop icon button */
+/* Desktop icon button - Modern Glass Card */
 .icon-btn {
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(15, 23, 42, 0.50);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 10px 8px;
     min-width: 96px;
     min-height: 96px;
-    transition: all 120ms ease-in-out;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.30);
+    transition: all 140ms ease-in-out;
 }
 .icon-btn:hover {
-    background-color: rgba(30, 41, 59, 0.75);
-    border-color: rgba(122, 162, 247, 0.50);
+    background-color: rgba(30, 41, 59, 0.85);
+    border-color: rgba(56, 189, 248, 0.60);
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
 }
 .icon-btn:active, .icon-btn.selected {
-    background-color: rgba(122, 162, 247, 0.30);
-    border-color: #7aa2f7;
+    background-color: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.40);
 }
 .icon-name {
     color: #f1f5f9;
     font-weight: 600;
     font-size: 12px;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.95);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.95);
+    margin-top: 4px;
 }
+
+/* Floating Server Status Panel */
 .vps-frame {
-    background-color: rgba(10, 14, 23, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 10px;
+    background-color: rgba(13, 17, 23, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
 }
-.vps-title { color: #7aa2f7; font-weight: 700; font-size: 12px; }
-.vps-key { color: #64748b; font-size: 12px; font-weight: 600; }
-.vps-val { color: #cbd5e1; font-size: 12px; }
+.vps-title { color: #38bdf8; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; }
+.vps-key { color: #64748b; font-size: 11px; font-weight: 700; }
+.vps-val { color: #cbd5e1; font-size: 11px; font-weight: 500; }
 .hint { color: #64748b; font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+/* Calendar & Health Flyout */
+.cal-window {
+    background-color: #0d1117;
+    border: 1px solid rgba(56, 189, 248, 0.40);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.80);
+}
+.cal-title {
+    color: #38bdf8;
+    font-weight: 800;
+    font-size: 14px;
+}
+.cal-stat-key { color: #64748b; font-size: 11px; font-weight: 600; }
+.cal-stat-val { color: #e2e8f0; font-size: 11px; font-weight: 700; }
 
 /* Wallpaper Dialog Styles */
 .wp-section-lbl {
-    color: #7aa2f7;
-    font-weight: 700;
+    color: #38bdf8;
+    font-weight: 800;
     font-size: 12px;
+    letter-spacing: 0.5px;
 }
 .wp-card {
     background: rgba(15, 23, 42, 0.65);
     border: 2px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 6px;
     transition: all 120ms ease-in-out;
 }
 .wp-card:hover {
     background-color: rgba(30, 41, 59, 0.85);
-    border-color: rgba(122, 162, 247, 0.50);
+    border-color: rgba(56, 189, 248, 0.50);
 }
 .wp-card.active {
-    background-color: rgba(122, 162, 247, 0.25);
-    border-color: #7aa2f7;
+    background-color: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
 }
 .wp-card-name {
     color: #e2e8f0;
@@ -165,10 +352,11 @@ window.shell {
     padding: 2px;
 }
 .color-btn:hover {
-    border-color: #7aa2f7;
+    border-color: #38bdf8;
 }
 .color-btn.active {
     border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 }
 .wallpaper-btn {
     background: rgba(255, 255, 255, 0.05);
@@ -176,12 +364,12 @@ window.shell {
     border-radius: 8px;
     padding: 8px 14px;
     color: #f1f5f9;
-    font-weight: 500;
+    font-weight: 600;
 }
 .wallpaper-btn:hover {
-    background-color: rgba(122, 162, 247, 0.25);
-    border-color: #7aa2f7;
-    color: #93c5fd;
+    background-color: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    color: #ffffff;
 }
 """
 
@@ -189,18 +377,22 @@ window.shell {
 class DesktopShell:
     def __init__(self) -> None:
         self.children: list[int] = []
+        self.tracked_processes: dict[int, dict] = {}
         self.desktop_items: list[dict] = []
         self.icon_buttons: dict[str, Gtk.Button] = {}
+        self.pinned_buttons: dict[str, Gtk.Button] = {}
+        self.pinned_indicators: dict[str, Gtk.Widget] = {}
         self.selected_id: str | None = None
         self.wallpaper_path: str = DEFAULT_WALLPAPER
         self.wallpaper_mode: str = "fill"
-        self.solid_color: str = "#0b0e14"
+        self.solid_color: str = "#080b11"
         self.wallpaper_pixbuf: GdkPixbuf.Pixbuf | None = None
         self._cached_scaled_pixbuf: GdkPixbuf.Pixbuf | None = None
         self._cached_draw_params: tuple[int, int, str, str, str] | None = None
         self._cached_offsets: tuple[int, int] = (0, 0)
-        self._cached_bg_rgb: tuple[float, float, float] = (0.043, 0.055, 0.078)
+        self._cached_bg_rgb: tuple[float, float, float] = (0.031, 0.043, 0.067)
         self._config_mtime: float = 0.0
+        self._cal_window: Gtk.Window | None = None
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.set_app_paintable(True)
@@ -218,11 +410,11 @@ class DesktopShell:
         self._load_wallpaper()
         self._load_css()
         self._build_ui()
-        self._tick_clock()
+        self._tick_clock_and_stats()
         self._refresh_info()
 
         self.window.show_all()
-        GLib.timeout_add_seconds(1, self._tick_clock)
+        GLib.timeout_add_seconds(1, self._tick_clock_and_stats)
         GLib.timeout_add_seconds(5, self._refresh_info)
         animate.fade_in(self.window, duration_ms=300)
 
@@ -231,7 +423,7 @@ class DesktopShell:
         wp_conf = get_wallpaper_config(CONFIG_FILE)
         self.wallpaper_path = wp_conf.get("wallpaper", DEFAULT_WALLPAPER)
         self.wallpaper_mode = wp_conf.get("wallpaper_mode", "fill")
-        self.solid_color = wp_conf.get("solid_color", "#0b0e14")
+        self.solid_color = wp_conf.get("solid_color", "#080b11")
 
         if self.wallpaper_mode == "solid":
             self.wallpaper_pixbuf = None
@@ -252,7 +444,6 @@ class DesktopShell:
         self.window.queue_draw()
 
     def _compute_scaled_wallpaper(self, w: int, h: int) -> None:
-        """Compute and cache the scaled pixbuf and offsets for current window size."""
         if self.wallpaper_mode == "solid" or self.wallpaper_pixbuf is None:
             self._cached_scaled_pixbuf = None
             self._cached_offsets = (0, 0)
@@ -272,7 +463,7 @@ class DesktopShell:
                 dw, dh, GdkPixbuf.InterpType.BILINEAR
             )
             self._cached_offsets = (dx, dy)
-            self._cached_bg_rgb = (0.043, 0.055, 0.078)
+            self._cached_bg_rgb = (0.031, 0.043, 0.067)
         elif self.wallpaper_mode == "fit":
             scale = min(w / pw, h / ph)
             dw = max(1, int(pw * scale))
@@ -299,7 +490,7 @@ class DesktopShell:
         else:
             self._cached_scaled_pixbuf = None
             self._cached_offsets = (0, 0)
-            self._cached_bg_rgb = (0.043, 0.055, 0.078)
+            self._cached_bg_rgb = (0.031, 0.043, 0.067)
 
     def _on_draw_background(self, widget: Gtk.Widget, cr) -> bool:
         alloc = widget.get_allocation()
@@ -318,12 +509,12 @@ class DesktopShell:
             dx, dy = self._cached_offsets
             Gdk.cairo_set_source_pixbuf(cr, self._cached_scaled_pixbuf, dx, dy)
             cr.paint()
-            # Subtle dark scrim so icons and panels stay readable
+            # Subtle modern dark vignette for deep contrast
             if self.wallpaper_mode in ("fill", "stretch"):
-                cr.set_source_rgba(0, 0, 0, 0.12)
+                cr.set_source_rgba(0, 0, 0, 0.10)
                 cr.paint()
 
-        return False  # Allow children to render on top
+        return False
 
     # --------------------------------------------------------------- CONFIG
     def _load_config(self) -> None:
@@ -367,7 +558,7 @@ class DesktopShell:
         ]
         self.wallpaper_path = DEFAULT_WALLPAPER
         self.wallpaper_mode = "fill"
-        self.solid_color = "#0b0e14"
+        self.solid_color = "#080b11"
 
         if os.path.exists(CONFIG_FILE):
             try:
@@ -381,7 +572,6 @@ class DesktopShell:
                             it["name"] = "This PC"
                             it["icon"] = "🖥️"
                             it["path"] = "thispc://"
-                    # Ensure essential shortcuts exist if upgrading from earlier version
                     existing_ids = {it.get("id") for it in items}
                     for default_it in default_items:
                         if default_it["id"] not in existing_ids and default_it["id"] in ("browser", "terminal", "task_manager"):
@@ -390,7 +580,7 @@ class DesktopShell:
                     self.desktop_items = items
                     self.wallpaper_path = data.get("wallpaper", DEFAULT_WALLPAPER)
                     self.wallpaper_mode = data.get("wallpaper_mode", "fill")
-                    self.solid_color = data.get("solid_color", "#0b0e14")
+                    self.solid_color = data.get("solid_color", "#080b11")
                     return
             except Exception:
                 pass
@@ -422,125 +612,175 @@ class DesktopShell:
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
-        # Main vertical box: topbar + content row
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         outer.pack_start(self._build_topbar(), False, False, 0)
 
-        # Content row: left icon column + spacer + right info panel
+        # Content row
         content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         outer.pack_start(content, True, True, 0)
 
-        # Left column: desktop icons in a vertical flow
+        # Left column: desktop shortcuts
         left_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         left_col.set_margin_top(16)
-        left_col.set_margin_start(16)
+        left_col.set_margin_start(18)
         left_col.set_margin_end(8)
         content.pack_start(left_col, False, False, 0)
         self.icons_col = left_col
 
-        # Populate icons
         self._build_icon_column()
 
         # Right side: spacer + bottom info overlay
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         content.pack_start(right, True, True, 0)
 
-        # Click-anywhere on empty desktop: right-click context menu
         desk_event = Gtk.EventBox()
         desk_event.set_visible_window(False)
         desk_event.set_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         desk_event.connect("button-press-event", self._on_desktop_click)
         right.pack_start(desk_event, True, True, 0)
 
-        # Bottom status + hint overlay
-        overlay = Gtk.Overlay()
-        right.pack_start(overlay, False, False, 0)
-
-        # Hint text
+        # Bottom hint
         self.hint_label = Gtk.Label(
             label="Double-click icon to open  ·  Right-click desktop for options"
         )
         self.hint_label.get_style_context().add_class("hint")
         self.hint_label.set_halign(Gtk.Align.CENTER)
-        self.hint_label.set_margin_bottom(8)
+        self.hint_label.set_margin_bottom(10)
         self.hint_label.set_margin_top(4)
 
         self.window.add(outer)
 
-        # Build the status info panel as a separate widget positioned at bottom-right
+        # Floating Server Status widget positioned at bottom-right
         self.info_panel = self._build_info_panel()
         self.info_panel.set_halign(Gtk.Align.END)
         self.info_panel.set_valign(Gtk.Align.END)
         self.info_panel.set_margin_end(24)
-        self.info_panel.set_margin_bottom(60)
+        self.info_panel.set_margin_bottom(40)
 
+    # ---------------------------------------------------------- TOPBAR & DOCK
     def _build_topbar(self) -> Gtk.Widget:
-        bar = Gtk.Box(spacing=10)
+        bar = Gtk.Box(spacing=8)
         bar.get_style_context().add_class("topbar")
-        bar.set_margin_start(14)
-        bar.set_margin_end(14)
         bar.set_size_request(-1, 48)
 
         # 1. Start Menu Button
-        self.start_btn = Gtk.Button.new_with_label("Start")
+        self.start_btn = Gtk.Button.new_with_label("✦ Start")
         self.start_btn.get_style_context().add_class("start-btn")
         self.start_btn.connect("clicked", lambda *_: self._popup_start_menu())
         bar.pack_start(self.start_btn, False, False, 0)
 
-        brand = Gtk.Label(label="ease-Desk")
-        brand.get_style_context().add_class("brand")
-        bar.pack_start(brand, False, False, 4)
+        # Brand pill
+        brand_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        brand_box.get_style_context().add_class("brand-pill")
+        brand_lbl = Gtk.Label(label="ease-Desk")
+        brand_lbl.get_style_context().add_class("brand-name")
+        brand_box.pack_start(brand_lbl, False, False, 2)
+        bar.pack_start(brand_box, False, False, 2)
 
         bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 2)
 
-        # 2. Quick Action Buttons
-        term_btn = Gtk.Button.new_with_label("Terminal")
-        term_btn.get_style_context().add_class("topbar-tool-btn")
-        term_btn.connect("clicked", lambda *_: self._launch_path("app://terminal"))
-        bar.pack_start(term_btn, False, False, 0)
+        # 2. Pinned Apps Bar
+        self.pinned_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        for app in PINNED_APPS_CONFIG:
+            item_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            item_box.get_style_context().add_class("dock-item-box")
 
-        task_btn = Gtk.Button.new_with_label("Task Manager")
-        task_btn.get_style_context().add_class("topbar-tool-btn")
-        task_btn.connect("clicked", lambda *_: self._launch_path("app://task_manager"))
-        bar.pack_start(task_btn, False, False, 0)
+            btn = Gtk.Button()
+            btn.get_style_context().add_class("dock-btn")
+            btn.set_relief(Gtk.ReliefStyle.NONE)
+            btn.set_tooltip_text(app["tooltip"])
 
-        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 2)
+            img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(app["icon_key"], size=22))
+            btn.add(img)
+            btn.connect("clicked", lambda *_, p=app["target"]: self._launch_path(p))
 
+            indicator = Gtk.Box()
+            indicator.get_style_context().add_class("dock-indicator")
+            indicator.set_halign(Gtk.Align.CENTER)
+
+            item_box.pack_start(btn, False, False, 0)
+            item_box.pack_start(indicator, False, False, 0)
+
+            self.pinned_buttons[app["id"]] = btn
+            self.pinned_indicators[app["id"]] = indicator
+            self.pinned_box.pack_start(item_box, False, False, 0)
+
+        bar.pack_start(self.pinned_box, False, False, 2)
+
+        bar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 4)
+
+        # 3. Dynamic Running Applications Box (Center)
+        self.running_tasks_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        bar.pack_start(self.running_tasks_box, True, True, 4)
+
+        # 4. Right Controls: Live Stats, Clock & Quick Power
+        # Server Label
         self.server_label = Gtk.Label()
         self.server_label.get_style_context().add_class("server")
-        bar.pack_start(self.server_label, False, False, 0)
+        bar.pack_end(self.server_label, False, False, 0)
 
-        bar.pack_start(Gtk.Box(), True, True, 0)
-
-        exit_btn = Gtk.Button.new_with_label("Exit Desktop")
-        exit_btn.get_style_context().add_class("exitbtn")
+        # Power / Exit Desktop
+        exit_btn = Gtk.Button.new_with_label("🚪 Exit")
+        exit_btn.get_style_context().add_class("power-btn")
+        exit_btn.set_tooltip_text("Exit Cloud Desktop Session")
         exit_btn.connect("clicked", lambda *_: self._exit())
-        bar.pack_end(exit_btn, False, False, 0)
+        bar.pack_end(exit_btn, False, False, 2)
 
-        self.clock_label = Gtk.Label()
-        self.clock_label.get_style_context().add_class("clock")
-        bar.pack_end(self.clock_label, False, False, 16)
+        # Clock & Date Widget
+        clock_event = Gtk.EventBox()
+        clock_event.set_visible_window(False)
+        clock_event.connect("button-press-event", lambda *_: self._toggle_calendar())
+        clock_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        clock_box.get_style_context().add_class("clock-widget-box")
+        clock_box.set_valign(Gtk.Align.CENTER)
+
+        self.clock_time_label = Gtk.Label(label="00:00")
+        self.clock_time_label.get_style_context().add_class("clock-time")
+        self.clock_date_label = Gtk.Label(label="Today")
+        self.clock_date_label.get_style_context().add_class("clock-date")
+
+        clock_box.pack_start(self.clock_time_label, False, False, 0)
+        clock_box.pack_start(self.clock_date_label, False, False, 0)
+        clock_event.add(clock_box)
+        bar.pack_end(clock_event, False, False, 4)
+
+        # Live System Badges (RAM & CPU)
+        self.ram_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.ram_pill.get_style_context().add_class("status-pill")
+        self.ram_lbl = Gtk.Label(label="RAM --%")
+        self.ram_lbl.get_style_context().add_class("status-lbl")
+        self.ram_pill.pack_start(self.ram_lbl, False, False, 0)
+        bar.pack_end(self.ram_pill, False, False, 2)
+
+        self.cpu_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.cpu_pill.get_style_context().add_class("status-pill")
+        self.cpu_lbl = Gtk.Label(label="CPU --%")
+        self.cpu_lbl.get_style_context().add_class("status-lbl")
+        self.cpu_pill.pack_start(self.cpu_lbl, False, False, 0)
+        bar.pack_end(self.cpu_pill, False, False, 2)
 
         return bar
 
+    # ---------------------------------------------------- START MENU
     def _popup_start_menu(self) -> None:
         menu = Gtk.Menu()
 
         items = [
-            ("🖥️ This PC", lambda: self._launch_path("thispc://")),
-            ("🌐 Web Browser", lambda: self._launch_path("app://browser")),
-            ("📁 File Manager", lambda: self._launch_path(os.path.expanduser("~"))),
-            ("💻 Terminal Console", lambda: self._launch_path("app://terminal")),
-            ("📊 Task Manager", lambda: self._launch_path("app://task_manager")),
+            ("🖥️  This PC (Storage & Drives)", lambda: self._launch_path("thispc://")),
+            ("🌐  Web Browser (Lightweight / Chrome)", lambda: self._launch_path("app://browser")),
+            ("📁  User Files (~/)", lambda: self._launch_path(os.path.expanduser("~"))),
+            ("💻  Terminal Console", lambda: self._launch_path("app://terminal")),
+            ("📊  Task Manager", lambda: self._launch_path("app://task_manager")),
             (None, None),
-            ("🌐 Web Root (/var/www)", lambda: self._launch_path("/var/www")),
-            ("⚙️ System Config (/etc)", lambda: self._launch_path("/etc")),
-            ("🏠 User Home", lambda: self._launch_path(os.path.expanduser("~"))),
+            ("🌐  Web Root Directory (/var/www)", lambda: self._launch_path("/var/www")),
+            ("⚙️  System Configuration (/etc)", lambda: self._launch_path("/etc")),
+            ("📋  System Logs (/var/log)", lambda: self._launch_path("/var/log")),
             (None, None),
-            ("🎨 Change Wallpaper & Theme…", lambda: self._dialog_change_wallpaper()),
-            ("➕ Add Desktop Shortcut…", lambda: self._dialog_add_shortcut()),
+            ("🎨  Personalize Wallpaper & Theme…", lambda: self._dialog_change_wallpaper()),
+            ("➕  Add Desktop Shortcut…", lambda: self._dialog_add_shortcut()),
+            ("📸  Take Desktop Screenshot", lambda: self._take_screenshot()),
             (None, None),
-            ("🚪 Exit Desktop", lambda: self._exit()),
+            ("🚪  Exit Desktop Session", lambda: self._exit()),
         ]
 
         for label, callback in items:
@@ -554,6 +794,89 @@ class DesktopShell:
         menu.show_all()
         menu.popup_at_widget(self.start_btn, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None)
 
+    # ---------------------------------------------------- CALENDAR FLYOUT
+    def _toggle_calendar(self) -> None:
+        if self._cal_window is not None:
+            self._cal_window.destroy()
+            self._cal_window = None
+            return
+
+        win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        win.set_transient_for(self.window)
+        win.set_decorated(False)
+        win.set_skip_taskbar_hint(True)
+        win.set_skip_pager_hint(True)
+        win.get_style_context().add_class("cal-window")
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        vbox.set_margin_start(16)
+        vbox.set_margin_end(16)
+        vbox.set_margin_top(14)
+        vbox.set_margin_bottom(14)
+
+        # Header with today's date
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        title = Gtk.Label(label=f"📅 {time.strftime('%A, %B %d, %Y')}")
+        title.get_style_context().add_class("cal-title")
+        header.pack_start(title, True, True, 0)
+        vbox.pack_start(header, False, False, 0)
+
+        # Calendar Widget
+        cal = Gtk.Calendar()
+        cal.get_style_context().add_class("cal-widget")
+        vbox.pack_start(cal, True, True, 0)
+
+        # Server Specs / Uptime Summary
+        stats_grid = Gtk.Grid(column_spacing=12, row_spacing=4)
+        info = sysinfo.summary()
+        stats = [
+            ("Host:", info.get("hostname", "vps")),
+            ("Platform:", info.get("os", "Linux")),
+            ("CPU Cores:", f"{info.get('cpu', 1)} cores"),
+            ("Disk Usage:", f"{info.get('disk_used', '')} / {info.get('disk_total', '')}"),
+        ]
+        for idx, (k_text, v_text) in enumerate(stats):
+            kl = Gtk.Label(label=k_text, xalign=0)
+            kl.get_style_context().add_class("cal-stat-key")
+            vl = Gtk.Label(label=v_text, xalign=0)
+            vl.get_style_context().add_class("cal-stat-val")
+            stats_grid.attach(kl, 0, idx, 1, 1)
+            stats_grid.attach(vl, 1, idx, 1, 1)
+
+        vbox.pack_start(stats_grid, False, False, 4)
+
+        # Quick Buttons
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        wp_btn = Gtk.Button.new_with_label("🎨 Wallpaper")
+        wp_btn.get_style_context().add_class("quick-btn")
+        wp_btn.connect("clicked", lambda *_: (win.destroy(), self._dialog_change_wallpaper()))
+
+        shot_btn = Gtk.Button.new_with_label("📸 Screenshot")
+        shot_btn.get_style_context().add_class("quick-btn")
+        shot_btn.connect("clicked", lambda *_: (win.destroy(), self._take_screenshot()))
+
+        btn_box.pack_start(wp_btn, True, True, 0)
+        btn_box.pack_start(shot_btn, True, True, 0)
+        vbox.pack_start(btn_box, False, False, 2)
+
+        win.add(vbox)
+
+        # Position top-right near clock
+        screen_w = self.window.get_allocation().width or 1280
+        win.set_default_size(290, 360)
+        win.move(max(10, screen_w - 320), 54)
+
+        win.connect("focus-out-event", lambda *_: (win.destroy(), setattr(self, "_cal_window", None)))
+        win.show_all()
+        self._cal_window = win
+
+    def _take_screenshot(self) -> None:
+        out_path = os.path.expanduser(f"~/Desktop/screenshot_{int(time.time())}.png")
+        if shutil.which("scrot"):
+            subprocess.Popen(["scrot", out_path])
+        elif shutil.which("import"):
+            subprocess.Popen(["import", "-window", "root", out_path])
+
     # ---------------------------------------------------- ICON COLUMN
     def _build_icon_column(self) -> None:
         for child in self.icons_col.get_children():
@@ -563,7 +886,7 @@ class DesktopShell:
         for item in self.desktop_items:
             btn = self._create_icon_button(item)
             self.icon_buttons[item["id"]] = btn
-            self.icons_col.pack_start(btn, False, False, 4)
+            self.icons_col.pack_start(btn, False, False, 6)
 
         self.icons_col.show_all()
 
@@ -575,7 +898,6 @@ class DesktopShell:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         box.set_halign(Gtk.Align.CENTER)
 
-        # Detect appropriate icon key
         item_id = item.get("id", "").lower()
         item_name = item.get("name", "").lower()
         if "pc" in item_id or "this pc" in item_name or "computer" in item_name:
@@ -584,8 +906,8 @@ class DesktopShell:
             icon_key = "terminal"
         elif "task" in item_id or "task manager" in item_name or "activity" in item_name or "monitor" in item_name:
             icon_key = "task_manager"
-        elif "web" in item_id or "www" in item_name or "web root" in item_name:
-            icon_key = "webroot"
+        elif "browser" in item_id or "web" in item_id or "www" in item_name or "web root" in item_name:
+            icon_key = "browser" if "browser" in item_id or "browser" in item_name else "webroot"
         elif "trash" in item_id or "trash" in item_name:
             icon_key = "trash"
         else:
@@ -609,17 +931,14 @@ class DesktopShell:
     def _on_icon_click(self, widget: Gtk.Widget, event: Gdk.EventButton, item: dict) -> bool:
         item_id = item["id"]
 
-        # Double click (left): Launch
         if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
             self._launch_path(item.get("path", os.path.expanduser("~")))
             return True
 
-        # Single click (left): Select
         if event.button == 1:
             self._select_icon(item_id)
             return True
 
-        # Right click: Context menu
         if event.button == 3:
             self._select_icon(item_id)
             self._show_icon_menu(event, item)
@@ -679,27 +998,35 @@ class DesktopShell:
     def _show_desktop_menu(self, event: Gdk.EventButton) -> None:
         menu = Gtk.Menu()
 
-        fm_mi = Gtk.MenuItem.new_with_label("Open This PC")
+        fm_mi = Gtk.MenuItem.new_with_label("🖥️  Open This PC")
         fm_mi.connect("activate", lambda *_: self._launch_path("thispc://"))
         menu.append(fm_mi)
 
+        br_mi = Gtk.MenuItem.new_with_label("🌐  Open Web Browser")
+        br_mi.connect("activate", lambda *_: self._launch_path("app://browser"))
+        menu.append(br_mi)
+
+        tm_mi = Gtk.MenuItem.new_with_label("💻  Open Terminal")
+        tm_mi.connect("activate", lambda *_: self._launch_path("app://terminal"))
+        menu.append(tm_mi)
+
         menu.append(Gtk.SeparatorMenuItem())
 
-        add_mi = Gtk.MenuItem.new_with_label("Add Desktop Shortcut…")
+        add_mi = Gtk.MenuItem.new_with_label("➕  Add Desktop Shortcut…")
         add_mi.connect("activate", lambda *_: self._dialog_add_shortcut())
         menu.append(add_mi)
 
-        wp_mi = Gtk.MenuItem.new_with_label("🎨 Change Wallpaper…")
+        wp_mi = Gtk.MenuItem.new_with_label("🎨  Personalize Wallpaper & Themes…")
         wp_mi.connect("activate", lambda *_: self._dialog_change_wallpaper())
         menu.append(wp_mi)
 
-        next_wp = Gtk.MenuItem.new_with_label("🔀 Next Wallpaper")
+        next_wp = Gtk.MenuItem.new_with_label("🔀  Cycle Next Wallpaper")
         next_wp.connect("activate", lambda *_: self._cycle_wallpaper())
         menu.append(next_wp)
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        ref_mi = Gtk.MenuItem.new_with_label("Refresh Server Info")
+        ref_mi = Gtk.MenuItem.new_with_label("🔄  Refresh System Probes")
         ref_mi.connect("activate", lambda *_: self._refresh_info())
         menu.append(ref_mi)
 
@@ -707,7 +1034,7 @@ class DesktopShell:
         menu.popup(None, None, None, None, event.button, event.time)
 
     def _cycle_wallpaper(self) -> None:
-        name, path = cycle_next_wallpaper(CONFIG_FILE)
+        cycle_next_wallpaper(CONFIG_FILE)
         self._load_wallpaper()
 
     # ----------------------------------------------------------- DIALOGS
@@ -719,7 +1046,7 @@ class DesktopShell:
             destroy_with_parent=True,
         )
         dialog.add_button("Close", Gtk.ResponseType.CLOSE)
-        dialog.set_default_size(580, 500)
+        dialog.set_default_size(580, 520)
         dialog.get_style_context().add_class("wp-dialog")
 
         content = dialog.get_content_area()
@@ -730,11 +1057,10 @@ class DesktopShell:
         main_box.set_margin_bottom(12)
 
         # 1. Preset Wallpapers Section
-        wp_lbl = Gtk.Label(label="WALLPAPER PRESETS", xalign=0)
+        wp_lbl = Gtk.Label(label="SIGNATURE WALLPAPER PRESETS", xalign=0)
         wp_lbl.get_style_context().add_class("wp-section-lbl")
         main_box.pack_start(wp_lbl, False, False, 0)
 
-        # Scrolled grid of wallpaper cards
         card_grid = Gtk.Grid(column_spacing=12, row_spacing=12)
         card_buttons: dict[str, Gtk.Button] = {}
 
@@ -755,7 +1081,6 @@ class DesktopShell:
             card_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             card_vbox.set_size_request(150, 115)
 
-            # Thumbnail
             thumb_pixbuf = get_thumbnail_pixbuf(path, 140, 85)
             if thumb_pixbuf:
                 img = Gtk.Image.new_from_pixbuf(thumb_pixbuf)
@@ -781,7 +1106,7 @@ class DesktopShell:
         main_box.pack_start(card_grid, False, False, 0)
 
         # 2. Solid Colors Section
-        color_lbl = Gtk.Label(label="SOLID COLOR THEMES", xalign=0)
+        color_lbl = Gtk.Label(label="SOLID COLOR MINIMAL THEMES", xalign=0)
         color_lbl.get_style_context().add_class("wp-section-lbl")
         main_box.pack_start(color_lbl, False, False, 2)
 
@@ -801,8 +1126,6 @@ class DesktopShell:
             c_btn.set_tooltip_text(f"{col_name} ({hex_code})")
             c_btn.set_size_request(56, 36)
 
-            # Custom draw color square
-            r, g, b = hex_to_rgb(hex_code)
             c_label = Gtk.Label(label=f"<span foreground='{hex_code}'>████</span>")
             c_label.set_use_markup(True)
             c_btn.add(c_label)
@@ -887,13 +1210,12 @@ class DesktopShell:
             filter_img.add_pattern(f"*{ext.upper()}")
         chooser.add_filter(filter_img)
 
-        # Image preview in file chooser
         preview_img = Gtk.Image()
         chooser.set_preview_widget(preview_img)
 
         def update_preview(c) -> None:
             filename = c.get_preview_filename()
-            if filename and is_image_file(filename):
+            if filename and wallpaper.is_image_file(filename):
                 thumb = get_thumbnail_pixbuf(filename, 160, 100)
                 if thumb:
                     preview_img.set_from_pixbuf(thumb)
@@ -1052,7 +1374,7 @@ class DesktopShell:
         g.set_margin_top(12)
         g.set_margin_bottom(12)
 
-        title = Gtk.Label(label="Server Status")
+        title = Gtk.Label(label="Server Cloud Status")
         title.get_style_context().add_class("vps-title")
         title.set_halign(Gtk.Align.START)
         g.attach(title, 0, 0, 2, 1)
@@ -1073,14 +1395,29 @@ class DesktopShell:
         frame.add(g)
         return frame
 
-    # ---------------------------------------------------------- RUNNERS
+    # ---------------------------------------------------------- PROCESS TRACKING & RUNNERS
     def _launch_path(self, target_path: str) -> None:
+        app_id = "files"
+        title = "Files"
+        icon_key = "computer"
+
         if target_path in ("app://terminal", "terminal"):
             cmd = [sys.executable, "-m", "desktop.terminal.app", os.path.expanduser("~")]
+            app_id = "terminal"
+            title = "Terminal"
+            icon_key = "terminal"
         elif target_path in ("app://task_manager", "task_manager"):
             cmd = [sys.executable, "-m", "desktop.task_manager.app"]
+            app_id = "task_manager"
+            title = "Task Manager"
+            icon_key = "task_manager"
+        elif target_path in ("app://wallpaper", "wallpaper", "settings"):
+            self._dialog_change_wallpaper()
+            return
         elif target_path in ("app://browser", "browser"):
-            # Prioritize ultra-fast lightweight browsers (Epiphany WebKit, Midori) over heavy Chrome
+            app_id = "browser"
+            title = "Web Browser"
+            icon_key = "browser"
             browser_bin = None
             for b in ("epiphany-browser", "epiphany", "midori", "min", "firefox-esr", "firefox", "chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "x-www-browser"):
                 if shutil.which(b):
@@ -1099,7 +1436,6 @@ class DesktopShell:
                 else:
                     cmd = [browser_bin, "https://google.com"]
             else:
-                # Open terminal with easy one-liner to install Firefox / Chromium
                 cmd = [
                     sys.executable,
                     "-m",
@@ -1108,8 +1444,14 @@ class DesktopShell:
                 ]
         elif target_path in ("app://editor", "editor"):
             cmd = [sys.executable, "-m", "file_manager.app", os.path.expanduser("~")]
+            app_id = "editor"
+            title = "Editor"
+            icon_key = "editor"
         else:
             cmd = [sys.executable, "-m", "file_manager.app", target_path]
+            app_id = "this_pc" if target_path == "thispc://" else "files"
+            title = "This PC" if target_path == "thispc://" else os.path.basename(target_path) or "Files"
+            icon_key = "computer"
 
         try:
             p = subprocess.Popen(
@@ -1118,16 +1460,103 @@ class DesktopShell:
                 env=dict(os.environ, PYTHONPATH=ROOT + os.pathsep + os.environ.get("PYTHONPATH", "")),
             )
             self.children.append(p.pid)
+            self.tracked_processes[p.pid] = {
+                "pid": p.pid,
+                "app_id": app_id,
+                "title": title,
+                "icon_key": icon_key,
+                "popen": p,
+            }
+            self._update_running_tasks_ui()
         except OSError:
             pass
 
-    def _tick_clock(self) -> bool:
-        import time
-        self.clock_label.set_text(time.strftime("%H:%M"))
+    def _poll_processes(self) -> None:
+        dead_pids = []
+        for pid, meta in self.tracked_processes.items():
+            popen = meta.get("popen")
+            if popen and popen.poll() is not None:
+                dead_pids.append(pid)
+
+        for pid in dead_pids:
+            self.tracked_processes.pop(pid, None)
+
+        if dead_pids:
+            self._update_running_tasks_ui()
+
+    def _update_running_tasks_ui(self) -> None:
+        active_app_ids = {meta["app_id"] for meta in self.tracked_processes.values()}
+
+        # Update indicators on pinned dock icons
+        for app_id, indicator in self.pinned_indicators.items():
+            if app_id in active_app_ids:
+                indicator.get_style_context().add_class("active")
+            else:
+                indicator.get_style_context().remove_class("active")
+
+        # Update center running tasks box
+        for child in self.running_tasks_box.get_children():
+            self.running_tasks_box.remove(child)
+
+        for pid, meta in list(self.tracked_processes.items()):
+            btn = Gtk.Button()
+            btn.get_style_context().add_class("running-task-btn")
+
+            h = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(meta["icon_key"], size=16))
+            h.pack_start(img, False, False, 0)
+
+            lbl = Gtk.Label(label=meta["title"])
+            h.pack_start(lbl, False, False, 0)
+
+            btn.add(h)
+            btn.connect("clicked", lambda *_, p=pid: self._focus_or_signal_proc(p))
+            self.running_tasks_box.pack_start(btn, False, False, 0)
+
+        self.running_tasks_box.show_all()
+
+    def _focus_or_signal_proc(self, pid: int) -> None:
+        # If wmctrl or xdotool is present, activate window, otherwise pass
+        if shutil.which("wmctrl"):
+            subprocess.Popen(["wmctrl", "-a", self.tracked_processes.get(pid, {}).get("title", "")])
+
+    # ---------------------------------------------------------- TICK & STATS
+    def _tick_clock_and_stats(self) -> bool:
+        # Clock & Date
+        self.clock_time_label.set_text(time.strftime("%H:%M"))
+        self.clock_date_label.set_text(time.strftime("%a, %b %d"))
+
+        # Live CPU & RAM
+        cpu = sysinfo.cpu_percent()
+        ram = sysinfo.memory_percent()
+
+        self.cpu_lbl.set_text(f"⚡ CPU {cpu:.0f}%")
+        self.ram_lbl.set_text(f"🧠 RAM {ram:.0f}%")
+
+        self.cpu_lbl.get_style_context().remove_class("status-ok")
+        self.cpu_lbl.get_style_context().remove_class("status-warn")
+        self.cpu_lbl.get_style_context().remove_class("status-crit")
+        if cpu < 60:
+            self.cpu_lbl.get_style_context().add_class("status-ok")
+        elif cpu < 85:
+            self.cpu_lbl.get_style_context().add_class("status-warn")
+        else:
+            self.cpu_lbl.get_style_context().add_class("status-crit")
+
+        self.ram_lbl.get_style_context().remove_class("status-ok")
+        self.ram_lbl.get_style_context().remove_class("status-warn")
+        self.ram_lbl.get_style_context().remove_class("status-crit")
+        if ram < 70:
+            self.ram_lbl.get_style_context().add_class("status-ok")
+        elif ram < 90:
+            self.ram_lbl.get_style_context().add_class("status-warn")
+        else:
+            self.ram_lbl.get_style_context().add_class("status-crit")
+
+        self._poll_processes()
         return True
 
     def _refresh_info(self) -> bool:
-        # Check if external processes (like File Manager) updated desktop_config.json
         if os.path.exists(CONFIG_FILE):
             try:
                 mtime = os.path.getmtime(CONFIG_FILE)
@@ -1174,7 +1603,6 @@ def main() -> int:
         print("No active $DISPLAY detected. Launching ease-Desk session manager...")
         return SessionManager().start()
 
-    import time
     initialized = False
     for _ in range(25):
         try:

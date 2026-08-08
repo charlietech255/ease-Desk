@@ -50,6 +50,43 @@ def _kb_from_proc(pattern: str) -> int:
     return 0
 
 
+_last_cpu_times: tuple[int, int] | None = None
+
+
+def cpu_percent() -> float:
+    """Return CPU usage percentage across all cores (0.0 to 100.0)."""
+    global _last_cpu_times
+    try:
+        with open("/proc/stat", "r", encoding="utf-8") as f:
+            line = f.readline()
+        if not line.startswith("cpu "):
+            return 0.0
+        fields = [int(x) for x in line.strip().split()[1:]]
+        idle_time = fields[3] + (fields[4] if len(fields) > 4 else 0)
+        total_time = sum(fields)
+        if _last_cpu_times is None:
+            _last_cpu_times = (idle_time, total_time)
+            try:
+                load = os.getloadavg()[0]
+                return min(100.0, max(0.0, (load / max(1, cpu_count())) * 100.0))
+            except Exception:
+                return 5.0
+        prev_idle, prev_total = _last_cpu_times
+        _last_cpu_times = (idle_time, total_time)
+        delta_total = total_time - prev_total
+        delta_idle = idle_time - prev_idle
+        if delta_total <= 0:
+            return 0.0
+        usage = 100.0 * (1.0 - (delta_idle / delta_total))
+        return min(100.0, max(0.0, usage))
+    except Exception:
+        try:
+            load = os.getloadavg()[0]
+            return min(100.0, max(0.0, (load / max(1, cpu_count())) * 100.0))
+        except Exception:
+            return 0.0
+
+
 def memory() -> tuple[int, int]:
     """Return (used_bytes, total_bytes) for physical memory."""
     total = _kb_from_proc("MemTotal")
@@ -58,6 +95,14 @@ def memory() -> tuple[int, int]:
         return (0, 0)
     used = max(0, total - available)
     return (used, total)
+
+
+def memory_percent() -> float:
+    """Return memory utilization percentage (0.0 to 100.0)."""
+    used, total = memory()
+    if total <= 0:
+        return 0.0
+    return (used / total) * 100.0
 
 
 def disk(path: str = "/") -> tuple[int, int]:

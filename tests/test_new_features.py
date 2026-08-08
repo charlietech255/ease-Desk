@@ -23,6 +23,7 @@ from desktop.shell.shell import DesktopShell
 from desktop.task_manager.task_manager import TaskManagerWindow, list_processes
 from desktop.terminal.terminal import TerminalWindow
 from file_manager.core import fs
+from shared.utilities import sysinfo
 from shared.utilities.icons import get_icon_pixbuf
 
 
@@ -104,6 +105,55 @@ class TestNewFeatures(unittest.TestCase):
         self.assertIn("browser", item_ids)
         self.assertIn("terminal", item_ids)
         self.assertIn("task_manager", item_ids)
+        shell.window.destroy()
+
+    def test_sysinfo_live_probes(self):
+        """Test live CPU percent and RAM percent probes."""
+        cpu = sysinfo.cpu_percent()
+        self.assertIsInstance(cpu, float)
+        self.assertGreaterEqual(cpu, 0.0)
+        self.assertLessEqual(cpu, 100.0)
+
+        ram = sysinfo.memory_percent()
+        self.assertIsInstance(ram, float)
+        self.assertGreaterEqual(ram, 0.0)
+        self.assertLessEqual(ram, 100.0)
+
+    def test_desktop_dock_and_running_tasks(self):
+        """Test pinned apps bar, live indicators, and process tracking."""
+        shell = DesktopShell()
+        self.assertIsNotNone(shell.pinned_box)
+        self.assertIn("browser", shell.pinned_buttons)
+        self.assertIn("terminal", shell.pinned_buttons)
+        self.assertIn("task_manager", shell.pinned_buttons)
+
+        # Simulate tracking a process
+        shell.tracked_processes[999999] = {
+            "pid": 999999,
+            "app_id": "terminal",
+            "title": "Terminal",
+            "icon_key": "terminal",
+            "popen": None,
+        }
+        shell._update_running_tasks_ui()
+        self.assertTrue(
+            "active" in shell.pinned_indicators["terminal"].get_style_context().list_classes()
+        )
+        self.assertGreater(len(shell.running_tasks_box.get_children()), 0)
+
+        # Clean up
+        shell.tracked_processes.clear()
+        shell._update_running_tasks_ui()
+        self.assertFalse(
+            "active" in shell.pinned_indicators["terminal"].get_style_context().list_classes()
+        )
+
+        # Toggle calendar flyout
+        shell._toggle_calendar()
+        self.assertIsNotNone(shell._cal_window)
+        shell._toggle_calendar()
+        self.assertIsNone(shell._cal_window)
+
         shell.window.destroy()
 
 
