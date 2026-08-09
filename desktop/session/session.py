@@ -245,7 +245,14 @@ class SessionManager:
             os.chmod(xstartup_path, 0o755)
             
             cmd = ["vncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            self.spawned_processes.append(proc)
             
             for _ in range(50):
                 if os.path.exists(sock_file):
