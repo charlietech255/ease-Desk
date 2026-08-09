@@ -144,409 +144,235 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
 
 
 # ---------------------------------------------------- Vector Icon Primitives
+# Professional, minimalistic, flat line-art style (GNOME Symbolic inspired)
+
+def _setup_stroke(ctx: cairo.Context) -> None:
+    ctx.set_source_rgb(0.65, 0.68, 0.78)  # Minimalist slate/silver
+    ctx.set_line_width(4.5)
+    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+
 def _draw_folder(ctx: cairo.Context, key: str) -> None:
-    # Back folder tab
-    ctx.set_source_rgb(0.92, 0.65, 0.20)  # Amber gold
-    ctx.rectangle(12, 22, 36, 16)
-    ctx.fill()
-
-    # Back folder body
-    ctx.rectangle(12, 30, 76, 52)
-    ctx.fill()
-
-    # Front folder flap
-    ctx.set_source_rgb(0.98, 0.76, 0.28)  # Bright amber
-    ctx.move_to(12, 42)
-    ctx.line_to(88, 42)
-    ctx.line_to(84, 82)
-    ctx.line_to(12, 82)
+    _setup_stroke(ctx)
+    ctx.set_source_rgb(0.53, 0.70, 0.98) # subtle blue for folders
+    ctx.move_to(16, 26)
+    ctx.line_to(38, 26)
+    ctx.line_to(48, 38)
+    ctx.line_to(84, 38)
+    ctx.line_to(84, 80)
+    ctx.line_to(16, 80)
     ctx.close_path()
-    ctx.fill()
-
-    # Subtle highlight
-    ctx.set_source_rgba(1.0, 1.0, 1.0, 0.35)
-    ctx.rectangle(14, 44, 70, 4)
-    ctx.fill()
-
+    ctx.stroke()
 
 def _draw_computer(ctx: cairo.Context) -> None:
-    # Monitor frame
-    ctx.set_source_rgb(0.20, 0.26, 0.38)  # Slate dark
-    ctx.rectangle(14, 18, 72, 48)
-    ctx.fill()
-
-    # Screen display
-    ctx.set_source_rgb(0.12, 0.53, 0.90)  # Tech cyan-blue
-    ctx.rectangle(20, 24, 60, 36)
-    ctx.fill()
-
-    # Screen shine line
-    ctx.set_source_rgba(1.0, 1.0, 1.0, 0.25)
-    ctx.rectangle(20, 24, 60, 8)
-    ctx.fill()
-
-    # Stand
-    ctx.set_source_rgb(0.28, 0.35, 0.48)
-    ctx.rectangle(44, 66, 12, 12)
-    ctx.rectangle(30, 78, 40, 6)
-    ctx.fill()
-
+    _setup_stroke(ctx)
+    ctx.rectangle(16, 20, 68, 48)
+    ctx.stroke()
+    ctx.move_to(36, 80)
+    ctx.line_to(64, 80)
+    ctx.stroke()
+    ctx.move_to(50, 68)
+    ctx.line_to(50, 80)
+    ctx.stroke()
 
 def _draw_webroot(ctx: cairo.Context) -> None:
-    # Outer circle (Globe)
-    ctx.set_source_rgb(0.10, 0.65, 0.85)  # Cyan blue
-    ctx.arc(50, 50, 36, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Globe latitude/longitude grid
-    ctx.set_source_rgb(0.95, 0.98, 1.0)
-    ctx.set_line_width(4)
-    ctx.arc(50, 50, 36, 0, 2 * 3.14159)
+    _setup_stroke(ctx)
+    ctx.arc(50, 50, 32, 0, 2 * 3.14159)
     ctx.stroke()
-
-    # Horizontal equator
-    ctx.move_to(14, 50)
-    ctx.line_to(86, 50)
-    ctx.stroke()
-
-    # Longitude ellipse
     ctx.save()
     ctx.translate(50, 50)
-    ctx.scale(0.45, 1.0)
-    ctx.arc(0, 0, 36, 0, 2 * 3.14159)
+    ctx.scale(0.4, 1.0)
+    ctx.arc(0, 0, 32, 0, 2 * 3.14159)
     ctx.restore()
     ctx.stroke()
-
+    ctx.move_to(18, 50)
+    ctx.line_to(82, 50)
+    ctx.stroke()
 
 def _draw_drive(ctx: cairo.Context) -> None:
-    # Drive body
-    ctx.set_source_rgb(0.25, 0.32, 0.42)
-    ctx.rectangle(18, 26, 64, 48)
+    _setup_stroke(ctx)
+    ctx.rectangle(24, 20, 52, 60)
+    ctx.stroke()
+    ctx.move_to(24, 64)
+    ctx.line_to(76, 64)
+    ctx.stroke()
+    ctx.arc(50, 72, 3, 0, 2 * 3.14159)
     ctx.fill()
-
-    # Front face plate
-    ctx.set_source_rgb(0.35, 0.44, 0.56)
-    ctx.rectangle(22, 30, 56, 40)
-    ctx.fill()
-
-    # LED lights
-    ctx.set_source_rgb(0.20, 0.85, 0.35)  # Green LED
-    ctx.arc(32, 50, 4, 0, 2 * 3.14159)
-    ctx.fill()
-
-    ctx.set_source_rgb(0.20, 0.60, 0.95)  # Blue LED
-    ctx.arc(46, 50, 4, 0, 2 * 3.14159)
-    ctx.fill()
-
 
 def _draw_file(ctx: cairo.Context, key: str) -> None:
-    # Document sheet
-    ctx.set_source_rgb(0.92, 0.94, 0.98)
-    ctx.move_to(22, 16)
-    ctx.line_to(62, 16)
-    ctx.line_to(78, 32)
-    ctx.line_to(78, 84)
-    ctx.line_to(22, 84)
+    _setup_stroke(ctx)
+    ctx.move_to(24, 16)
+    ctx.line_to(56, 16)
+    ctx.line_to(76, 36)
+    ctx.line_to(76, 84)
+    ctx.line_to(24, 84)
     ctx.close_path()
-    ctx.fill()
-
-    # Folded corner
-    ctx.set_source_rgb(0.72, 0.76, 0.84)
-    ctx.move_to(62, 16)
-    ctx.line_to(62, 32)
-    ctx.line_to(78, 32)
-    ctx.close_path()
-    ctx.fill()
-
-    # Text lines
-    ctx.set_source_rgb(0.55, 0.60, 0.72)
-    ctx.rectangle(30, 42, 40, 4)
-    ctx.rectangle(30, 52, 40, 4)
-    ctx.rectangle(30, 62, 28, 4)
-    ctx.fill()
-
+    ctx.stroke()
+    ctx.move_to(56, 16)
+    ctx.line_to(56, 36)
+    ctx.line_to(76, 36)
+    ctx.stroke()
 
 def _draw_image(ctx: cairo.Context) -> None:
-    # Image frame
-    ctx.set_source_rgb(0.88, 0.40, 0.65)  # Magenta/purple
-    ctx.rectangle(18, 20, 64, 60)
-    ctx.fill()
-
-    # Sun / Circle
-    ctx.set_source_rgb(1.0, 0.90, 0.30)
-    ctx.arc(36, 38, 8, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Mountains
-    ctx.set_source_rgb(0.98, 0.98, 1.0)
-    ctx.move_to(22, 74)
-    ctx.line_to(44, 46)
-    ctx.line_to(58, 64)
-    ctx.line_to(76, 42)
-    ctx.line_to(78, 74)
-    ctx.close_path()
-    ctx.fill()
-
+    _draw_file(ctx, "image")
+    _setup_stroke(ctx)
+    ctx.arc(42, 50, 4, 0, 2 * 3.14159)
+    ctx.stroke()
+    ctx.move_to(30, 70)
+    ctx.line_to(46, 56)
+    ctx.line_to(56, 66)
+    ctx.line_to(64, 60)
+    ctx.line_to(70, 68)
+    ctx.stroke()
 
 def _draw_archive(ctx: cairo.Context) -> None:
-    # Cardboard package box
-    ctx.set_source_rgb(0.78, 0.58, 0.36)
-    ctx.rectangle(18, 24, 64, 52)
-    ctx.fill()
-
-    # Tape strip
-    ctx.set_source_rgb(0.92, 0.82, 0.62)
-    ctx.rectangle(44, 24, 12, 52)
-    ctx.rectangle(18, 46, 64, 8)
-    ctx.fill()
-
+    _setup_stroke(ctx)
+    ctx.rectangle(20, 24, 60, 56)
+    ctx.stroke()
+    ctx.move_to(20, 42)
+    ctx.line_to(80, 42)
+    ctx.stroke()
+    ctx.move_to(40, 24)
+    ctx.line_to(40, 52)
+    ctx.stroke()
+    ctx.move_to(60, 24)
+    ctx.line_to(60, 52)
+    ctx.stroke()
 
 def _draw_script(ctx: cairo.Context) -> None:
-    # Terminal badge
-    ctx.set_source_rgb(0.16, 0.20, 0.28)
-    ctx.rectangle(18, 22, 64, 56)
-    ctx.fill()
-
-    # Terminal prompt `>_`
-    ctx.set_source_rgb(0.25, 0.88, 0.45)  # Neon green
-    ctx.set_line_width(5)
-    ctx.move_to(28, 36)
-    ctx.line_to(42, 50)
-    ctx.line_to(28, 64)
+    _draw_file(ctx, "script")
+    _setup_stroke(ctx)
+    ctx.move_to(36, 46)
+    ctx.line_to(44, 54)
+    ctx.line_to(36, 62)
     ctx.stroke()
-
-    ctx.rectangle(48, 60, 16, 5)
-    ctx.fill()
-
+    ctx.move_to(48, 62)
+    ctx.line_to(60, 62)
+    ctx.stroke()
 
 def _draw_config(ctx: cairo.Context) -> None:
-    # Gear
-    ctx.set_source_rgb(0.45, 0.52, 0.62)
-    ctx.arc(50, 50, 28, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Gear teeth
-    for i in range(8):
+    _draw_file(ctx, "config")
+    _setup_stroke(ctx)
+    ctx.arc(50, 56, 8, 0, 2 * 3.14159)
+    ctx.stroke()
+    import math
+    for i in range(4):
+        angle = i * (math.pi / 2)
         ctx.save()
-        ctx.translate(50, 50)
-        ctx.rotate(i * (3.14159 / 4.0))
-        ctx.rectangle(-6, -34, 12, 12)
-        ctx.fill()
+        ctx.translate(50, 56)
+        ctx.rotate(angle)
+        ctx.move_to(0, -8)
+        ctx.line_to(0, -14)
+        ctx.stroke()
         ctx.restore()
 
-    # Center hole
-    ctx.set_source_rgb(0.12, 0.16, 0.22)
-    ctx.arc(50, 50, 12, 0, 2 * 3.14159)
-    ctx.fill()
-
-
 def _draw_video(ctx: cairo.Context) -> None:
-    # Film slate
-    ctx.set_source_rgb(0.85, 0.25, 0.32)
-    ctx.rectangle(18, 22, 64, 56)
-    ctx.fill()
-
-    # Play triangle
-    ctx.set_source_rgb(1.0, 1.0, 1.0)
-    ctx.move_to(42, 36)
-    ctx.line_to(64, 50)
-    ctx.line_to(42, 64)
+    _draw_file(ctx, "video")
+    _setup_stroke(ctx)
+    ctx.move_to(42, 46)
+    ctx.line_to(58, 56)
+    ctx.line_to(42, 66)
     ctx.close_path()
-    ctx.fill()
-
+    ctx.stroke()
 
 def _draw_audio(ctx: cairo.Context) -> None:
-    # Music disc
-    ctx.set_source_rgb(0.55, 0.35, 0.85)
-    ctx.arc(50, 50, 32, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Inner disc
-    ctx.set_source_rgb(0.25, 0.15, 0.45)
-    ctx.arc(50, 50, 14, 0, 2 * 3.14159)
-    ctx.fill()
-
-    ctx.set_source_rgb(1.0, 1.0, 1.0)
-    ctx.arc(50, 50, 4, 0, 2 * 3.14159)
-    ctx.fill()
-
+    _draw_file(ctx, "audio")
+    _setup_stroke(ctx)
+    ctx.arc(42, 64, 6, 0, 2 * 3.14159)
+    ctx.stroke()
+    ctx.move_to(48, 64)
+    ctx.line_to(48, 46)
+    ctx.line_to(62, 42)
+    ctx.line_to(62, 50)
+    ctx.stroke()
 
 def _draw_trash(ctx: cairo.Context) -> None:
-    # Trash can body
-    ctx.set_source_rgb(0.55, 0.60, 0.68)
-    ctx.rectangle(26, 32, 48, 50)
-    ctx.fill()
-
-    # Lid
-    ctx.set_source_rgb(0.40, 0.45, 0.54)
-    ctx.rectangle(20, 24, 60, 8)
-    ctx.rectangle(42, 18, 16, 6)
-    ctx.fill()
-
+    _setup_stroke(ctx)
+    ctx.move_to(20, 24)
+    ctx.line_to(80, 24)
+    ctx.stroke()
+    ctx.move_to(30, 24)
+    ctx.line_to(34, 80)
+    ctx.line_to(66, 80)
+    ctx.line_to(70, 24)
+    ctx.stroke()
+    ctx.move_to(40, 20)
+    ctx.line_to(60, 20)
+    ctx.stroke()
+    ctx.move_to(42, 34)
+    ctx.line_to(44, 70)
+    ctx.stroke()
+    ctx.move_to(58, 34)
+    ctx.line_to(56, 70)
+    ctx.stroke()
 
 def _draw_terminal(ctx: cairo.Context) -> None:
-    # Terminal frame window
-    ctx.set_source_rgb(0.11, 0.13, 0.18)  # Deep dark slate
-    ctx.rectangle(14, 18, 72, 64)
-    ctx.fill()
-
-    # Title bar top strip
-    ctx.set_source_rgb(0.18, 0.22, 0.30)
-    ctx.rectangle(14, 18, 72, 14)
-    ctx.fill()
-
-    # Window buttons
-    ctx.set_source_rgb(0.95, 0.35, 0.35)  # Red
-    ctx.arc(22, 25, 2.5, 0, 2 * 3.14159)
-    ctx.fill()
-    ctx.set_source_rgb(0.95, 0.75, 0.25)  # Yellow
-    ctx.arc(30, 25, 2.5, 0, 2 * 3.14159)
-    ctx.fill()
-    ctx.set_source_rgb(0.30, 0.85, 0.45)  # Green
-    ctx.arc(38, 25, 2.5, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Prompt symbol `>_`
-    ctx.set_source_rgb(0.25, 0.90, 0.50)  # Terminal neon green
-    ctx.set_line_width(4)
-    ctx.move_to(24, 44)
-    ctx.line_to(36, 54)
-    ctx.line_to(24, 64)
+    _setup_stroke(ctx)
+    ctx.rectangle(16, 22, 68, 56)
     ctx.stroke()
-
-    # Cursor underscore
-    ctx.rectangle(42, 60, 16, 4)
-    ctx.fill()
-
+    ctx.move_to(26, 38)
+    ctx.line_to(36, 48)
+    ctx.line_to(26, 58)
+    ctx.stroke()
+    ctx.move_to(42, 58)
+    ctx.line_to(56, 58)
+    ctx.stroke()
 
 def _draw_task_manager(ctx: cairo.Context) -> None:
-    # Monitor screen frame
-    ctx.set_source_rgb(0.12, 0.16, 0.23)
-    ctx.rectangle(14, 18, 72, 56)
-    ctx.fill()
-
-    # Stand base
-    ctx.set_source_rgb(0.28, 0.34, 0.44)
-    ctx.rectangle(44, 74, 12, 10)
-    ctx.rectangle(30, 84, 40, 5)
-    ctx.fill()
-
-    # Pulse / Heartbeat graph line
-    ctx.set_source_rgb(0.20, 0.75, 1.0)  # Cyan blue wave
-    ctx.set_line_width(3.5)
-    ctx.move_to(18, 46)
-    ctx.line_to(32, 46)
-    ctx.line_to(38, 28)
-    ctx.line_to(46, 62)
-    ctx.line_to(54, 34)
-    ctx.line_to(60, 52)
-    ctx.line_to(66, 46)
-    ctx.line_to(82, 46)
+    _setup_stroke(ctx)
+    ctx.rectangle(16, 22, 68, 56)
     ctx.stroke()
-
-    # Small peak glow
-    ctx.set_source_rgb(0.30, 0.95, 0.65)
-    ctx.arc(38, 28, 3, 0, 2 * 3.14159)
-    ctx.fill()
-
+    ctx.move_to(24, 50)
+    ctx.line_to(34, 50)
+    ctx.line_to(42, 34)
+    ctx.line_to(54, 66)
+    ctx.line_to(62, 50)
+    ctx.line_to(72, 50)
+    ctx.stroke()
 
 def _draw_browser(ctx: cairo.Context) -> None:
-    # Outer browser window frame
-    ctx.set_source_rgb(0.14, 0.18, 0.26)
-    ctx.rectangle(12, 16, 76, 68)
-    ctx.fill()
-
-    # Browser titlebar & tab
-    ctx.set_source_rgb(0.20, 0.26, 0.38)
-    ctx.rectangle(12, 16, 76, 18)
-    ctx.fill()
-
-    # Browser tab
-    ctx.set_source_rgb(0.14, 0.18, 0.26)
-    ctx.rectangle(24, 20, 36, 14)
-    ctx.fill()
-
-    # Window dots
-    ctx.set_source_rgb(0.95, 0.35, 0.35)
-    ctx.arc(18, 24, 2, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # URL address bar
-    ctx.set_source_rgb(0.26, 0.34, 0.48)
-    ctx.rectangle(18, 38, 64, 8)
-    ctx.fill()
-
-    # Globe/Compass accent in viewport
-    ctx.set_source_rgb(0.15, 0.60, 0.95)  # Modern vibrant blue
-    ctx.arc(50, 62, 14, 0, 2 * 3.14159)
-    ctx.fill()
-    ctx.set_source_rgb(1.0, 1.0, 1.0)
-    ctx.set_line_width(2)
-    ctx.arc(50, 62, 14, 0, 2 * 3.14159)
+    _setup_stroke(ctx)
+    ctx.rectangle(16, 20, 68, 60)
     ctx.stroke()
-    ctx.move_to(36, 62)
-    ctx.line_to(64, 62)
+    ctx.move_to(16, 34)
+    ctx.line_to(84, 34)
     ctx.stroke()
-
+    ctx.arc(50, 58, 14, 0, 2 * 3.14159)
+    ctx.stroke()
+    ctx.move_to(36, 58)
+    ctx.line_to(64, 58)
+    ctx.stroke()
 
 def _draw_editor(ctx: cairo.Context) -> None:
-    # Code editor window
-    ctx.set_source_rgb(0.12, 0.14, 0.20)
-    ctx.rectangle(14, 16, 72, 68)
-    ctx.fill()
-
-    # Title bar
-    ctx.set_source_rgb(0.18, 0.22, 0.30)
-    ctx.rectangle(14, 16, 72, 14)
-    ctx.fill()
-
-    # Line numbers sidebar
-    ctx.set_source_rgb(0.15, 0.18, 0.25)
-    ctx.rectangle(14, 30, 16, 54)
-    ctx.fill()
-
-    # Code lines
-    ctx.set_source_rgb(0.38, 0.70, 0.95)  # Blue keyword
-    ctx.rectangle(34, 36, 18, 4)
-    ctx.fill()
-    ctx.set_source_rgb(0.95, 0.75, 0.30)  # Yellow function
-    ctx.rectangle(56, 36, 22, 4)
-    ctx.fill()
-
-    ctx.set_source_rgb(0.40, 0.85, 0.50)  # Green string
-    ctx.rectangle(38, 46, 32, 4)
-    ctx.fill()
-
-    ctx.set_source_rgb(0.85, 0.45, 0.90)  # Purple variable
-    ctx.rectangle(38, 56, 24, 4)
-    ctx.fill()
-
-    # Active cursor
-    ctx.set_source_rgb(1.0, 1.0, 1.0)
-    ctx.rectangle(64, 56, 2, 6)
-    ctx.fill()
-
+    _setup_stroke(ctx)
+    ctx.rectangle(16, 20, 68, 60)
+    ctx.stroke()
+    ctx.move_to(16, 32)
+    ctx.line_to(84, 32)
+    ctx.stroke()
+    ctx.move_to(32, 46)
+    ctx.line_to(68, 46)
+    ctx.stroke()
+    ctx.move_to(32, 56)
+    ctx.line_to(56, 56)
+    ctx.stroke()
+    ctx.move_to(32, 66)
+    ctx.line_to(74, 66)
+    ctx.stroke()
 
 def _draw_settings(ctx: cairo.Context) -> None:
-    # Gear outer circle
-    ctx.set_source_rgb(0.45, 0.52, 0.64)
-    ctx.arc(50, 50, 26, 0, 2 * 3.14159)
-    ctx.fill()
-
-    # Gear teeth (8 teeth)
+    _setup_stroke(ctx)
+    ctx.arc(50, 50, 16, 0, 2 * 3.14159)
+    ctx.stroke()
     import math
     for i in range(8):
         angle = i * (math.pi / 4)
         ctx.save()
         ctx.translate(50, 50)
         ctx.rotate(angle)
-        ctx.rectangle(-5, -34, 10, 12)
-        ctx.fill()
+        ctx.move_to(0, -16)
+        ctx.line_to(0, -26)
+        ctx.stroke()
         ctx.restore()
-
-    # Center hole
-    ctx.set_source_rgb(0.08, 0.10, 0.14)
-    ctx.arc(50, 50, 12, 0, 2 * 3.14159)
-    ctx.fill()
 
 
