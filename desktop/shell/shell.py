@@ -416,13 +416,9 @@ class DesktopShell:
         desk_event = Gtk.EventBox()
         desk_event.set_visible_window(False)
         desk_event.set_events(
-            Gdk.EventMask.BUTTON_PRESS_MASK |
-            Gdk.EventMask.POINTER_MOTION_MASK |
-            Gdk.EventMask.BUTTON_RELEASE_MASK
+            Gdk.EventMask.BUTTON_PRESS_MASK
         )
         desk_event.connect("button-press-event", self._on_desktop_click)
-        desk_event.connect("motion-notify-event", self._on_desktop_motion)
-        desk_event.connect("button-release-event", self._on_desktop_release)
         outer.pack_start(desk_event, True, True, 0)
         
         # Desktop shortcuts (Fixed Layout) inside the desktop area
@@ -746,7 +742,10 @@ class DesktopShell:
         box.pack_start(name_lbl, False, False, 0)
 
         btn.add(box)
+        btn.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
         btn.connect("button-press-event", lambda w, ev, it=item: self._on_icon_click(w, ev, it))
+        btn.connect("motion-notify-event", self._on_icon_motion)
+        btn.connect("button-release-event", self._on_icon_release)
         return btn
 
     # ------------------------------------------------------------ EVENTS
@@ -772,33 +771,33 @@ class DesktopShell:
 
         return False
 
-    def _on_desktop_motion(self, widget: Gtk.Widget, event: Gdk.EventMotion) -> bool:
-        if self.drag_widget and self.drag_item:
-            alloc = self.desktop_fixed.get_allocation()
-            new_x = int(event.x) - self.drag_offset_x - 18 # margin-start
-            new_y = int(event.y) - self.drag_offset_y - 16 # margin-top
+    def _on_icon_motion(self, widget: Gtk.Widget, event: Gdk.EventMotion) -> bool:
+        if self.drag_widget == widget and self.drag_item:
+            if not (event.get_state() & Gdk.ModifierType.BUTTON1_MASK):
+                return False
+                
+            dx = int(event.x) - self.drag_offset_x
+            dy = int(event.y) - self.drag_offset_y
             
-            # Simple bounds checking
+            current_x = self.drag_item.get("x", 0)
+            current_y = self.drag_item.get("y", 0)
+            
+            new_x = current_x + dx
+            new_y = current_y + dy
+            
+            # Prevent dragging way out of bounds
+            alloc = self.desktop_fixed.get_allocation()
             new_x = max(0, min(new_x, alloc.width - 64))
             new_y = max(0, min(new_y, alloc.height - 64))
             
-            self.desktop_fixed.move(self.drag_widget, new_x, new_y)
+            self.desktop_fixed.move(widget, new_x, new_y)
+            self.drag_item["x"] = new_x
+            self.drag_item["y"] = new_y
             return True
         return False
 
-    def _on_desktop_release(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
-        if self.drag_widget and self.drag_item:
-            # Save the final coordinates
-            alloc = self.desktop_fixed.get_allocation()
-            new_x = int(event.x) - self.drag_offset_x - 18
-            new_y = int(event.y) - self.drag_offset_y - 16
-            
-            new_x = max(0, min(new_x, alloc.width - 64))
-            new_y = max(0, min(new_y, alloc.height - 64))
-            
-            self.drag_item["x"] = new_x
-            self.drag_item["y"] = new_y
-            
+    def _on_icon_release(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
+        if self.drag_widget == widget and self.drag_item:
             self.drag_widget = None
             self.drag_item = None
             self._save_config()
