@@ -409,6 +409,15 @@ class DesktopShell:
  def _build_ui(self) -> None:
   # We use an Overlay so we can float the bottom dock easily over the desktop
   self.overlay = Gtk.Overlay()
+  
+  outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+  
+  # Main Desktop Area
+  desk_event = Gtk.EventBox()
+  desk_event.set_visible_window(False)
+  desk_event.connect("button-press-event", self._on_desktop_click)
+
+  self.desktop_fixed = Gtk.Fixed()
   self.desktop_fixed.set_margin_end(8)
   
   desk_event.add(self.desktop_fixed)
