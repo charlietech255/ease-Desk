@@ -22,7 +22,7 @@ class SessionManager:
     def __init__(
         self,
         display: str | None = None,
-        resolution: str = "1280x720x24",
+        resolution: str = "1920x1080x24",
         vnc_port: int = 5900,
         novnc_port: int = 6080,
         enable_vnc: bool = True,
@@ -126,10 +126,10 @@ class SessionManager:
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 http://{primary_ip}:{self.kasmvnc_port}/")
+                print(f"  👉 http://{primary_ip}:8444/")
                 print("")
                 print("  Local access (SSH tunnel):")
-                print(f"  👉 http://localhost:{self.kasmvnc_port}/")
+                print(f"  👉 http://localhost:8444/")
                 print("-" * 64)
             else:
                 url_params = "?autoconnect=true&resize=scale"
@@ -528,7 +528,7 @@ class SessionManager:
 def main() -> int:
     parser = argparse.ArgumentParser(description="ease-Desk Session Manager")
     parser.add_argument("--display", help="Target X11 display (e.g. :0 or :99)")
-    parser.add_argument("--resolution", default="1280x720x24", help="Virtual screen resolution")
+    parser.add_argument("--resolution", default="1920x1080x24", help="Virtual screen resolution")
     parser.add_argument("--vnc-port", type=int, default=5900, help="VNC port")
     parser.add_argument("--novnc-port", type=int, default=6080, help="noVNC Web port")
     parser.add_argument("--no-vnc", action="store_true", help="Disable VNC bridge")
