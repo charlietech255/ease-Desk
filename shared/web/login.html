@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ease-Desk | Login</title>
+    <!-- Use Outfit Font for a premium feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            height: 100%;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Abstract Premium Background Elements */
+        .bg-mesh {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.12), transparent 40%),
+                        radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.12), transparent 40%),
+                        radial-gradient(circle at 50% 80%, rgba(20, 184, 166, 0.08), transparent 50%);
+            z-index: 1;
+            filter: blur(40px);
+            animation: breathe 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes breathe {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            z-index: 2;
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .orb-1 {
+            width: 350px; height: 350px;
+            background: rgba(56, 189, 248, 0.25);
+            top: 15%; left: 25%;
+        }
+
+        .orb-2 {
+            width: 250px; height: 250px;
+            background: rgba(139, 92, 246, 0.25);
+            bottom: 20%; right: 25%;
+        }
+
+        /* Glassmorphism Card */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            padding: 0 20px;
+            perspective: 1000px;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px) rotateX(5deg);
+            animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUpFade {
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0);
+            }
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, #38bdf8, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin-bottom: 36px;
+            font-weight: 400;
+        }
+
+        /* Floating Label Inputs */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px 16px 16px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            color: var(--text-main);
+            font-size: 15px;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 16px;
+            top: 17px;
+            color: var(--text-muted);
+            font-size: 15px;
+            transition: all 0.25s ease;
+            pointer-events: none;
+        }
+
+        .input-group input:focus,
+        .input-group input:not(:placeholder-shown) {
+            border-color: rgba(56, 189, 248, 0.5);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+        }
+
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 12px;
+            padding: 0 6px;
+            background: #0d0d12; /* Fallback for label background */
+            border-radius: 4px;
+            color: var(--primary);
+        }
+
+        /* Button */
+        .btn-login {
+            position: relative;
+            width: 100%;
+            padding: 16px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+            border: none;
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 20px -6px var(--primary-glow);
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.5);
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
+        }
+
+        .btn-login:active {
+            transform: translateY(1px);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loader */
+        .loader {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            display: none;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error Message */
+        .error-msg {
+            color: var(--error);
+            font-size: 14px;
+            margin-top: 20px;
+            min-height: 20px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+
+        .error-msg.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s ease 1s forwards;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            color: #7dd3fc;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-mesh"></div>
+    <div class="orb orb-1" id="orb1"></div>
+    <div class="orb orb-2" id="orb2"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="logo">ease<span>Desk</span></div>
+            <div class="subtitle">Cloud Workspace Authentication</div>
+
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder=" " autocomplete="username" required>
+                    <label for="username">Username</label>
+                </div>
+                
+                <div class="input-group">
+                    <input type="password" id="password" placeholder=" " autocomplete="current-password" required>
+                    <label for="password">Password</label>
+                </div>
+
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <span id="btnText">Connect to Desktop</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+
+                <div class="error-msg" id="errorMsg">Invalid username or password.</div>
+            </form>
+        </div>
+    </div>
+
+    <div class="footer">
+        ease Desk | Created by charlie <a href="https://charlietech.site" target="_blank">[charlietech.site]</a>
+    </div>
+
+    <script>
+        // Parallax effect for floating orbs
+        document.addEventListener('mousemove', (e) => {
+            const orb1 = document.getElementById('orb1');
+            const orb2 = document.getElementById('orb2');
+            
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+
+            orb1.style.transform = `translate(${x * 40}px, ${y * 40}px)`;
+            orb2.style.transform = `translate(${x * -30}px, ${y * -30}px)`;
+        });
+
+        // Login Logic
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            const errorMsg = document.getElementById('errorMsg');
+            const btn = document.getElementById('loginBtn');
+
+            // UI Loading state
+            btnText.style.display = 'none';
+            loader.style.display = 'inline-block';
+            errorMsg.classList.remove('visible');
+            btn.disabled = true;
+
+            // Send XMLHttpRequest to authenticate using HTTP Basic Auth
+            const xhr = new XMLHttpRequest();
+            
+            xhr.open("GET", "/", true, u, p);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    // Reset UI State
+                    btnText.style.display = 'inline-block';
+                    loader.style.display = 'none';
+                    btn.disabled = false;
+
+                    if (xhr.status !== 401) {
+                        window.location.href = "/";
+                    } else {
+                        errorMsg.classList.add('visible');
+                        document.getElementById('password').value = '';
+                        document.getElementById('password').focus();
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                btnText.style.display = 'inline-block';
+                loader.style.display = 'none';
+                btn.disabled = false;
+                errorMsg.innerText = "Network error occurred.";
+                errorMsg.classList.add('visible');
+            };
+
+            xhr.send();
+        });
+    </script>
+</body>
+</html>
