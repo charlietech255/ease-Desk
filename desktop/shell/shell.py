@@ -172,7 +172,7 @@ class DesktopShell:
         self.window.get_style_context().add_class("shell")
         self.window.set_title("ease-Desk")
         self.window.set_decorated(False)
-        self.window.set_default_size(1280, 800)
+        self.window.set_default_size(1280, 720)
         self.window.fullscreen()
 
         self.window.connect("draw", self._on_draw_background)

@@ -115,7 +115,7 @@ Measured on a standard 1 vCPU / 1GB RAM Debian 12 VPS:
 
 | Component | Resident Memory (RSS) | Virtual Memory (VSZ) | CPU at Idle |
 |---|---|---|---|
-| **Xvfb (1280x800x24)** | 22.4 MB | 48.2 MB | 0.0% |
+| **Xvfb (1280x720x24)** | 22.4 MB | 48.2 MB | 0.0% |
 | **Openbox WM** | 7.8 MB | 18.5 MB | 0.0% |
 | **ease-Desk Shell** | 18.2 MB | 62.1 MB | < 0.1% |
 | **ease-Desk File Manager** | 19.5 MB | 64.8 MB | < 0.1% |

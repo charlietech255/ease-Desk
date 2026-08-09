@@ -141,7 +141,7 @@ Kama unatumia simu ya Android:
 Kama server yako haina active X11 display:
 
 ```bash
-desktop --resolution 1280x800
+desktop --resolution 1280x720
 ```
 
 Kisha fungua browser yako na tembelea:
@@ -161,7 +161,7 @@ ease-Desk Session Manager for VPS
 
 options:
   -h, --help            show this help message and exit
-  --resolution WxH      virtual display resolution (default: 1280x800x24)
+  --resolution WxH      virtual display resolution (default: 1280x720x24)
   --vnc-port PORT       VNC server port (default: 5900)
   --novnc-port PORT     noVNC web client port (default: 6080)
   --no-vnc              disable VNC server
