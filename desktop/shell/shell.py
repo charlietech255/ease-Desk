@@ -125,6 +125,7 @@ def _get_browser_command() -> tuple[list[str], dict[str, str]] | None:
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--password-store=basic",
+                "--test-type",
                 "https://google.com",
             ]
             return cmd, env
