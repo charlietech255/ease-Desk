@@ -103,11 +103,11 @@ else
         echo -e "An existing VNC password was found for user ${TARGET_USER}."
         read -r -p "Do you want to keep the existing password? (Y/n): " KEEP_PASS
         if [[ ! "$KEEP_PASS" =~ ^[Nn]$ ]]; then
-            VNC_PASS=""
+            SKIP_PASS_PROMPT=1
         fi
     fi
 
-    if [ -z "${VNC_PASS+x}" ] || [ -z "$VNC_PASS" ]; then
+    if [ -z "$SKIP_PASS_PROMPT" ]; then
         echo -n "🔑 Enter a secure login password for ease-Desk: "
         read -r -s VNC_PASS
         echo ""
@@ -455,7 +455,11 @@ echo -e "${CYAN}🔍 [7/7] Running End-to-End System Health Checks...${NC}"
 if [ "$(id -u)" -eq 0 ]; then
     # Wait for service to warm up
     for _ in $(seq 1 30); do
-        port_busy 6080 && break
+        if command -v kasmvncserver >/dev/null 2>&1; then
+            port_busy 8444 && break
+        else
+            port_busy 6080 && break
+        fi
         sleep 1
     done
 
@@ -467,6 +471,10 @@ if [ "$(id -u)" -eq 0 ]; then
         echo -e "${GREEN}✓ WebSocket proxy active on :6080${NC}"
     fi
 
+    if port_busy 8444; then
+        echo -e "${GREEN}✓ KasmVNC server active on :8444${NC}"
+    fi
+
     if port_busy 3389; then
         echo -e "${GREEN}✓ Native RDP server active on :3389${NC}"
     fi
@@ -475,14 +483,18 @@ if [ "$(id -u)" -eq 0 ]; then
     [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
     BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
-    HTTP_CODE="$(curl -s -o /dev/null -m 4 -w "%{http_code}" "http://${BASE_URL}/vnc.html" 2>/dev/null || echo "000")"
+    if command -v kasmvncserver >/dev/null 2>&1; then
+        WEB_URL="http://${BASE_URL}/"
+    else
+        WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
+    fi
 
     echo ""
     echo -e "${GREEN}${BOLD}================================================================${NC}"
     echo -e "${GREEN}${BOLD}   🎉 ease-Desk Cloud Distro & Remote Desktop Ready!            ${NC}"
     echo -e "${GREEN}${BOLD}================================================================${NC}"
     echo -e "   🌐 ${BOLD}1. Web Browser Desktop (Zero-Install):${NC}"
-    echo -e "      👉 ${CYAN}http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale${NC}"
+    echo -e "      👉 ${CYAN}${WEB_URL}${NC}"
     echo ""
     echo -e "   🖥️  ${BOLD}2. Native Remote Desktop (Windows / Mac / Phone RDP):${NC}"
     echo -e "      👉 Host:     ${CYAN}${BASE_URL}:3389${NC}"
