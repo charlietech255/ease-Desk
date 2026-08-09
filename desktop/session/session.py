@@ -105,10 +105,9 @@ class SessionManager:
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 http://{primary_ip}/")
-                print(f"     (requires Nginx reverse proxy on port 80/443)")
+                print(f"  👉 http://{primary_ip}:8444/")
                 print("")
-                print("  Or using SSH Tunnel (Secure direct port):")
+                print("  Local access (SSH tunnel):")
                 print(f"  👉 http://localhost:8444/")
                 print("-" * 64)
             else:

@@ -188,17 +188,24 @@ if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
             rm -f /tmp/kasmvncserver.deb
             usermod -aG ssl-cert "$TARGET_USER" 2>/dev/null || true
             
-            # Setup native KasmVNC authentication using kasmvncpasswd (KasmVNC's own format)
-            if [ -n "$VNC_PASS" ] && command -v kasmvncpasswd >/dev/null 2>&1; then
+            # ALWAYS recreate ~/.kasmpasswd in KasmVNC's native format.
+            # vncpasswd creates an x11vnc-format file that KasmVNC cannot read.
+            if command -v kasmvncpasswd >/dev/null 2>&1; then
+                # Use the user's password if available, otherwise set a known fallback
+                _KASM_PASS="${VNC_PASS:-easedesk123}"
                 for u_home in "$TARGET_HOME" "/root"; do
                     [ -d "$u_home" ] || continue
-                    mkdir -p "${u_home}/.vnc"
-                    # Write password in KasmVNC native format (NOT vncpasswd format)
-                    printf '%s\n%s\n' "$VNC_PASS" "$VNC_PASS" | kasmvncpasswd -u "${TARGET_USER}" -rw "${u_home}/.kasmpasswd" > /dev/null 2>&1 || true
+                    # Remove any stale file or incompatible symlink
+                    rm -f "${u_home}/.kasmpasswd"
+                    printf '%s\n%s\n' "$_KASM_PASS" "$_KASM_PASS" | kasmvncpasswd -u "${TARGET_USER}" -rw "${u_home}/.kasmpasswd" > /dev/null 2>&1 || true
                     chmod 600 "${u_home}/.kasmpasswd" 2>/dev/null || true
-                    [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" "${u_home}/.kasmpasswd" 2>/dev/null || true
+                    [ "$TARGET_USER" != "root" ] && chown "${TARGET_USER}" "${u_home}/.kasmpasswd" 2>/dev/null || true
                 done
-                echo -e "${GREEN}✓ KasmVNC native authentication configured.${NC}"
+                if [ -z "$VNC_PASS" ]; then
+                    echo -e "${YELLOW}⚠ KasmVNC password set to 'easedesk123' (old format was incompatible). Change with: kasmvncpasswd -u ${TARGET_USER} ~/.kasmpasswd${NC}"
+                else
+                    echo -e "${GREEN}✓ KasmVNC native authentication configured.${NC}"
+                fi
             fi
         fi
     fi
@@ -439,11 +446,12 @@ PKLA_EOF
         ufw allow 80/tcp comment "ease-Desk Web Desktop" >/dev/null 2>&1 || true
         ufw allow 443/tcp comment "ease-Desk SSL" >/dev/null 2>&1 || true
         ufw allow 6080/tcp comment "ease-Desk WebSocket" >/dev/null 2>&1 || true
+        ufw allow 8444/tcp comment "ease-Desk KasmVNC Direct" >/dev/null 2>&1 || true
         ufw reload >/dev/null 2>&1 || true
         echo -e "${GREEN}✓ UFW firewall rules updated.${NC}"
     elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
         echo -e "${CYAN}🛡️ Configuring Firewalld rules...${NC}"
-        firewall-cmd --permanent --add-port={3389/tcp,80/tcp,443/tcp,6080/tcp} >/dev/null 2>&1 || true
+        firewall-cmd --permanent --add-port={3389/tcp,80/tcp,443/tcp,6080/tcp,8444/tcp} >/dev/null 2>&1 || true
         firewall-cmd --reload >/dev/null 2>&1 || true
         echo -e "${GREEN}✓ Firewalld rules updated.${NC}"
     fi
@@ -488,7 +496,7 @@ if [ "$(id -u)" -eq 0 ]; then
     BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
     if command -v kasmvncserver >/dev/null 2>&1; then
-        WEB_URL="http://${BASE_URL}/"
+        WEB_URL="http://${BASE_URL}:8444/"
     else
         WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
     fi
