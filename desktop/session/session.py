@@ -80,8 +80,9 @@ class SessionManager:
             self.is_virtual_display = True
             self._start_virtual_display()
 
-        # Export DISPLAY for all child processes
+        # Export DISPLAY and XAUTHORITY for all child processes
         os.environ["DISPLAY"] = self.display_str
+        os.environ["XAUTHORITY"] = os.path.expanduser("~/.Xauthority")
         os.environ["PYTHONPATH"] = (
             self.root_dir + os.pathsep + os.environ.get("PYTHONPATH", "")
         )
