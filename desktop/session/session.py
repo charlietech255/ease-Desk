@@ -314,13 +314,7 @@ class SessionManager:
                 pass
             
             import sys
-            # -noxstartup: skip DE selection dialog and xstartup execution entirely.
-            # session.py manages openbox + shell directly after the display is ready.
-            cmd = [
-                "/usr/bin/kasmvncserver", self.display_str,
-                "-geometry", self.resolution.rsplit('x', 1)[0],
-                "-noxstartup",
-            ]
+            cmd = ["/usr/bin/kasmvncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
             proc = subprocess.Popen(
                 cmd,
                 stdout=sys.stdout,
