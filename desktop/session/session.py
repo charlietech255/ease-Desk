@@ -303,11 +303,39 @@ class SessionManager:
             )
             self.spawned_processes.append(proc)
             
-            for _ in range(50):
+            # Wait up to 60s for KasmVNC to fully initialize.
+            # Checking only the socket is not enough — Xauthority may not be written yet.
+            # We poll xdpyinfo until it can actually connect to the display.
+            print("  Waiting for KasmVNC display to become ready...", flush=True)
+            deadline = time.time() + 60
+            ready = False
+            xdpyinfo_bin = shutil.which("xdpyinfo")
+            xauth_env = {**os.environ, "XAUTHORITY": os.path.expanduser("~/.Xauthority")}
+            while time.time() < deadline:
                 if os.path.exists(sock_file):
-                    break
-                time.sleep(0.1)
-            time.sleep(0.5)
+                    if xdpyinfo_bin:
+                        try:
+                            r = subprocess.run(
+                                [xdpyinfo_bin, "-display", self.display_str],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                                timeout=2,
+                                env=xauth_env,
+                            )
+                            if r.returncode == 0:
+                                ready = True
+                                break
+                        except Exception:
+                            pass
+                    else:
+                        # No xdpyinfo — wait a few extra seconds after socket appears
+                        time.sleep(4)
+                        ready = True
+                        break
+                time.sleep(1)
+            
+            if not ready:
+                print("  Warning: KasmVNC display did not respond in 60s, proceeding anyway.", flush=True)
             return
 
         # Option B: Fallback to Xvfb
