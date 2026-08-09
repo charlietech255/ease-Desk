@@ -446,15 +446,7 @@ class DesktopShell:
         dock_container.pack_end(dock, False, False, 16)
         self.overlay.add_overlay(dock_container)
         
-        # Server Status Info overlay
-        info_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        info_container.set_valign(Gtk.Align.END)
-        info_container.set_halign(Gtk.Align.END)
-        self.info_panel = self._build_info_panel()
-        self.info_panel.set_margin_end(24)
-        self.info_panel.set_margin_bottom(16)
-        info_container.pack_end(self.info_panel, False, False, 0)
-        self.overlay.add_overlay(info_container)
+
 
         # Slide-out Dashboard
         self.dashboard = DashboardPanel(self)
@@ -525,20 +517,7 @@ class DesktopShell:
         clock_event.add(clock_box)
         bar.pack_end(clock_event, False, False, 4)
 
-        # Live System Badges (RAM & CPU)
-        self.ram_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        self.ram_pill.get_style_context().add_class("status-pill")
-        self.ram_lbl = Gtk.Label(label="RAM --%")
-        self.ram_lbl.get_style_context().add_class("status-lbl")
-        self.ram_pill.pack_start(self.ram_lbl, False, False, 0)
-        bar.pack_end(self.ram_pill, False, False, 2)
 
-        self.cpu_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        self.cpu_pill.get_style_context().add_class("status-pill")
-        self.cpu_lbl = Gtk.Label(label="CPU --%")
-        self.cpu_lbl.get_style_context().add_class("status-lbl")
-        self.cpu_pill.pack_start(self.cpu_lbl, False, False, 0)
-        bar.pack_end(self.cpu_pill, False, False, 2)
 
         return bar
 

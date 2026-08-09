@@ -294,3 +294,5 @@ window.shell {
     border-color: #38bdf8;
     color: #ffffff;
 }
+
+.server { color: #64748b; font-size: 11px; font-weight: 700; margin-right: 8px; }

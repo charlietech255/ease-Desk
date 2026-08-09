@@ -16,6 +16,13 @@ class SpotlightWindow(Gtk.Window):
         self.set_default_size(600, 60)
         self.set_skip_taskbar_hint(True)
         self.set_skip_pager_hint(True)
+        self.set_app_paintable(True)
+        
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and self.get_is_composited():
+            self.set_visual(visual)
+
         self.get_style_context().add_class("spotlight-window")
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -34,21 +41,30 @@ class SpotlightWindow(Gtk.Window):
         provider = Gtk.CssProvider()
         provider.load_from_data(b"""
             .spotlight-window {
-                background-color: rgba(13, 17, 23, 0.95);
-                border: 1px solid rgba(56, 189, 248, 0.5);
+                background-color: rgba(13, 17, 23, 0.40);
+                border: 1px solid rgba(56, 189, 248, 0.3);
                 border-radius: 16px;
-                box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.6);
             }
             .spotlight-entry {
                 background: transparent;
-                color: #f1f5f9;
+                border: none;
+                box-shadow: none;
+                color: #f8fafc;
                 font-size: 24px;
                 font-weight: 300;
-                padding: 10px 20px;
+                padding: 12px 24px;
                 caret-color: #38bdf8;
+            }
+            .spotlight-entry:focus {
+                border: none;
+                box-shadow: none;
             }
         """)
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        
+        # Hide it initially!
+        self.hide()
 
     def _on_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
