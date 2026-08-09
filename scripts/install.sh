@@ -321,7 +321,7 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
 
     # Redirect plain HTTP requests on this port to HTTPS
-    error_page 497 =301 https://$host:$server_port$request_uri;
+    error_page 497 =301 https://\$host:\$server_port\$request_uri;
 
     location / {
         proxy_pass ${PROXY_PASS};
