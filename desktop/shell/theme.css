@@ -1,298 +1,357 @@
-/* ease-Desk Next-Gen Modern Glass Theme */
+/* ease-Desk — GNOME Adwaita-Dark Inspired Theme
+ * Color palette based on GNOME's official dark shell design language.
+ * Background: #1e1e2e | Surface: #181825 | Overlay: #313244
+ * Accent: #89b4fa | Text: #cdd6f4 | Subtext: #a6adc8
+ * Success: #a6e3a1 | Warning: #f9e2af | Error: #f38ba8
+ */
+
+/* ------------------------------------------------------------------ Base */
 window.shell {
-    background-color: #080b11;
+    background-color: #1e1e2e;
 }
 
-/* Top Panel */
+* {
+    font-family: "Cantarell", "Ubuntu", "Inter", sans-serif;
+}
+
+/* ------------------------------------------------------------------ Top Panel (GNOME Shell style) */
 .topbar {
-    background: rgba(13, 17, 23, 0.88);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-    padding: 0 12px;
+    background-color: #181825;
+    border-bottom: 1px solid rgba(205, 214, 244, 0.08);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    padding: 0 8px;
+    min-height: 40px;
 }
 
-/* Bottom Dock */
-.bottom-dock {
-    background: rgba(13, 17, 23, 0.80);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 18px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-    padding: 6px 12px;
-    margin-bottom: 12px;
-}
-
-.brand-pill {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 3px 8px;
-}
-.brand-name {
-    color: #f8fafc;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-}
-
-/* Start Button */
+/* ------------------------------------------------------------------ Activities Button (left, GNOME) */
 .start-btn {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 8px;
-    padding: 5px 14px;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 12px;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
-    transition: all 150ms ease-in-out;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    color: #cdd6f4;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background 150ms ease;
 }
 .start-btn:hover {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.55);
+    background: rgba(205, 214, 244, 0.10);
+}
+.start-btn:active {
+    background: rgba(205, 214, 244, 0.18);
 }
 
-/* Pinned Dock Icons */
+/* ------------------------------------------------------------------ Clock (centered, GNOME) */
+.clock-widget-box {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 2px 10px;
+    transition: background 150ms ease;
+}
+.clock-widget-box:hover {
+    background: rgba(205, 214, 244, 0.10);
+}
+.clock-time {
+    color: #cdd6f4;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.clock-date {
+    color: #a6adc8;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+/* ------------------------------------------------------------------ Status Area (right panel) */
+.status-pill {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    transition: background 150ms ease;
+}
+.status-pill:hover {
+    background: rgba(205, 214, 244, 0.10);
+}
+.status-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+.status-ok   { color: #a6e3a1; }
+.status-warn { color: #f9e2af; }
+.status-crit { color: #f38ba8; }
+
+/* ------------------------------------------------------------------ Exit / Power Button */
+.power-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: #a6adc8;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 150ms ease;
+}
+.power-btn:hover {
+    background: rgba(243, 139, 168, 0.15);
+    color: #f38ba8;
+}
+
+/* ------------------------------------------------------------------ Quick Action Buttons (top bar) */
+.quick-btn {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: #a6adc8;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 150ms ease;
+}
+.quick-btn:hover {
+    background: rgba(205, 214, 244, 0.10);
+    color: #cdd6f4;
+}
+
+/* ------------------------------------------------------------------ Server / Hostname Label */
+.server {
+    color: #6c7086;
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+/* ------------------------------------------------------------------ Dock (GNOME Dash-to-Dock style) */
+.bottom-dock {
+    background: rgba(24, 24, 37, 0.88);
+    border: 1px solid rgba(205, 214, 244, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(205, 214, 244, 0.05);
+    padding: 5px 10px;
+    margin-bottom: 8px;
+}
+
+/* ------------------------------------------------------------------ Dock Pinned Icons */
 .dock-item-box {
-    padding: 0 2px;
+    padding: 0 1px;
 }
 .dock-btn {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 4px 8px;
-    min-width: 38px;
-    min-height: 34px;
-    transition: all 140ms ease-in-out;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 7px;
+    min-width: 36px;
+    min-height: 36px;
+    transition: all 130ms ease;
 }
 .dock-btn:hover {
-    background-color: rgba(56, 189, 248, 0.18);
-    border-color: rgba(56, 189, 248, 0.50);
-    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+    background: rgba(137, 180, 250, 0.15);
+}
+.dock-btn:active {
+    background: rgba(137, 180, 250, 0.25);
 }
 .dock-indicator {
     background: transparent;
     min-height: 3px;
-    min-width: 14px;
+    min-width: 4px;
     border-radius: 2px;
-    margin-top: 1px;
-    margin-bottom: 2px;
+    margin-top: 2px;
+    margin-bottom: 1px;
+    transition: all 200ms ease;
 }
 .dock-indicator.active {
-    background: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
+    background: #89b4fa;
+    min-width: 12px;
 }
 
-/* Running Tasks Section */
+/* ------------------------------------------------------------------ Running Task Buttons */
 .running-task-btn {
-    background: rgba(30, 41, 59, 0.70);
-    border: 1px solid rgba(56, 189, 248, 0.40);
-    border-radius: 8px;
+    background: rgba(49, 50, 68, 0.70);
+    border: 1px solid rgba(137, 180, 250, 0.20);
+    border-radius: 6px;
     padding: 0 4px;
-    transition: all 120ms ease-in-out;
+    transition: all 120ms ease;
 }
 .running-task-btn:hover {
-    background: rgba(56, 189, 248, 0.22);
-    border-color: #38bdf8;
+    background: rgba(137, 180, 250, 0.18);
+    border-color: rgba(137, 180, 250, 0.45);
 }
 .running-task-inner-btn {
     padding: 3px 6px;
-    color: #f1f5f9;
+    color: #cdd6f4;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
 }
 .running-task-close-btn {
-    color: #94a3b8;
+    color: #6c7086;
     font-size: 10px;
     font-weight: 700;
     padding: 2px 5px;
-    border-radius: 6px;
+    border-radius: 4px;
+    transition: all 120ms ease;
 }
 .running-task-close-btn:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.25);
+    color: #f38ba8;
+    background: rgba(243, 139, 168, 0.18);
 }
 
-/* Live System Badges */
-.status-pill {
-    background: rgba(15, 23, 42, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 4px 10px;
-}
-.status-lbl {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-}
-.status-ok { color: #34d399; }
-.status-warn { color: #fbbf24; }
-.status-crit { color: #f87171; }
-
-/* Clock & Date Widget */
-.clock-widget-box {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 2px 10px;
-    transition: all 120ms ease-in-out;
-}
-.clock-widget-box:hover {
-    background: rgba(56, 189, 248, 0.15);
-    border-color: rgba(56, 189, 248, 0.40);
-}
-.clock-time {
-    color: #f8fafc;
-    font-size: 13px;
-    font-weight: 800;
-}
-.clock-date {
-    color: #94a3b8;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-/* Quick Menu & Power */
-.quick-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 8px;
-    padding: 4px 10px;
-    color: #cbd5e1;
-    font-size: 12px;
-    font-weight: 600;
-}
-.quick-btn:hover {
-    background: rgba(56, 189, 248, 0.20);
-    border-color: #38bdf8;
-    color: #f8fafc;
-}
-.power-btn {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.30);
-    border-radius: 8px;
-    padding: 4px 10px;
-    color: #fca5a5;
-    font-size: 11px;
-    font-weight: 700;
-}
-.power-btn:hover {
-    background: rgba(239, 68, 68, 0.35);
-    border-color: #ef4444;
-    color: #ffffff;
-    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
-}
-
-/* Desktop icon button - Free floating */
+/* ------------------------------------------------------------------ Desktop Icons (GNOME Files style) */
 .icon-btn {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 10px 8px;
-    min-width: 96px;
-    min-height: 96px;
-    box-shadow: none;
-    transition: all 140ms ease-in-out;
+    min-width: 88px;
+    min-height: 88px;
+    transition: all 120ms ease;
 }
 .icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    background: rgba(205, 214, 244, 0.08);
+    border-color: rgba(205, 214, 244, 0.12);
 }
-.icon-btn:active, .icon-btn.selected {
-    background-color: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 0 16px rgba(0, 0, 0, 0.35);
+.icon-btn:active,
+.icon-btn.selected {
+    background: rgba(137, 180, 250, 0.20);
+    border-color: rgba(137, 180, 250, 0.45);
 }
 .icon-name {
-    color: #f1f5f9;
+    color: #cdd6f4;
     font-weight: 600;
     font-size: 12px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.95);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85),
+                 0 0 8px rgba(0, 0, 0, 0.7);
     margin-top: 4px;
 }
 
-/* Floating Server Status Panel */
+/* ------------------------------------------------------------------ Server Info Panel */
 .vps-frame {
-    background-color: rgba(13, 17, 23, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(24, 24, 37, 0.90);
+    border: 1px solid rgba(205, 214, 244, 0.08);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
 }
-.vps-title { color: #38bdf8; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; }
-.vps-key { color: #64748b; font-size: 11px; font-weight: 700; }
-.vps-val { color: #cbd5e1; font-size: 11px; font-weight: 500; }
-.hint { color: #64748b; font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.vps-title { color: #89b4fa; font-weight: 700; font-size: 12px; letter-spacing: 0.4px; }
+.vps-key   { color: #6c7086; font-size: 11px; font-weight: 600; }
+.vps-val   { color: #cdd6f4; font-size: 11px; font-weight: 400; }
+.hint      { color: #6c7086; font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
 
-/* Calendar & Health Flyout */
+/* ------------------------------------------------------------------ Calendar / Clock Flyout */
 .cal-window {
-    background-color: #0d1117;
-    border: 1px solid rgba(56, 189, 248, 0.40);
-    border-radius: 14px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.80);
+    background-color: #1e1e2e;
+    border: 1px solid rgba(205, 214, 244, 0.10);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.70);
 }
-.cal-title {
-    color: #38bdf8;
-    font-weight: 800;
-    font-size: 14px;
-}
-.cal-stat-key { color: #64748b; font-size: 11px; font-weight: 600; }
-.cal-stat-val { color: #e2e8f0; font-size: 11px; font-weight: 700; }
+.cal-title    { color: #89b4fa; font-weight: 700; font-size: 13px; }
+.cal-stat-key { color: #6c7086; font-size: 11px; font-weight: 600; }
+.cal-stat-val { color: #cdd6f4; font-size: 11px; font-weight: 500; }
 
-/* Wallpaper Dialog Styles */
+/* ------------------------------------------------------------------ Wallpaper Dialog */
 .wp-section-lbl {
-    color: #38bdf8;
-    font-weight: 800;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    color: #89b4fa;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
 }
 .wp-card {
-    background: rgba(15, 23, 42, 0.65);
-    border: 2px solid rgba(255, 255, 255, 0.10);
+    background: rgba(49, 50, 68, 0.55);
+    border: 2px solid rgba(205, 214, 244, 0.08);
     border-radius: 10px;
     padding: 6px;
-    transition: all 120ms ease-in-out;
+    transition: all 120ms ease;
 }
 .wp-card:hover {
-    background-color: rgba(30, 41, 59, 0.85);
-    border-color: rgba(56, 189, 248, 0.50);
+    background: rgba(49, 50, 68, 0.85);
+    border-color: rgba(137, 180, 250, 0.40);
 }
 .wp-card.active {
-    background-color: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+    background: rgba(137, 180, 250, 0.18);
+    border-color: #89b4fa;
+    box-shadow: 0 0 12px rgba(137, 180, 250, 0.25);
 }
 .wp-card-name {
-    color: #e2e8f0;
+    color: #cdd6f4;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     margin-top: 4px;
 }
 .color-btn {
     border-radius: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(205, 214, 244, 0.15);
     min-width: 48px;
-    min-height: 38px;
-    padding: 2px;
+    min-height: 36px;
+    transition: border-color 120ms ease;
 }
 .color-btn:hover {
-    border-color: #38bdf8;
+    border-color: #89b4fa;
 }
 .color-btn.active {
-    border-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    border-color: #cdd6f4;
+    box-shadow: 0 0 8px rgba(205, 214, 244, 0.5);
 }
 .wallpaper-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(49, 50, 68, 0.65);
+    border: 1px solid rgba(205, 214, 244, 0.10);
     border-radius: 8px;
     padding: 8px 14px;
-    color: #f1f5f9;
-    font-weight: 600;
+    color: #cdd6f4;
+    font-weight: 500;
+    transition: all 120ms ease;
 }
 .wallpaper-btn:hover {
-    background-color: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    color: #ffffff;
+    background: rgba(137, 180, 250, 0.20);
+    border-color: #89b4fa;
+    color: #cdd6f4;
 }
 
-.server { color: #64748b; font-size: 11px; font-weight: 700; margin-right: 8px; }
+/* ------------------------------------------------------------------ Activities App Grid Overlay */
+.activities-overlay {
+    background: rgba(30, 30, 46, 0.95);
+}
+.activities-search-entry {
+    background: rgba(49, 50, 68, 0.85);
+    border: 1px solid rgba(137, 180, 250, 0.25);
+    border-radius: 10px;
+    color: #cdd6f4;
+    font-size: 15px;
+    padding: 10px 18px;
+    min-width: 460px;
+}
+.activities-search-entry:focus {
+    border-color: #89b4fa;
+    box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.18);
+}
+.activities-app-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 16px 12px;
+    min-width: 108px;
+    transition: all 130ms ease;
+}
+.activities-app-btn:hover {
+    background: rgba(137, 180, 250, 0.12);
+    border-color: rgba(137, 180, 250, 0.25);
+}
+.activities-app-btn:active {
+    background: rgba(137, 180, 250, 0.22);
+}
+.activities-app-name {
+    color: #cdd6f4;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 6px;
+}
+.activities-section-lbl {
+    color: #6c7086;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}

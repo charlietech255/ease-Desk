@@ -8,14 +8,14 @@
  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
  <style>
   :root {
-   --bg-color: #050505;
-   --card-bg: rgba(255, 255, 255, 0.03);
-   --card-border: rgba(255, 255, 255, 0.08);
-   --primary: #38bdf8;
-   --primary-glow: rgba(56, 189, 248, 0.4);
-   --text-main: #f8fafc;
-   --text-muted: #94a3b8;
-   --error: #ef4444;
+   --bg-color: #1e1e2e;
+   --card-bg: rgba(24, 24, 37, 0.85);
+   --card-border: rgba(205, 214, 244, 0.08);
+   --primary: #89b4fa;
+   --primary-glow: rgba(137, 180, 250, 0.35);
+   --text-main: #cdd6f4;
+   --text-muted: #a6adc8;
+   --error: #f38ba8;
   }
 
   * {
@@ -36,16 +36,16 @@
    justify-content: center;
   }
 
-  /* Abstract Premium Background Elements */
+  /* Background subtle mesh */
   .bg-mesh {
    position: absolute;
    top: 0; left: 0; right: 0; bottom: 0;
-   background: radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.12), transparent 40%),
-      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.12), transparent 40%),
-      radial-gradient(circle at 50% 80%, rgba(20, 184, 166, 0.08), transparent 50%);
+   background: radial-gradient(circle at 15% 50%, rgba(137, 180, 250, 0.08), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(166, 227, 161, 0.06), transparent 40%),
+      radial-gradient(circle at 50% 80%, rgba(116, 199, 236, 0.06), transparent 50%);
    z-index: 1;
    filter: blur(40px);
-   animation: breathe 15s ease-in-out infinite alternate;
+   animation: breathe 18s ease-in-out infinite alternate;
   }
 
   @keyframes breathe {
@@ -62,14 +62,14 @@
   }
 
   .orb-1 {
-   width: 350px; height: 350px;
-   background: rgba(56, 189, 248, 0.25);
+   width: 300px; height: 300px;
+   background: rgba(137, 180, 250, 0.18);
    top: 15%; left: 25%;
   }
 
   .orb-2 {
-   width: 250px; height: 250px;
-   background: rgba(139, 92, 246, 0.25);
+   width: 220px; height: 220px;
+   background: rgba(166, 227, 161, 0.15);
    bottom: 20%; right: 25%;
   }
 
@@ -112,7 +112,7 @@
   }
 
   .logo span {
-   background: linear-gradient(135deg, #38bdf8, #8b5cf6);
+   background: linear-gradient(135deg, #89b4fa, #74c7ec);
    -webkit-background-clip: text;
    -webkit-text-fill-color: transparent;
   }
@@ -167,7 +167,7 @@
    left: 12px;
    font-size: 12px;
    padding: 0 6px;
-   background: #0d0d12; /* Fallback for label background */
+   background: #181825;
    border-radius: 4px;
    color: var(--primary);
   }
@@ -176,14 +176,14 @@
   .btn-login {
    position: relative;
    width: 100%;
-   padding: 16px;
+   padding: 15px;
    margin-top: 10px;
-   background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+   background: linear-gradient(135deg, #89b4fa 0%, #74c7ec 100%);
    border: none;
    border-radius: 14px;
-   color: #ffffff;
-   font-size: 16px;
-   font-weight: 600;
+   color: #1e1e2e;
+   font-size: 15px;
+   font-weight: 700;
    font-family: 'Outfit', sans-serif;
    cursor: pointer;
    overflow: hidden;
