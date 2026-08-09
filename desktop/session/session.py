@@ -493,6 +493,17 @@ class SessionManager:
         print("\nStopping ease-Desk...")
         print("✓ Closing applications")
 
+        # Explicitly kill KasmVNC to prevent ghost sessions
+        if shutil.which("kasmvncserver"):
+            subprocess.run(
+                ["kasmvncserver", "-kill", self.display_str],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+        # Clean up any rogue processes
+        subprocess.run(["pkill", "-f", "openbox|picom|Xvfb|websockify|novnc_proxy|Xvnc"], stderr=subprocess.DEVNULL)
+
         # Kill spawned processes in reverse order
         for proc in reversed(self.spawned_processes):
             try:
