@@ -261,9 +261,10 @@ class SessionManager:
             self.kasmvnc_port = 8443 + display_num
 
             # Write minimal kasmvnc.yaml — only disable SSL, let KasmVNC use its natural port
+            # Bind to 0.0.0.0 so external access works directly on the port without needing Nginx
             kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
             with open(kasm_yaml, "w") as f:
-                f.write("network:\n  protocol: http\n  ssl:\n    require_ssl: false\n")
+                f.write("network:\n  protocol: http\n  interface: 0.0.0.0\n  ssl:\n    require_ssl: false\n")
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             xstartup_content = (
@@ -305,6 +306,12 @@ class SessionManager:
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
+            
+            # Touch .de-was-selected so KasmVNC's perl script doesn't try to prompt for a DE
+            # (which causes it to crash since stdin is redirected to DEVNULL)
+            de_selected = os.path.expanduser("~/.vnc/.de-was-selected")
+            with open(de_selected, "a"):
+                pass
             
             import sys
             # -noxstartup: skip DE selection dialog and xstartup execution entirely.
