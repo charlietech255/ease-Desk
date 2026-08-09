@@ -14,31 +14,26 @@ window.shell {
     font-family: "Cantarell", "Ubuntu", "Inter", sans-serif;
 }
 
-/* ------------------------------------------------------------------ Top Panel (GNOME Shell style) */
-.topbar {
-    background-color: #181825;
-    border-bottom: 1px solid rgba(205, 214, 244, 0.08);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-    padding: 0 8px;
-    min-height: 40px;
+/* ------------------------------------------------------------------ Unified Bottom Panel (Deepin style) */
+.bottom-panel {
+    background: rgba(20, 20, 25, 0.88);
+    border-top: 1px solid rgba(205, 214, 244, 0.05);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45);
 }
 
-/* ------------------------------------------------------------------ Activities Button (left, GNOME) */
+/* ------------------------------------------------------------------ Start Button */
 .start-btn {
     background: transparent;
     border: none;
-    border-radius: 6px;
-    padding: 4px 12px;
-    color: #cdd6f4;
-    font-weight: 600;
-    font-size: 13px;
+    border-radius: 8px;
+    padding: 6px;
     transition: background 150ms ease;
 }
 .start-btn:hover {
-    background: rgba(205, 214, 244, 0.10);
+    background: rgba(137, 180, 250, 0.15);
 }
 .start-btn:active {
-    background: rgba(205, 214, 244, 0.18);
+    background: rgba(137, 180, 250, 0.25);
 }
 
 /* ------------------------------------------------------------------ Clock (centered, GNOME) */
@@ -124,16 +119,7 @@ window.shell {
     margin-right: 8px;
 }
 
-/* ------------------------------------------------------------------ Dock (GNOME Dash-to-Dock style) */
-.bottom-dock {
-    background: rgba(24, 24, 37, 0.88);
-    border: 1px solid rgba(205, 214, 244, 0.08);
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55),
-                inset 0 1px 0 rgba(205, 214, 244, 0.05);
-    padding: 5px 10px;
-    margin-bottom: 8px;
-}
+
 
 /* ------------------------------------------------------------------ Dock Pinned Icons */
 .dock-item-box {
@@ -142,10 +128,10 @@ window.shell {
 .dock-btn {
     background: transparent;
     border: none;
-    border-radius: 10px;
-    padding: 6px 7px;
-    min-width: 36px;
-    min-height: 36px;
+    border-radius: 8px;
+    padding: 6px 6px;
+    min-width: 40px;
+    min-height: 40px;
     transition: all 130ms ease;
 }
 .dock-btn:hover {
@@ -308,48 +294,4 @@ window.shell {
     color: #cdd6f4;
 }
 
-/* ------------------------------------------------------------------ Activities App Grid Overlay */
-.activities-overlay {
-    background: rgba(30, 30, 46, 0.95);
-}
-.activities-search-entry {
-    background: rgba(49, 50, 68, 0.85);
-    border: 1px solid rgba(137, 180, 250, 0.25);
-    border-radius: 10px;
-    color: #cdd6f4;
-    font-size: 15px;
-    padding: 10px 18px;
-    min-width: 460px;
-}
-.activities-search-entry:focus {
-    border-color: #89b4fa;
-    box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.18);
-}
-.activities-app-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 12px;
-    padding: 16px 12px;
-    min-width: 108px;
-    transition: all 130ms ease;
-}
-.activities-app-btn:hover {
-    background: rgba(137, 180, 250, 0.12);
-    border-color: rgba(137, 180, 250, 0.25);
-}
-.activities-app-btn:active {
-    background: rgba(137, 180, 250, 0.22);
-}
-.activities-app-name {
-    color: #cdd6f4;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 6px;
-}
-.activities-section-lbl {
-    color: #6c7086;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
-}
+
