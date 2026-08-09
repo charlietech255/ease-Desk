@@ -506,7 +506,7 @@ if [ "$(id -u)" -eq 0 ]; then
     BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
     if command -v kasmvncserver >/dev/null 2>&1; then
-        WEB_URL="http://${BASE_URL}:8444/"
+        WEB_URL="http://${BASE_URL}/"
     else
         WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
     fi
