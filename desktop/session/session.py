@@ -245,7 +245,7 @@ class SessionManager:
                 f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
             os.chmod(xstartup_path, 0o755)
             
-            cmd = ["/usr/bin/kasmvncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0], "-select-de", "openbox"]
+            cmd = ["/usr/bin/kasmvncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
