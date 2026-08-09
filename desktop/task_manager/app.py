@@ -13,12 +13,12 @@ from desktop.task_manager.task_manager import TaskManagerWindow
 
 
 def main(argv: list[str] | None = None) -> int:
-    win = TaskManagerWindow()
-    win.connect("destroy", Gtk.main_quit)
-    win.show_all()
-    Gtk.main()
-    return 0
+ win = TaskManagerWindow()
+ win.connect("destroy", Gtk.main_quit)
+ win.show_all()
+ Gtk.main()
+ return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+ sys.exit(main())

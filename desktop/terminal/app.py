@@ -14,15 +14,15 @@ from desktop.terminal.terminal import TerminalWindow
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = argv if argv is not None else sys.argv[1:]
-    initial_dir = args[0] if args else os.path.expanduser("~")
+ args = argv if argv is not None else sys.argv[1:]
+ initial_dir = args[0] if args else os.path.expanduser("~")
 
-    win = TerminalWindow(initial_dir=initial_dir)
-    win.connect("destroy", Gtk.main_quit)
-    win.show_all()
-    Gtk.main()
-    return 0
+ win = TerminalWindow(initial_dir=initial_dir)
+ win.connect("destroy", Gtk.main_quit)
+ win.show_all()
+ Gtk.main()
+ return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+ sys.exit(main())
