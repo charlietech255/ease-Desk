@@ -140,6 +140,7 @@ if command -v apt-get >/dev/null 2>&1; then
         gir1.2-gdkpixbuf-2.0 \
         gir1.2-vte-2.91 \
         openbox \
+        picom \
         xvfb \
         x11vnc \
         novnc \

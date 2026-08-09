@@ -27,6 +27,7 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango  # noqa: E402
 
+from desktop.shell.game_changer import DashboardPanel, SpotlightWindow
 from shared.utilities import animate, sysinfo, wallpaper  # noqa: E402
 from shared.utilities.icons import get_icon_pixbuf  # noqa: E402
 from shared.utilities.wallpaper import (  # noqa: E402
@@ -170,6 +171,7 @@ class DesktopShell:
         self._cached_bg_rgb: tuple[float, float, float] = (0.031, 0.043, 0.067)
         self._config_mtime: float = 0.0
         self._cal_window: Gtk.Window | None = None
+        self.spotlight: SpotlightWindow | None = None
 
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.set_app_paintable(True)
@@ -454,7 +456,14 @@ class DesktopShell:
         info_container.pack_end(self.info_panel, False, False, 0)
         self.overlay.add_overlay(info_container)
 
+        # Slide-out Dashboard
+        self.dashboard = DashboardPanel(self)
+        self.overlay.add_overlay(self.dashboard)
+
         self.window.add(self.overlay)
+        
+        # Spotlight Window
+        self.spotlight = SpotlightWindow(self)
         
         # Bottom hint (hidden or moved; let's omit for clean look or place in info panel, but omitted is fine)
 
@@ -478,6 +487,12 @@ class DesktopShell:
         brand_box.pack_start(brand_lbl, False, False, 2)
         bar.pack_start(brand_box, False, False, 2)
 
+        # Spotlight quick launcher button
+        spotlight_btn = Gtk.Button.new_with_label("🔍 Spotlight")
+        spotlight_btn.get_style_context().add_class("quick-btn")
+        spotlight_btn.connect("clicked", lambda *_: self.spotlight.toggle() if self.spotlight else None)
+        bar.pack_start(spotlight_btn, False, False, 10)
+
         # (Pinned and Running apps moved to bottom dock)
         # 4. Right Controls: Live Stats, Clock & Quick Power
         # Server Label
@@ -495,7 +510,7 @@ class DesktopShell:
         # Clock & Date Widget
         clock_event = Gtk.EventBox()
         clock_event.set_visible_window(False)
-        clock_event.connect("button-press-event", lambda *_: self._toggle_calendar())
+        clock_event.connect("button-press-event", lambda *_: self.dashboard.toggle())
         clock_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         clock_box.get_style_context().add_class("clock-widget-box")
         clock_box.set_valign(Gtk.Align.CENTER)
