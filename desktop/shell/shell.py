@@ -179,6 +179,10 @@ class DesktopShell:
         self.window.connect("delete-event", self._on_delete_event)
         self.window.connect("key-press-event", self._on_key_press)
 
+        screen = Gdk.Screen.get_default()
+        if screen is not None:
+            screen.connect("size-changed", self._on_screen_size_changed)
+
         self._load_config()
         self._load_wallpaper()
         self._load_css()
@@ -190,6 +194,13 @@ class DesktopShell:
         GLib.timeout_add_seconds(1, self._tick_clock_and_stats)
         GLib.timeout_add_seconds(5, self._refresh_info)
         animate.fade_in(self.window, duration_ms=300)
+
+    def _on_screen_size_changed(self, screen: Gdk.Screen) -> None:
+        w = screen.get_width()
+        h = screen.get_height()
+        self.window.resize(w, h)
+        # In case the resize doesn't trigger a draw correctly due to lack of WM
+        self.window.queue_draw()
 
     # --------------------------------------------------------------- WALLPAPER
     def _load_wallpaper(self) -> None:
