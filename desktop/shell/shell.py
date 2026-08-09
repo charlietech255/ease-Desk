@@ -151,6 +151,10 @@ def _get_browser_command() -> tuple[list[str], dict[str, str]] | None:
 
 class DesktopShell:
  def __init__(self) -> None:
+  settings = Gtk.Settings.get_default()
+  if settings:
+      settings.set_property("gtk-application-prefer-dark-theme", True)
+
   self.children: list[int] = []
   self.tracked_processes: dict[int, dict] = {}
   self.desktop_items: list[dict] = []

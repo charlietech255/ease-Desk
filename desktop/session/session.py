@@ -444,6 +444,25 @@ class SessionManager:
         """Launch lightweight Openbox window manager on current DISPLAY."""
         if not shutil.which("openbox"):
             return
+            
+        # Deploy ease-Desk custom Openbox theme and config
+        try:
+            panel_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            theme_src = os.path.join(panel_dir, "shared", "openbox_theme")
+            if os.path.exists(theme_src):
+                theme_dest = os.path.expanduser("~/.themes/ease-Desk")
+                ob_dest = os.path.expanduser("~/.config/openbox")
+                
+                os.makedirs(os.path.join(theme_dest, "openbox-3"), exist_ok=True)
+                os.makedirs(ob_dest, exist_ok=True)
+                
+                shutil.copy2(os.path.join(theme_src, "ease-Desk", "openbox-3", "themerc"), 
+                            os.path.join(theme_dest, "openbox-3", "themerc"))
+                shutil.copy2(os.path.join(theme_src, "rc.xml"), 
+                            os.path.join(ob_dest, "rc.xml"))
+        except Exception as e:
+            print(f"Warning: Failed to deploy Openbox theme: {e}")
+
         wm = subprocess.Popen(
             ["openbox"],
             env=os.environ.copy(),

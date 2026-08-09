@@ -13,7 +13,11 @@ from desktop.task_manager.task_manager import TaskManagerWindow
 
 
 def main(argv: list[str] | None = None) -> int:
- win = TaskManagerWindow()
+    settings = Gtk.Settings.get_default()
+    if settings:
+        settings.set_property("gtk-application-prefer-dark-theme", True)
+        
+    win = TaskManagerWindow()
  win.connect("destroy", Gtk.main_quit)
  win.show_all()
  Gtk.main()
