@@ -235,17 +235,17 @@ class SessionManager:
             vnc_dir = os.path.expanduser("~/.vnc")
             os.makedirs(vnc_dir, exist_ok=True)
             
-            # Lock the port to 8444 so Nginx can proxy it reliably
+            # Lock the port to 8444 and disable TLS so Nginx can proxy it reliably
             kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
             with open(kasm_yaml, "w") as f:
-                f.write("network:\n  websocket_port: 8444\n  ssl:\n    require_ssl: false\n")
+                f.write("network:\n  protocol: http\n  websocket_port: 8444\n")
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             with open(xstartup_path, "w") as f:
                 f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
             os.chmod(xstartup_path, 0o755)
             
-            cmd = ["vncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
+            cmd = ["/usr/bin/kasmvncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0], "-select-de", "openbox"]
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
