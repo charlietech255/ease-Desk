@@ -11,6 +11,13 @@ import re
 import shutil
 import socket
 
+try:
+    import ease_desk_core
+    RUST_CORE_AVAILABLE = True
+except ImportError:
+    RUST_CORE_AVAILABLE = False
+
+
 
 def hostname() -> str:
     return socket.gethostname() or "unknown"
@@ -29,6 +36,11 @@ def os_name() -> str:
 
 
 def cpu_count() -> int:
+    if RUST_CORE_AVAILABLE:
+        try:
+            return ease_desk_core.num_cpus()
+        except Exception:
+            pass
     if hasattr(os, "cpu_count") and os.cpu_count():
         return os.cpu_count()
     try:
@@ -55,6 +67,12 @@ _last_cpu_times: tuple[int, int] | None = None
 
 def cpu_percent() -> float:
     """Return CPU usage percentage across all cores (0.0 to 100.0)."""
+    if RUST_CORE_AVAILABLE:
+        try:
+            return float(ease_desk_core.cpu_percent())
+        except Exception:
+            pass
+            
     global _last_cpu_times
     try:
         with open("/proc/stat", "r", encoding="utf-8") as f:
@@ -89,6 +107,13 @@ def cpu_percent() -> float:
 
 def memory() -> tuple[int, int]:
     """Return (used_bytes, total_bytes) for physical memory."""
+    if RUST_CORE_AVAILABLE:
+        try:
+            used, total = ease_desk_core.memory()
+            return (used, total)
+        except Exception:
+            pass
+
     total = _kb_from_proc("MemTotal")
     available = _kb_from_proc("MemAvailable")
     if not total:

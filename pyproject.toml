@@ -1,0 +1,9 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "ease_desk_core"
+version = "0.1.0"
+requires-python = ">=3.8"
+description = "Core rust extensions for ease-desk"

@@ -206,6 +206,18 @@ elif [ ! -f "${INSTALL_DIR}/desktop/session/session.py" ]; then
     git clone https://github.com/charlietech255/ease-Desk.git "${INSTALL_DIR}"
 fi
 
+# ------------------------------------------------------------------------------
+# 5.5 Optional Rust Native Core Compilation
+# ------------------------------------------------------------------------------
+if command -v cargo >/dev/null 2>&1 && command -v pip3 >/dev/null 2>&1; then
+    echo -e "${CYAN}🦀 Compiling Native Rust Core (ease_desk_core)...${NC}"
+    (
+        cd "${INSTALL_DIR}"
+        pip3 install maturin --break-system-packages 2>/dev/null || pip3 install maturin
+        maturin develop --release || echo -e "${YELLOW}⚠️ Failed to compile Rust extension, falling back to Python implementations.${NC}"
+    )
+fi
+
 chmod +x "${INSTALL_DIR}/scripts/desktop" 2>/dev/null || true
 chmod +x "${INSTALL_DIR}/scripts/"*.sh 2>/dev/null || true
 chmod -R a+rX "${INSTALL_DIR}"
