@@ -63,7 +63,6 @@ button.destructive-action:hover {
     font-weight: 600;
     font-size: 12px;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
 }
 .tm-card-val {
     color: #cdd6f4;
@@ -132,7 +131,6 @@ treeview header button {
     font-weight: 600;
     font-size: 11px;
     letter-spacing: 0.3px;
-    text-transform: uppercase;
     border: none;
     border-bottom: 1px solid rgba(205, 214, 244, 0.10);
     border-radius: 0;

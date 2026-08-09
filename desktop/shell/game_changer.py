@@ -135,7 +135,6 @@ class DashboardPanel(Gtk.Revealer):
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 0.8px;
-            text-transform: uppercase;
             margin-top: 16px;
             margin-bottom: 6px;
         }
