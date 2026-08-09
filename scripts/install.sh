@@ -290,7 +290,7 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
     [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
 
     if command -v kasmvncserver >/dev/null 2>&1; then
-        PROXY_PASS="http://127.0.0.1:8444"
+        PROXY_PASS="http://127.0.0.1:8445"
     else
         PROXY_PASS="http://127.0.0.1:6080"
     fi
@@ -302,8 +302,8 @@ map \$http_upgrade \$connection_upgrade {
 }
 
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    listen 8444 default_server;
+    listen [::]:8444 default_server;
     server_name _ ${PUBLIC_IP} localhost;
 
     location / {
@@ -321,6 +321,11 @@ server {
         proxy_intercept_errors on;
         error_page 401 /login.html;
         proxy_hide_header WWW-Authenticate;
+    }
+
+    location = /logout {
+        root /opt/ease-desk/shared/web;
+        rewrite ^/logout$ /logout.html break;
     }
 
     location = /login.html {
@@ -506,7 +511,7 @@ if [ "$(id -u)" -eq 0 ]; then
     BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
     if command -v kasmvncserver >/dev/null 2>&1; then
-        WEB_URL="http://${BASE_URL}/"
+        WEB_URL="http://${BASE_URL}:8444/"
     else
         WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
     fi

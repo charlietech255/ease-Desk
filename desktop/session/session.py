@@ -261,10 +261,10 @@ class SessionManager:
             self.kasmvnc_port = 8443 + display_num
 
             # Write minimal kasmvnc.yaml — only disable SSL, let KasmVNC use its natural port
-            # Bind to 0.0.0.0 so external access works directly on the port without needing Nginx
+            # Bind to 127.0.0.1 so external access MUST go through Nginx
             kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
             with open(kasm_yaml, "w") as f:
-                f.write("network:\n  protocol: http\n  interface: 0.0.0.0\n  ssl:\n    require_ssl: false\n")
+                f.write("network:\n  protocol: http\n  interface: 127.0.0.1\n  ssl:\n    require_ssl: false\n")
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             xstartup_content = (

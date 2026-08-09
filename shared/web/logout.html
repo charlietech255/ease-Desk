@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ease-Desk | Logout</title>
+</head>
+<body>
+    <script>
+        // Send a fake basic auth request to clear the browser's credentials cache
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/", true, "logout", "logout" + Math.random());
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                // Redirect back to login page
+                window.location.href = "/";
+            }
+        };
+        xhr.onerror = function() {
+            window.location.href = "/";
+        };
+        xhr.send();
+    </script>
+</body>
+</html>
