@@ -1468,33 +1468,6 @@ class DesktopShell:
         self.clock_time_label.set_text(time.strftime("%H:%M"))
         self.clock_date_label.set_text(time.strftime("%a, %b %d"))
 
-        # Live CPU & RAM
-        cpu = sysinfo.cpu_percent()
-        ram = sysinfo.memory_percent()
-
-        self.cpu_lbl.set_text(f"⚡ CPU {cpu:.0f}%")
-        self.ram_lbl.set_text(f"🧠 RAM {ram:.0f}%")
-
-        self.cpu_lbl.get_style_context().remove_class("status-ok")
-        self.cpu_lbl.get_style_context().remove_class("status-warn")
-        self.cpu_lbl.get_style_context().remove_class("status-crit")
-        if cpu < 60:
-            self.cpu_lbl.get_style_context().add_class("status-ok")
-        elif cpu < 85:
-            self.cpu_lbl.get_style_context().add_class("status-warn")
-        else:
-            self.cpu_lbl.get_style_context().add_class("status-crit")
-
-        self.ram_lbl.get_style_context().remove_class("status-ok")
-        self.ram_lbl.get_style_context().remove_class("status-warn")
-        self.ram_lbl.get_style_context().remove_class("status-crit")
-        if ram < 70:
-            self.ram_lbl.get_style_context().add_class("status-ok")
-        elif ram < 90:
-            self.ram_lbl.get_style_context().add_class("status-warn")
-        else:
-            self.ram_lbl.get_style_context().add_class("status-crit")
-
         self._poll_processes()
         return True
 

@@ -20,7 +20,7 @@ class SpotlightWindow(Gtk.Window):
         
         screen = self.get_screen()
         visual = screen.get_rgba_visual()
-        if visual and self.get_is_composited():
+        if visual and screen.is_composited():
             self.set_visual(visual)
 
         self.get_style_context().add_class("spotlight-window")
