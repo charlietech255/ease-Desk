@@ -64,6 +64,12 @@ class TaskManagerWindow(Gtk.Window):
 
     def __init__(self):
         super().__init__(title="Task Manager — ease-Desk")
+        
+        geometry = Gdk.Geometry()
+        geometry.min_width = 400
+        geometry.min_height = 300
+        self.set_geometry_hints(None, geometry, Gdk.WindowHints.MIN_SIZE)
+        
         self.set_default_size(820, 560)
         self.set_position(Gtk.WindowPosition.CENTER)
 

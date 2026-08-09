@@ -486,6 +486,12 @@ class TerminalWindow(Gtk.Window):
 
     def __init__(self, initial_dir: Optional[str] = None):
         super().__init__(title="Terminal — ease-Desk")
+        
+        geometry = Gdk.Geometry()
+        geometry.min_width = 400
+        geometry.min_height = 300
+        self.set_geometry_hints(None, geometry, Gdk.WindowHints.MIN_SIZE)
+        
         self.set_default_size(780, 480)
         self.set_position(Gtk.WindowPosition.CENTER)
 

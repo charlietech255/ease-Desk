@@ -43,6 +43,13 @@ class FileManagerWindow(Gtk.Window):
     def __init__(self, start_path: str = THIS_PC_URI):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.set_title("This PC — ease-Desk")
+        
+        # Force X11 window manager to allow resizing to a small size
+        geometry = Gdk.Geometry()
+        geometry.min_width = 400
+        geometry.min_height = 300
+        self.set_geometry_hints(None, geometry, Gdk.WindowHints.MIN_SIZE)
+        
         self.set_default_size(960, 620)
         self.set_position(Gtk.WindowPosition.CENTER)
 
@@ -180,7 +187,7 @@ class FileManagerWindow(Gtk.Window):
     # ---------------------------------------------------- THIS PC VIEW
     def _build_thispc_view(self) -> Gtk.Widget:
         scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_min_content_height(150)
         scrolled.set_min_content_width(200)
 
