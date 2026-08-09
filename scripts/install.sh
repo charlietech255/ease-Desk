@@ -154,6 +154,7 @@ if command -v apt-get >/dev/null 2>&1; then
         fonts-dejavu-core \
         fonts-noto-color-emoji \
         adwaita-icon-theme \
+        papirus-icon-theme \
         hicolor-icon-theme \
         >/dev/null 2>&1 || {
             echo -e "${YELLOW}Retrying essential apt packages...${NC}"
