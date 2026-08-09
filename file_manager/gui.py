@@ -35,6 +35,7 @@ THIS_PC_URI = "thispc://"
 def _mk(tooltip: str) -> Gtk.Button:
     btn = Gtk.Button.new_with_label(tooltip)
     btn.set_tooltip_text(tooltip)
+    btn.get_style_context().add_class("tool-btn")
     return btn
 
 
@@ -107,6 +108,7 @@ class FileManagerWindow(Gtk.Window):
     def _build_toolbar(self) -> Gtk.Widget:
         bar = Gtk.Toolbar()
         bar.set_style(Gtk.ToolbarStyle.TEXT)
+        bar.get_style_context().add_class("toolbar")
 
         self.back_btn = _mk("← Back")
         self.forward_btn = _mk("→ Forward")

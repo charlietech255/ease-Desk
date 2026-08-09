@@ -53,6 +53,42 @@ def _load_css() -> None:
     entry:focus {
         border-color: #7aa2f7;
     }
+    headerbar {
+        background-color: #181825;
+        border-bottom: 1px solid rgba(205, 214, 244, 0.08);
+        box-shadow: none;
+    }
+    headerbar label.title {
+        font-weight: 700;
+        font-size: 14px;
+        color: #cdd6f4;
+    }
+    headerbar label.subtitle {
+        font-size: 11px;
+        color: #a6adc8;
+    }
+    
+    .toolbar {
+        background-color: #1e1e2e;
+        border-bottom: 1px solid rgba(205, 214, 244, 0.05);
+        padding: 8px 12px;
+    }
+    .tool-btn {
+        background-color: rgba(49, 50, 68, 0.6);
+        color: #cdd6f4;
+        border: 1px solid rgba(205, 214, 244, 0.08);
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 6px 12px;
+        transition: all 150ms ease;
+    }
+    .tool-btn:hover {
+        background-color: rgba(49, 50, 68, 0.95);
+        border-color: rgba(137, 180, 250, 0.35);
+    }
+    .tool-btn:active {
+        background-color: rgba(137, 180, 250, 0.2);
+    }
     .action-bar {
         background-color: #121620;
         border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -88,90 +124,94 @@ def _load_css() -> None:
 
     /* --- THIS PC / PARTITION VIEW STYLING --- */
     .thispc-container {
-        background-color: #131722;
-        padding: 16px 20px;
+        background-color: #11111b; /* Deepin Dark Background */
+        padding: 20px 24px;
     }
     .thispc-banner {
-        background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 16px;
+        background-color: rgba(49, 50, 68, 0.4);
+        border: 1px solid rgba(205, 214, 244, 0.08);
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
     .thispc-sec-title {
-        color: #94a3b8;
+        color: #a6adc8;
         font-weight: 700;
-        font-size: 13px;
-        margin-top: 12px;
-        margin-bottom: 8px;
+        font-size: 14px;
+        margin-top: 16px;
+        margin-bottom: 12px;
     }
 
     /* Drive / Partition Card */
     .drive-card {
-        background-color: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 10px 14px;
-        min-width: 250px;
-        min-height: 76px;
-        transition: all 150ms ease-in-out;
+        background-color: rgba(49, 50, 68, 0.55);
+        border: 1px solid rgba(205, 214, 244, 0.08);
+        border-radius: 16px;
+        padding: 14px 18px;
+        min-width: 260px;
+        min-height: 84px;
+        transition: all 180ms ease-in-out;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
     }
     .drive-card:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-        border-color: rgba(122, 162, 247, 0.45);
+        background-color: rgba(49, 50, 68, 0.85);
+        border-color: rgba(137, 180, 250, 0.45);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     }
     .drive-card:active, .drive-card.selected {
-        background-color: rgba(122, 162, 247, 0.18);
-        border-color: #7aa2f7;
+        background-color: rgba(137, 180, 250, 0.25);
+        border-color: #89b4fa;
     }
     .drive-title {
-        color: #f1f5f9;
+        color: #cdd6f4;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 14px;
     }
     .drive-sub {
-        color: #94a3b8;
-        font-size: 11px;
+        color: #a6adc8;
+        font-size: 12px;
     }
     .drive-meta {
-        color: #64748b;
+        color: #6c7086;
         font-size: 11px;
     }
 
     /* Progress bar for storage partitions */
     progressbar {
-        border-radius: 4px;
-        background-color: rgba(255, 255, 255, 0.08);
-        min-height: 8px;
-        border: none;
+        border-radius: 6px;
+        background-color: rgba(24, 24, 37, 0.8);
+        min-height: 10px;
+        border: 1px solid rgba(205, 214, 244, 0.05);
     }
     progressbar progress {
-        background-image: linear-gradient(to right, #38bdf8, #2563eb);
-        border-radius: 4px;
-        min-height: 8px;
+        background-image: linear-gradient(to right, #89b4fa, #74c7ec);
+        border-radius: 6px;
+        min-height: 10px;
     }
     .drive-warn progress {
-        background-image: linear-gradient(to right, #fbbf24, #f59e0b);
+        background-image: linear-gradient(to right, #f9e2af, #f38ba8);
     }
     .drive-crit progress {
-        background-image: linear-gradient(to right, #f87171, #ef4444);
+        background-image: linear-gradient(to right, #f38ba8, #eba0ac);
     }
 
     /* Quick folder card */
     .folder-card {
-        background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 8px;
-        padding: 8px 12px;
-        min-width: 150px;
-        transition: all 120ms ease-in-out;
+        background-color: rgba(49, 50, 68, 0.4);
+        border: 1px solid rgba(205, 214, 244, 0.05);
+        border-radius: 12px;
+        padding: 10px 16px;
+        min-width: 160px;
+        transition: all 150ms ease-in-out;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .folder-card:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-        border-color: rgba(122, 162, 247, 0.35);
+        background-color: rgba(49, 50, 68, 0.8);
+        border-color: rgba(137, 180, 250, 0.35);
     }
     .folder-card:active {
-        background-color: rgba(122, 162, 247, 0.2);
+        background-color: rgba(137, 180, 250, 0.2);
     }
     """
     provider = Gtk.CssProvider()
@@ -187,6 +227,12 @@ def _load_css() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    
+    # Enforce global dark mode for file manager to fix white title bar
+    settings = Gtk.Settings.get_default()
+    if settings:
+        settings.set_property("gtk-application-prefer-dark-theme", True)
+        
     _load_css()
 
     start = "thispc://"
