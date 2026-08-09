@@ -95,6 +95,9 @@ fi
 # 3. Password Authentication Setup
 # ------------------------------------------------------------------------------
 echo -e "${CYAN}🔒 [2/7] Security & VNC Password Configuration...${NC}"
+VNC_PASS=""
+SKIP_PASS_PROMPT=0
+
 if [ -n "${EASEDESK_VNC_PASS:-}" ]; then
     VNC_PASS="$EASEDESK_VNC_PASS"
 else
@@ -107,7 +110,7 @@ else
         fi
     fi
 
-    if [ -z "$SKIP_PASS_PROMPT" ]; then
+    if [ "$SKIP_PASS_PROMPT" -eq 0 ]; then
         echo -n "🔑 Enter a secure login password for ease-Desk: "
         read -r -s VNC_PASS
         echo ""
