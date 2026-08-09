@@ -316,6 +316,42 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
+        
+        # Intercept 401 errors to serve our custom session-clear page
+        proxy_intercept_errors on;
+        error_page 401 = @error401;
+    }
+
+    location @error401 {
+        default_type text/html;
+        return 401 '<!DOCTYPE html>
+<html>
+<head>
+    <title>ease-Desk | Authentication Required</title>
+    <style>
+        body { background: #080b11; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; }
+        h2 { color: #4facfe; margin-bottom: 10px; }
+        p { color: #8892b0; margin-bottom: 20px; }
+        .btn { background: #4facfe; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-weight: bold; }
+        .btn:hover { background: #3a9bdc; }
+    </style>
+</head>
+<body>
+    <h2>Session Expired or Unauthorized</h2>
+    <p>Your password was changed or your session expired.</p>
+    <button class="btn" onclick="forceLogout()">Login Again</button>
+    <script>
+        function forceLogout() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/", true, "logout", "logout");
+            xhr.send();
+            setTimeout(function() {
+                window.location.href = "/";
+            }, 800);
+        }
+    </script>
+</body>
+</html>';
     }
 }
 EOF
