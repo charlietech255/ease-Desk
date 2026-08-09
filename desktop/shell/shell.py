@@ -156,6 +156,10 @@ class DesktopShell:
         self.pinned_buttons: dict[str, Gtk.Button] = {}
         self.pinned_indicators: dict[str, Gtk.Widget] = {}
         self.selected_id: str | None = None
+        self.drag_widget: Gtk.Widget | None = None
+        self.drag_item: dict | None = None
+        self.drag_offset_x: int = 0
+        self.drag_offset_y: int = 0
         self.wallpaper_path: str = DEFAULT_WALLPAPER
         self.wallpaper_mode: str = "fill"
         self.solid_color: str = "#080b11"
@@ -350,8 +354,6 @@ class DesktopShell:
                     data = json.load(f)
                     items = data.get("items", default_items)
                     for it in items:
-                        it.pop("x", None)
-                        it.pop("y", None)
                         if it.get("id") in ("file_manager", "fm") or it.get("name") in ("File Manager", "Files"):
                             it["name"] = "This PC"
                             it["icon"] = "🖥️"
@@ -411,21 +413,25 @@ class DesktopShell:
         # Desktop Area (EventBox to catch clicks)
         desk_event = Gtk.EventBox()
         desk_event.set_visible_window(False)
-        desk_event.set_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        desk_event.set_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK |
+            Gdk.EventMask.POINTER_MOTION_MASK |
+            Gdk.EventMask.BUTTON_RELEASE_MASK
+        )
         desk_event.connect("button-press-event", self._on_desktop_click)
+        desk_event.connect("motion-notify-event", self._on_desktop_motion)
+        desk_event.connect("button-release-event", self._on_desktop_release)
         outer.pack_start(desk_event, True, True, 0)
         
-        # Desktop shortcuts (FlowBox) inside the desktop area
-        self.icons_col = Gtk.FlowBox()
-        self.icons_col.set_valign(Gtk.Align.START)
-        self.icons_col.set_halign(Gtk.Align.START)
-        self.icons_col.set_max_children_per_line(10)
-        self.icons_col.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.icons_col.set_margin_top(16)
-        self.icons_col.set_margin_start(18)
-        self.icons_col.set_margin_end(8)
+        # Desktop shortcuts (Fixed Layout) inside the desktop area
+        self.desktop_fixed = Gtk.Fixed()
+        self.desktop_fixed.set_valign(Gtk.Align.FILL)
+        self.desktop_fixed.set_halign(Gtk.Align.FILL)
+        self.desktop_fixed.set_margin_top(16)
+        self.desktop_fixed.set_margin_start(18)
+        self.desktop_fixed.set_margin_end(8)
         
-        desk_event.add(self.icons_col)
+        desk_event.add(self.desktop_fixed)
         self._build_icon_column()
 
         self.overlay.add(outer)
@@ -679,17 +685,37 @@ class DesktopShell:
 
     # ---------------------------------------------------- ICON COLUMN
     def _build_icon_column(self) -> None:
-        for child in self.icons_col.get_children():
-            self.icons_col.remove(child)
+        for child in self.desktop_fixed.get_children():
+            self.desktop_fixed.remove(child)
         self.icon_buttons.clear()
+
+        current_x = 0
+        current_y = 0
+        icon_width = 80
+        icon_height = 90
+        max_y = 600
 
         for item in self.desktop_items:
             btn = self._create_icon_button(item)
             self.icon_buttons[item["id"]] = btn
-            # FlowBox uses insert or add
-            self.icons_col.insert(btn, -1)
+            
+            x = item.get("x")
+            y = item.get("y")
+            
+            if x is None or y is None:
+                x = current_x
+                y = current_y
+                item["x"] = x
+                item["y"] = y
+                
+                current_y += icon_height
+                if current_y > max_y:
+                    current_y = 0
+                    current_x += icon_width
 
-        self.icons_col.show_all()
+            self.desktop_fixed.put(btn, x, y)
+
+        self.desktop_fixed.show_all()
 
     def _create_icon_button(self, item: dict) -> Gtk.Button:
         btn = Gtk.Button()
@@ -738,6 +764,10 @@ class DesktopShell:
 
         if event.button == 1:
             self._select_icon(item_id)
+            self.drag_widget = widget
+            self.drag_item = item
+            self.drag_offset_x = int(event.x)
+            self.drag_offset_y = int(event.y)
             return True
 
         if event.button == 3:
@@ -745,6 +775,39 @@ class DesktopShell:
             self._show_icon_menu(event, item)
             return True
 
+        return False
+
+    def _on_desktop_motion(self, widget: Gtk.Widget, event: Gdk.EventMotion) -> bool:
+        if self.drag_widget and self.drag_item:
+            alloc = self.desktop_fixed.get_allocation()
+            new_x = int(event.x) - self.drag_offset_x - 18 # margin-start
+            new_y = int(event.y) - self.drag_offset_y - 16 # margin-top
+            
+            # Simple bounds checking
+            new_x = max(0, min(new_x, alloc.width - 64))
+            new_y = max(0, min(new_y, alloc.height - 64))
+            
+            self.desktop_fixed.move(self.drag_widget, new_x, new_y)
+            return True
+        return False
+
+    def _on_desktop_release(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
+        if self.drag_widget and self.drag_item:
+            # Save the final coordinates
+            alloc = self.desktop_fixed.get_allocation()
+            new_x = int(event.x) - self.drag_offset_x - 18
+            new_y = int(event.y) - self.drag_offset_y - 16
+            
+            new_x = max(0, min(new_x, alloc.width - 64))
+            new_y = max(0, min(new_y, alloc.height - 64))
+            
+            self.drag_item["x"] = new_x
+            self.drag_item["y"] = new_y
+            
+            self.drag_widget = None
+            self.drag_item = None
+            self._save_config()
+            return True
         return False
 
     def _on_desktop_click(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
