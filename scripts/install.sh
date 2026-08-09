@@ -331,15 +331,21 @@ server {
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
         
-        # Intercept 401 errors to serve our custom session-clear page
+        # Intercept 401 errors to serve our custom session-clear page (status 200 hides native prompt)
         proxy_intercept_errors on;
-        error_page 401 /login.html;
+        error_page 401 =200 /login.html;
         proxy_hide_header WWW-Authenticate;
 
         # Inject script to force logout on page refresh
         proxy_set_header Accept-Encoding "";
         sub_filter '<head>' '<head><script>const nv=performance.getEntriesByType("navigation");if((nv.length>0&&nv[0].type==="reload")||(performance.navigation&&performance.navigation.type===1)){window.location.href="/logout";}</script>';
         sub_filter_once on;
+    }
+
+    # Special endpoint for XHR authentication checks
+    location = /auth_check {
+        proxy_pass ${PROXY_PASS}/;
+        proxy_hide_header WWW-Authenticate;
     }
 
     location = /logout {

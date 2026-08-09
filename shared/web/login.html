@@ -347,10 +347,10 @@
             errorMsg.classList.remove('visible');
             btn.disabled = true;
 
-            // Send XMLHttpRequest to authenticate using HTTP Basic Auth
+            // Send XMLHttpRequest to authenticate against our special /auth_check endpoint
             const xhr = new XMLHttpRequest();
             
-            xhr.open("GET", "/", true, u, p);
+            xhr.open("GET", "/auth_check", true, u, p);
             
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
@@ -359,7 +359,7 @@
                     loader.style.display = 'none';
                     btn.disabled = false;
 
-                    if (xhr.status !== 401) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
                         window.location.href = "/";
                     } else {
                         errorMsg.classList.add('visible');
