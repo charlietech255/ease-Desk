@@ -38,6 +38,7 @@ class SessionManager:
         )
         self.display_str: str | None = None
         self.is_virtual_display: bool = False
+        self.kasmvnc_port: int = 8444  # computed at launch time: 8443 + display_num
         self.spawned_processes: list[subprocess.Popen] = []
 
     # ------------------------------------------------------------- Discovery
@@ -49,13 +50,33 @@ class SessionManager:
             print("Warning: openbox not found in PATH. Running in raw window mode.")
 
     def _find_free_display(self) -> str:
-        """Find the next available X11 display number."""
-        for num in range(99, 120):
+        """Find the next available X11 display number.
+        
+        For KasmVNC: websocket port = 8443 + display_num.
+        Starting from :1 means port 8444, :2 means 8445, etc.
+        """
+        is_kasm = os.path.exists("/usr/bin/kasmvncserver")
+        start = 1 if is_kasm else 99
+        end = 20 if is_kasm else 120
+        for num in range(start, end):
             lock = f"/tmp/.X{num}-lock"
             sock = f"/tmp/.X11-unix/X{num}"
+            kasm_port = 8443 + num
+            # Check display slot is free AND the corresponding port is free
             if not os.path.exists(lock) and not os.path.exists(sock):
-                return f":{num}"
-        return ":99"
+                if is_kasm:
+                    try:
+                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        s.settimeout(0.2)
+                        if s.connect_ex(("127.0.0.1", kasm_port)) != 0:
+                            s.close()
+                            return f":{num}"
+                        s.close()
+                    except Exception:
+                        return f":{num}"
+                else:
+                    return f":{num}"
+        return ":1" if is_kasm else ":99"
 
     # ----------------------------------------------------------- Lifecycle
     def start(self) -> int:
@@ -105,10 +126,10 @@ class SessionManager:
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 http://{primary_ip}:8444/")
+                print(f"  👉 http://{primary_ip}:{self.kasmvnc_port}/")
                 print("")
                 print("  Local access (SSH tunnel):")
-                print(f"  👉 http://localhost:8444/")
+                print(f"  👉 http://localhost:{self.kasmvnc_port}/")
                 print("-" * 64)
             else:
                 url_params = "?autoconnect=true&resize=scale"
@@ -233,11 +254,16 @@ class SessionManager:
             print("Launching KasmVNC virtual display...")
             vnc_dir = os.path.expanduser("~/.vnc")
             os.makedirs(vnc_dir, exist_ok=True)
-            
-            # Lock the port to 8444 and disable TLS so Nginx can proxy it reliably
+
+            # KasmVNC natural websocket port = 8443 + display_number
+            # e.g. :1 -> 8444, :2 -> 8445.  We pick the display that maps to a free port.
+            display_num = int(num)
+            self.kasmvnc_port = 8443 + display_num
+
+            # Write minimal kasmvnc.yaml — only disable SSL, let KasmVNC use its natural port
             kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
             with open(kasm_yaml, "w") as f:
-                f.write("network:\n  protocol: http\n  websocket_port: 8444\n  ssl:\n    require_ssl: false\n")
+                f.write("network:\n  protocol: http\n  ssl:\n    require_ssl: false\n")
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             with open(xstartup_path, "w") as f:

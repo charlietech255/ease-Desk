@@ -442,11 +442,11 @@ PKLA_EOF
     # Configure Firewall Rules (UFW / Firewalld / iptables)
     if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
         echo -e "${CYAN}🛡️ Configuring UFW firewall rules...${NC}"
-        ufw allow 3389/tcp comment "ease-Desk XRDP" >/dev/null 2>&1 || true
-        ufw allow 80/tcp comment "ease-Desk Web Desktop" >/dev/null 2>&1 || true
-        ufw allow 443/tcp comment "ease-Desk SSL" >/dev/null 2>&1 || true
-        ufw allow 6080/tcp comment "ease-Desk WebSocket" >/dev/null 2>&1 || true
-        ufw allow 8444/tcp comment "ease-Desk KasmVNC Direct" >/dev/null 2>&1 || true
+        ufw allow 3389/tcp comment "ease-Desk XRDP" > /dev/null 2>&1 || true
+        ufw allow 80/tcp comment "ease-Desk Web Desktop" > /dev/null 2>&1 || true
+        ufw allow 443/tcp comment "ease-Desk SSL" > /dev/null 2>&1 || true
+        ufw allow 6080/tcp comment "ease-Desk WebSocket" > /dev/null 2>&1 || true
+        ufw allow 8444:8463/tcp comment "ease-Desk KasmVNC" > /dev/null 2>&1 || true
         ufw reload >/dev/null 2>&1 || true
         echo -e "${GREEN}✓ UFW firewall rules updated.${NC}"
     elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
