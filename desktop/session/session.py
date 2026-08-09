@@ -420,7 +420,7 @@ class SessionManager:
                         ["websockify"]
                         + web_arg
                         + [
-                            f"0.0.0.0:{self.novnc_port}",
+                            f"127.0.0.1:{self.novnc_port}",
                             f"127.0.0.1:{self.vnc_port}",
                         ]
                     )
@@ -430,7 +430,7 @@ class SessionManager:
                         "--vnc",
                         f"127.0.0.1:{self.vnc_port}",
                         "--listen",
-                        f"0.0.0.0:{self.novnc_port}",
+                        f"127.0.0.1:{self.novnc_port}",
                     ]
                 novnc = subprocess.Popen(
                     ws_cmd,

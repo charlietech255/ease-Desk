@@ -115,8 +115,8 @@ else
         read -r -s VNC_PASS
         echo ""
         if [ -z "$VNC_PASS" ]; then
-            VNC_PASS="easedesk$(head -c 4 /dev/urandom | od -A n -t x | tr -d ' ')"
-            echo -e "${YELLOW}No password entered. Generated temporary password: ${BOLD}${VNC_PASS}${NC}"
+            VNC_PASS="$(head -c 16 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)"
+            echo -e "${YELLOW}No password entered. Generated secure temporary password: ${BOLD}${VNC_PASS}${NC}"
         fi
     fi
 fi
@@ -296,6 +296,14 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
         PROXY_PASS="http://127.0.0.1:6080"
     fi
 
+    mkdir -p /etc/nginx/ssl
+    if [ ! -f /etc/nginx/ssl/easedesk.crt ]; then
+        openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+            -keyout /etc/nginx/ssl/easedesk.key \
+            -out /etc/nginx/ssl/easedesk.crt \
+            -subj "/C=US/ST=State/L=City/O=ease-Desk/CN=${PUBLIC_IP}" >/dev/null 2>&1 || true
+    fi
+
     cat << EOF > /tmp/easedesk.conf
 map \$http_upgrade \$connection_upgrade {
     default upgrade;
@@ -303,9 +311,14 @@ map \$http_upgrade \$connection_upgrade {
 }
 
 server {
-    listen 8444 default_server;
-    listen [::]:8444 default_server;
+    listen 8444 ssl default_server;
+    listen [::]:8444 ssl default_server;
     server_name _ ${PUBLIC_IP} localhost;
+
+    ssl_certificate /etc/nginx/ssl/easedesk.crt;
+    ssl_certificate_key /etc/nginx/ssl/easedesk.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
 
     location / {
         proxy_pass ${PROXY_PASS};
