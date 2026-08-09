@@ -586,6 +586,7 @@ class DesktopShell:
             ("➕  Add Desktop Shortcut…", lambda: self._dialog_add_shortcut()),
             ("📸  Take Desktop Screenshot", lambda: self._take_screenshot()),
             (None, None),
+            ("🗑️  Uninstall ease-Desk...", lambda: self._dialog_uninstall()),
             ("🚪  Exit Desktop Session", lambda: self._exit()),
         ]
 
@@ -1403,6 +1404,47 @@ class DesktopShell:
             self.running_tasks_box.pack_start(task_box, False, False, 0)
 
         self.running_tasks_box.show_all()
+
+    def _dialog_uninstall(self) -> None:
+        dialog = Gtk.MessageDialog(
+            transient_for=self.window,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Uninstall ease-Desk?",
+        )
+        dialog.format_secondary_text(
+            "This will permanently remove the ease-Desk environment from this server.\n"
+            "You will need to provide your sudo password in the terminal that appears."
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Uninstall", Gtk.ResponseType.OK)
+        dialog.get_widget_for_response(Gtk.ResponseType.OK).get_style_context().add_class("destructive-action")
+
+        response = dialog.run()
+        dialog.destroy()
+
+        if response == Gtk.ResponseType.OK:
+            # Launch uninstaller in a standard xterm so it can prompt for sudo password
+            try:
+                subprocess.Popen(["xterm", "-T", "ease-Desk Uninstaller", "-e", "bash -c 'sudo /opt/ease-desk/scripts/uninstall.sh; echo \"Press Enter to close...\"; read'"])
+            except OSError:
+                pass
+
+    def _on_process_died(self, pid: int, status: int) -> None:
+        meta = self.tracked_processes.get(pid)
+        if meta and meta.get("popen"):
+            try:
+                meta["popen"].terminate()
+            except Exception:
+                pass
+        else:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError:
+                pass
+        self.tracked_processes.pop(pid, None)
+        self._update_running_tasks_ui()
 
     def _terminate_proc(self, pid: int) -> None:
         meta = self.tracked_processes.get(pid)
