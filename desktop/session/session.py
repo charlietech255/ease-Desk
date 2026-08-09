@@ -98,20 +98,34 @@ class SessionManager:
         if self.is_virtual_display:
             ips = self._get_ip_addresses()
             primary_ip = ips[0] if ips else "localhost"
-            url_params = "?autoconnect=true&resize=scale"
-            print("\n" + "=" * 64)
-            print("         🌐 ease-Desk Server is Running!         ")
-            print("=" * 64)
-            print("  Open this link in your browser (Phone / PC / Tablet):")
-            print(f"  👉 http://{primary_ip}/vnc.html{url_params}")
-            print(f"     (requires Nginx reverse proxy on port 80)")
-            print("")
-            print("  Or using SSH Tunnel (Secure):")
-            print(f"  👉 http://localhost:{self.novnc_port}/vnc.html{url_params}")
-            print("-" * 64)
-            print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
-            if self.enable_vnc:
-                print(f"  🖥️  Native VNC Client (SSH Tunnel): localhost:{self.vnc_port}")
+            is_kasm = shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver")
+            if is_kasm:
+                print("\n" + "=" * 64)
+                print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
+                print("=" * 64)
+                print("  Open this link in your browser (Phone / PC / Tablet):")
+                print(f"  👉 https://{primary_ip}/")
+                print(f"     (requires Nginx reverse proxy on port 80/443)")
+                print("")
+                print("  Or using SSH Tunnel (Secure direct port):")
+                print(f"  👉 https://localhost:8444/")
+                print("-" * 64)
+            else:
+                url_params = "?autoconnect=true&resize=scale"
+                print("\n" + "=" * 64)
+                print("         🌐 ease-Desk Server is Running!         ")
+                print("=" * 64)
+                print("  Open this link in your browser (Phone / PC / Tablet):")
+                print(f"  👉 http://{primary_ip}/vnc.html{url_params}")
+                print(f"     (requires Nginx reverse proxy on port 80)")
+                print("")
+                print("  Or using SSH Tunnel (Secure):")
+                print(f"  👉 http://localhost:{self.novnc_port}/vnc.html{url_params}")
+                print("-" * 64)
+                print("  💡 Tip: Mobile screens auto-scale in both portrait & landscape!")
+                if self.enable_vnc:
+                    print(f"  🖥️  Native VNC Client (SSH Tunnel): localhost:{self.vnc_port}")
+            
             print(f"  🖥️  Display ID:       {self.display_str}")
             print("=" * 64)
             print("(Press Ctrl+C in this terminal to shutdown ease-Desk)\n")
@@ -203,12 +217,7 @@ class SessionManager:
 
     # -------------------------------------------------------- Subprocesses
     def _start_virtual_display(self) -> None:
-        """Launch Xvfb virtual display server and optional VNC/noVNC."""
-        if not shutil.which("Xvfb"):
-            raise RuntimeError(
-                "Xvfb not found. Please install xvfb to use virtual display mode."
-            )
-
+        """Launch KasmVNC or Xvfb virtual display server and optional VNC/noVNC."""
         num = self.display_str.lstrip(":")
         lock_file = f"/tmp/.X{num}-lock"
         sock_file = f"/tmp/.X11-unix/X{num}"
@@ -219,6 +228,32 @@ class SessionManager:
                 except OSError:
                     pass
 
+        # Option A: KasmVNC
+        if shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver"):
+            print("Launching KasmVNC virtual display...")
+            vnc_dir = os.path.expanduser("~/.vnc")
+            os.makedirs(vnc_dir, exist_ok=True)
+            xstartup_path = os.path.join(vnc_dir, "xstartup")
+            with open(xstartup_path, "w") as f:
+                f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
+            os.chmod(xstartup_path, 0o755)
+            
+            cmd = ["vncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            for _ in range(50):
+                if os.path.exists(sock_file):
+                    break
+                time.sleep(0.1)
+            time.sleep(0.5)
+            return
+
+        # Option B: Fallback to Xvfb
+        if not shutil.which("Xvfb"):
+            raise RuntimeError(
+                "Neither KasmVNC nor Xvfb found. Please install one of them to use virtual display mode."
+            )
+        print("Launching Xvfb virtual display (Fallback)...")
         cmd = ["Xvfb", self.display_str, "-screen", "0", self.resolution]
         xvfb = subprocess.Popen(
             cmd,
@@ -346,16 +381,22 @@ class SessionManager:
                 except (OSError, ProcessLookupError):
                     pass
 
-        # Cleanup x11vnc if running
+        # Cleanup KasmVNC or x11vnc
         if self.is_virtual_display:
-            try:
-                subprocess.run(
-                    ["x11vnc", "-R", "stop"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except Exception:
-                pass
+            if shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver"):
+                try:
+                    subprocess.run(["vncserver", "-kill", self.display_str], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except Exception:
+                    pass
+            else:
+                try:
+                    subprocess.run(
+                        ["x11vnc", "-R", "stop"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except Exception:
+                    pass
 
         # Clean X11 lock files for virtual display
         if self.is_virtual_display and self.display_str:

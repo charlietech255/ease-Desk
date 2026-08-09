@@ -168,6 +168,38 @@ elif command -v pkg >/dev/null 2>&1; then
 fi
 echo -e "${GREEN}✓ System dependencies and real web browser installed.${NC}"
 
+# Install KasmVNC if on supported OS (Ubuntu/Debian)
+KASM_VERSION="1.5.0"
+if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
+    . /etc/os-release
+    OS_CODENAME="${VERSION_CODENAME:-${UBUNTU_CODENAME}}"
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
+    
+    SUPPORTED_CODENAMES="bookworm bullseye focal jammy noble trixie kali-rolling"
+    if echo "$SUPPORTED_CODENAMES" | grep -q "$OS_CODENAME" && [ "$ARCH" != "$(uname -m)" ]; then
+        echo -e "${CYAN}🚀 Installing KasmVNC for ${OS_CODENAME} (${ARCH})...${NC}"
+        wget -qO /tmp/kasmvncserver.deb "https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VERSION}/kasmvncserver_${OS_CODENAME}_${KASM_VERSION}_${ARCH}.deb" || true
+        if [ -s /tmp/kasmvncserver.deb ]; then
+            apt-get install -y -qq /tmp/kasmvncserver.deb >/dev/null 2>&1 || echo -e "${YELLOW}KasmVNC installation failed, will fallback to Xvfb.${NC}"
+            rm -f /tmp/kasmvncserver.deb
+            usermod -aG ssl-cert "$TARGET_USER" 2>/dev/null || true
+            
+            # Setup native authentication if VNC_PASS is available
+            if [ -n "$VNC_PASS" ] && command -v vncpasswd >/dev/null 2>&1; then
+                for u_home in "$TARGET_HOME" "/root"; do
+                    [ -d "$u_home" ] || continue
+                    mkdir -p "${u_home}/.vnc"
+                    echo -e "${VNC_PASS}\n${VNC_PASS}\n" | vncpasswd -u "$TARGET_USER" -rw "${u_home}/.vnc/passwd" >/dev/null 2>&1 || true
+                    chmod 600 "${u_home}/.vnc/passwd" 2>/dev/null || true
+                    [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" 2>/dev/null || true
+                done
+                echo -e "${GREEN}✓ KasmVNC native authentication configured.${NC}"
+            fi
+        fi
+    fi
+fi
+
 # Store password with x11vnc
 if [ -n "$VNC_PASS" ] && command -v x11vnc >/dev/null 2>&1; then
     for u_home in "$TARGET_HOME" "/root"; do
@@ -246,6 +278,12 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
     PUBLIC_IP="$(curl -s -m 3 https://api.ipify.org 2>/dev/null | tr -d '[:space:]' || true)"
     [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
 
+    if command -v kasmvncserver >/dev/null 2>&1; then
+        PROXY_PASS="https://127.0.0.1:8444"
+    else
+        PROXY_PASS="http://127.0.0.1:6080"
+    fi
+
     cat << EOF > /tmp/easedesk.conf
 map \$http_upgrade \$connection_upgrade {
     default upgrade;
@@ -258,7 +296,7 @@ server {
     server_name _ ${PUBLIC_IP} localhost;
 
     location / {
-        proxy_pass http://127.0.0.1:6080;
+        proxy_pass ${PROXY_PASS};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection \$connection_upgrade;
