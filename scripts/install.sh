@@ -279,7 +279,7 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
     [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
 
     if command -v kasmvncserver >/dev/null 2>&1; then
-        PROXY_PASS="https://127.0.0.1:8444"
+        PROXY_PASS="http://127.0.0.1:8444"
     else
         PROXY_PASS="http://127.0.0.1:6080"
     fi

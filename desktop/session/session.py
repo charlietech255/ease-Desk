@@ -104,11 +104,11 @@ class SessionManager:
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 https://{primary_ip}/")
+                print(f"  👉 http://{primary_ip}/")
                 print(f"     (requires Nginx reverse proxy on port 80/443)")
                 print("")
                 print("  Or using SSH Tunnel (Secure direct port):")
-                print(f"  👉 https://localhost:8444/")
+                print(f"  👉 http://localhost:8444/")
                 print("-" * 64)
             else:
                 url_params = "?autoconnect=true&resize=scale"
@@ -233,6 +233,12 @@ class SessionManager:
             print("Launching KasmVNC virtual display...")
             vnc_dir = os.path.expanduser("~/.vnc")
             os.makedirs(vnc_dir, exist_ok=True)
+            
+            # Lock the port to 8444 so Nginx can proxy it reliably
+            kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
+            with open(kasm_yaml, "w") as f:
+                f.write("network:\n  websocket_port: 8444\n  ssl:\n    require_ssl: false\n")
+            
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             with open(xstartup_path, "w") as f:
                 f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
