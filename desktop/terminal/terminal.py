@@ -95,7 +95,9 @@ class PtyTextViewTerminal(Gtk.Box):
 
     def _build_ui(self) -> None:
         self.scrolled = Gtk.ScrolledWindow()
-        self.scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
+        self.scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.scrolled.set_min_content_height(100)
+        self.scrolled.set_min_content_width(200)
         self.scrolled.get_style_context().add_class("terminal-scroll")
 
         self.text_view = Gtk.TextView()

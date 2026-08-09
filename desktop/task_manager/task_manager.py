@@ -166,6 +166,8 @@ class TaskManagerWindow(Gtk.Window):
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_min_content_height(150)
+        scrolled.set_min_content_width(200)
         scrolled.add(self.tree_view)
         main_box.pack_start(scrolled, True, True, 0)
 
