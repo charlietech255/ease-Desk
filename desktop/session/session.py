@@ -245,6 +245,23 @@ class SessionManager:
                 f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
             os.chmod(xstartup_path, 0o755)
             
+            # Ensure KasmVNC finds the password file (KasmVNC 1.0+ defaults to ~/.kasmpasswd)
+            vnc_pass = os.path.expanduser("~/.vnc/passwd")
+            kasm_pass = os.path.expanduser("~/.kasmpasswd")
+            if os.path.exists(vnc_pass) and not os.path.exists(kasm_pass):
+                try:
+                    os.symlink(vnc_pass, kasm_pass)
+                except OSError:
+                    pass
+            elif os.path.exists(vnc_pass) and os.path.exists(kasm_pass):
+                # Ensure they point to the same thing if not a symlink
+                if not os.path.islink(kasm_pass):
+                    try:
+                        os.unlink(kasm_pass)
+                        os.symlink(vnc_pass, kasm_pass)
+                    except OSError:
+                        pass
+            
             import sys
             cmd = ["/usr/bin/kasmvncserver", self.display_str, "-geometry", self.resolution.rsplit('x', 1)[0]]
             proc = subprocess.Popen(
