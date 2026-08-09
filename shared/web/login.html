@@ -360,7 +360,8 @@
      btn.disabled = false;
 
      if (xhr.status >= 200 && xhr.status < 300) {
-      window.location.href = "/";
+      // Pass credentials in URL to force browser to cache Basic Auth for the origin
+      window.location.href = window.location.protocol + "//" + encodeURIComponent(u) + ":" + encodeURIComponent(p) + "@" + window.location.host + "/";
      } else {
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';
