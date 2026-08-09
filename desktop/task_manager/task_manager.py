@@ -101,10 +101,10 @@ class TaskManagerWindow(Gtk.Window):
 
         # Header Bar
         header = Gtk.HeaderBar()
-        header.set_show_close_button(True)
+        header.set_show_close_button(False)
         header.set_title("Task Manager")
         header.set_subtitle("Processes and System Resources")
-        self.set_titlebar(header)
+        main_box.pack_start(header, False, False, 0)
 
         # Refresh button
         ref_btn = Gtk.Button(label="Refresh")

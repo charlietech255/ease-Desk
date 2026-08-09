@@ -47,10 +47,9 @@ class FileManagerWindow(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self.header = Gtk.HeaderBar()
-        self.header.set_show_close_button(True)
+        self.header.set_show_close_button(False)  # Let Openbox handle close button
         self.header.set_title("This PC")
         self.header.set_subtitle("Devices and drives")
-        self.set_titlebar(self.header)
 
         self.history: list[str] = []
         self.history_index: int = -1
@@ -76,6 +75,7 @@ class FileManagerWindow(Gtk.Window):
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        root.pack_start(self.header, False, False, 0)
         root.pack_start(self._build_toolbar(), False, False, 0)
 
         # Action bar (visible in folder view)
