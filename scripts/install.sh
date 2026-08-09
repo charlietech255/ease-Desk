@@ -188,14 +188,15 @@ if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
             rm -f /tmp/kasmvncserver.deb
             usermod -aG ssl-cert "$TARGET_USER" 2>/dev/null || true
             
-            # Setup native authentication if VNC_PASS is available
-            if [ -n "$VNC_PASS" ] && command -v vncpasswd >/dev/null 2>&1; then
+            # Setup native KasmVNC authentication using kasmvncpasswd (KasmVNC's own format)
+            if [ -n "$VNC_PASS" ] && command -v kasmvncpasswd >/dev/null 2>&1; then
                 for u_home in "$TARGET_HOME" "/root"; do
                     [ -d "$u_home" ] || continue
                     mkdir -p "${u_home}/.vnc"
-                    echo -e "${VNC_PASS}\n${VNC_PASS}\n" | vncpasswd -u "$TARGET_USER" -rw "${u_home}/.vnc/passwd" >/dev/null 2>&1 || true
-                    chmod 600 "${u_home}/.vnc/passwd" 2>/dev/null || true
-                    [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" 2>/dev/null || true
+                    # Write password in KasmVNC native format (NOT vncpasswd format)
+                    printf '%s\n%s\n' "$VNC_PASS" "$VNC_PASS" | kasmvncpasswd -u "${TARGET_USER}" -rw "${u_home}/.kasmpasswd" > /dev/null 2>&1 || true
+                    chmod 600 "${u_home}/.kasmpasswd" 2>/dev/null || true
+                    [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" "${u_home}/.kasmpasswd" 2>/dev/null || true
                 done
                 echo -e "${GREEN}✓ KasmVNC native authentication configured.${NC}"
             fi
