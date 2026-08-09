@@ -266,8 +266,22 @@ class SessionManager:
                 f.write("network:\n  protocol: http\n  ssl:\n    require_ssl: false\n")
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
+            xstartup_content = (
+                "#!/bin/bash\n"
+                "# ease-Desk xstartup for KasmVNC — do not remove\n"
+                "unset SESSION_MANAGER\n"
+                "unset DBUS_SESSION_BUS_ADDRESS\n\n"
+                "# Start a lightweight window manager so KasmVNC has a valid desktop\n"
+                "if command -v openbox >/dev/null 2>&1; then\n"
+                "    exec openbox-session\n"
+                "elif command -v fluxbox >/dev/null 2>&1; then\n"
+                "    exec fluxbox\n"
+                "else\n"
+                "    exec xterm\n"
+                "fi\n"
+            )
             with open(xstartup_path, "w") as f:
-                f.write("#!/bin/bash\n# Dummy xstartup for ease-Desk session\ntail -f /dev/null\n")
+                f.write(xstartup_content)
             os.chmod(xstartup_path, 0o755)
             
             # Verify ~/.kasmpasswd exists in native KasmVNC format.
