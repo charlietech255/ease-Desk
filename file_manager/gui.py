@@ -756,12 +756,15 @@ class FileManagerWindow(Gtk.Window):
             return
         try:
             cat, desc, _icon = types.categorize(os.path.basename(path), False)
-            if cat == "image" or fs.is_text_like(path):
+            if cat == "image":
                 try:
                     ImageViewerWindow(path).show_all()
                     return
                 except fs.FileOpError:
                     pass
+            if cat in ("audio", "video"):
+                subprocess.Popen([sys.executable, "-m", "desktop.media_player.app", path])
+                return
             if fs.is_text_like(path):
                 try:
                     TextViewerWindow(path).show_all()
