@@ -31,8 +31,7 @@ from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
 _GST_OK = False
 try:
     gi.require_version("Gst", "1.0")
-    gi.require_version("GstVideo", "1.0")
-    from gi.repository import Gst, GstVideo  # type: ignore[attr-defined]
+    from gi.repository import Gst  # type: ignore[attr-defined]
 
     Gst.init(None)
     _GST_OK = True

@@ -179,6 +179,7 @@ if command -v apt-get >/dev/null 2>&1; then
   gstreamer1.0-plugins-bad \
   gstreamer1.0-libav \
   gstreamer1.0-gtk3 \
+  gir1.2-gst-plugins-base-1.0 \
   python3-gst-1.0 \
   libgstreamer1.0-dev \
   2>/dev/null || apt-get install -y -qq pulseaudio mpv gstreamer1.0-tools gstreamer1.0-plugins-good 2>/dev/null || true
