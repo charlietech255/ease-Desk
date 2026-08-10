@@ -122,7 +122,7 @@ class SessionManager:
             primary_ip = ips[0] if ips else "localhost"
             is_kasm = shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver")
             if is_kasm:
-                url_params = "?autoconnect=true&resize=scale"
+                url_params = "?autoconnect=true&resize=remote"
                 print("\n" + "=" * 64)
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
@@ -302,7 +302,7 @@ class SessionManager:
   ssl:
     require_ssl: false
 desktop:
-  allow_resize: false
+  allow_resize: true
   resolution:
     width: {res_w}
     height: {res_h}
@@ -320,9 +320,9 @@ desktop:
                         
                         # Only modify if it hasn't been hardcoded yet, or aggressively replace it
                         # The UI.initSetting initializes scaling from local storage or defaults.
-                        # We will aggressively append a script block to force Local Scaling 
-                        if "/* easedesk-force-scale */" not in content:
-                            inject = "<script>/* easedesk-force-scale */ window.localStorage.setItem('kasm.scaling', 'scale');</script>"
+                        # We will aggressively append a script block to force Remote Scaling 
+                        if "/* easedesk-force-remote-scale */" not in content:
+                            inject = "<script>/* easedesk-force-remote-scale */ window.localStorage.setItem('kasm.scaling', 'remote');</script>"
                             content = content.replace("</head>", f"{inject}</head>")
                             with open(index_path, "w") as f:
                                 f.write(content)
