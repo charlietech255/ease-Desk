@@ -855,7 +855,9 @@ class FileManagerWindow(Gtk.Window):
                 except fs.FileOpError:
                     pass
             if cat in ("audio", "video"):
-                subprocess.Popen([sys.executable, "-m", "desktop.media_player.app", path])
+                env = os.environ.copy()
+                env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
+                subprocess.Popen([sys.executable, "-m", "desktop.media_player.app", path], env=env)
                 return
             if fs.is_text_like(path):
                 try:
@@ -864,6 +866,14 @@ class FileManagerWindow(Gtk.Window):
                 except fs.FileOpError as exc:
                     self._error(str(exc))
                     return
+            
+            # Fallback to system xdg-open for PDFs, HTML, and other files
+            try:
+                subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return
+            except FileNotFoundError:
+                pass
+
             self._properties(path)
         except fs.FileOpError as exc:
             self._error(str(exc))
