@@ -122,15 +122,14 @@ class SessionManager:
             primary_ip = ips[0] if ips else "localhost"
             is_kasm = shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver")
             if is_kasm:
-                url_params = "?autoconnect=true&resize=scale"
                 print("\n" + "=" * 64)
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 http://{primary_ip}:8444/{url_params}")
+                print(f"  👉 http://{primary_ip}:8444/")
                 print("")
                 print("  Local access (SSH tunnel):")
-                print(f"  👉 http://localhost:8444/{url_params}")
+                print(f"  👉 http://localhost:8444/")
                 print("-" * 64)
             else:
                 url_params = "?autoconnect=true&resize=scale"
