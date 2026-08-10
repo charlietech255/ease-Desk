@@ -1,215 +1,142 @@
-# ease-Desk
+<div align="center">
+  <h1>ease-Desk</h1>
+  <p><strong>The modern, lightweight cloud desktop running straight from your browser.</strong></p>
+</div>
 
-A fast, lightweight graphical environment iliyoundwa specifically kwa ajili ya Linux VPS na server administration.
+<br>
 
-![ease-Desk](screenshots/desktop-file-manager.png)
-
----
-
-## Overview
-
-Nilidesign ease-Desk ili ku-solve issue ya kawaida sana: full desktop environments kama GNOME, KDE, au XFCE ziko heavy sana kwa remote VPS. Zinakula mamia ya megabytes za RAM, zinahitaji background services nyingi, na zinachukua muda kuanza.
-
-ease-Desk ni tool nyepesi kwa ajili ya developers na sysadmins wanaopenda kufanya kazi kupitia SSH terminal, lakini mara moja moja wanahitaji clean graphical interface ili:
-
-- Ku-browse na ku-navigate directories za server (kama /var/www, /etc, /home, na /var/log)
-- Ku-create folders, ku-rename, ku-copy, ku-move, na ku-delete files bila hassle
-- Ku-view na ku-edit config files moja kwa moja (.conf, .json, .yaml, .php, .py, .sh, .log)
-- Ku-check live server metrics (CPU cores, RAM usage, disk space, na OS info)
-- Ku-start on-demand kwa command moja tu (`desktop`) kupitia SSH X11 Forwarding, Termux on Android, au remote VNC.
-
-Uki-exit tu, inajifunga completely bila kuacha process yoyote inayokula RAM au CPU kwa server yako.
+> Karibu! Imagine having your entire Linux desktop accessible from any web browser in the world, running smoothly without requiring a heavy server. That is exactly what ease-Desk offers. Built for speed and simplicity, it transforms any standard VPS into a fully functional workspace.
 
 ---
 
-## Screenshots
+## 1. Project Overview
 
-| 🖥️ Clean Desktop Shell | 💻 Embedded Terminal Console |
-|---|---|
-| ![Empty Desktop](screenshots/desktop-empty.png) | ![Terminal](screenshots/desktop-terminal.png) |
+### What is ease-Desk?
+ease-Desk is a custom-built, highly optimized Linux desktop environment designed to run seamlessly in the cloud. Instead of relying on traditional, heavy desktop protocols, ease-Desk streams a full graphical interface directly to your web browser or native RDP client. It comes pre-packaged with a modern glassmorphism UI, a built-in file manager, a media player, and terminal tools.
 
-| 📊 Task Manager & Monitor | 📁 File Manager & Storage |
-|---|---|
-| ![Task Manager](screenshots/desktop-task-manager.png) | ![File Manager](screenshots/desktop-file-manager.png) |
+### Why ease-Desk?
+Most traditional remote desktops (like GNOME or KDE over VNC) are extremely heavy. They consume massive amounts of RAM and CPU, making them impossible to run on a basic $5 VPS. ease-Desk changes the rules. It uses an ultra-lightweight Openbox foundation combined with custom Python (GTK3) and Rust components to give you a premium experience on minimal hardware.
 
-| 💽 This PC (Drives & Partitions) |
-|---|
-| ![This PC](screenshots/desktop-this-pc.png) |
+### What problem does it solve?
+- **High Resource Usage**: Runs comfortably on a server with just 1GB of RAM.
+- **Complex Setups**: Eliminates the headache of configuring VNC, SSL, and WebSockets manually. Our installer does it all.
+- **Accessibility**: No need to install third-party clients. Access your desktop from Chrome, Safari, or Edge on any device.
 
----
+### Screenshots
 
-## Resource Usage Comparison
+*The ease-Desk File Manager and System Monitor*
+<img src="screenshots/desktop-file-manager.png" width="800" alt="File Manager">
 
-| Metric | Standard Desktops (GNOME / XFCE) | ease-Desk |
-|---|---|---|
-| RAM Usage | 450 MB - 1.2 GB | ~45 MB - 65 MB |
-| Idle CPU | 2% - 8% | < 0.1% |
-| Startup Time | 4 - 10 seconds | < 400 milliseconds |
-| Background Services | D-Bus, systemd daemons, indexers | None (runs only on-demand) |
-| Connection Method | Heavy RDP / VNC streams | Native X11 Forwarding / Termux / VNC |
+*The ease-Desk Terminal*
+<img src="screenshots/desktop-terminal.png" width="800" alt="Terminal">
 
 ---
 
-## Project Structure
+## 2. Installation
 
-```text
-├── desktop/                 # Desktop shell, session manager, na modular tools
-│   ├── session/             # Display server (Xvfb/X11), WM launcher, na teardown
-│   ├── shell/               # Desktop background, start menu, top bar, na quick launchers
-│   ├── terminal/            # Embedded PTY terminal emulator na ANSI console
-│   └── task_manager/        # Process activity monitor, CPU/RAM/Disk gauges
-│
-├── file_manager/            # VPS file manager application
-│   ├── core/                # Filesystem ops, zip/tar archives, permissions
-│   ├── gui.py               # GTK3 icon view, This PC view, context menu
-│   ├── viewer.py            # Text and config file viewer / editor
-│   └── types.py             # MIME types, file extensions, na size formatting
-│
-├── shared/                  # Shared styling na system utilities
-│   ├── styles/              # Dark slate theme na CSS definitions
-│   └── utilities/           # Cairo vector icons, sysinfo probes, security checks
-│
-├── docker/                  # Docker VPS testing environment
-│   ├── Dockerfile           # Debian 12 container with SSH server na sample files
-│   └── entrypoint.sh        # Container startup script
-│
-├── scripts/                 # Executable scripts
-│   ├── desktop              # Main CLI entry point
-│   ├── install.sh           # Automated installer kwa Debian / Ubuntu
-│   ├── uninstall.sh         # Uninstaller script
-│   └── capture_screenshots.py # Headless screenshot capture tool
-│
-└── tests/                   # Unit na integration test suites
-```
+### System Requirements
+- **OS**: Ubuntu 20.04/22.04/24.04, Debian 11/12 (Recommended)
+- **RAM**: Minimum 1GB (2GB recommended for heavy browsing)
+- **CPU**: 1 Core minimum
+- **Network**: A server with a public IP address
+
+### Step-by-Step Installation (Native)
+The native installation configures your server directly, setting up Nginx, security protocols (Fail2Ban), and the desktop environment.
+
+1. Connect to your server via SSH.
+2. Clone the repository and enter the directory:
+   ```bash
+   git clone https://github.com/charlietech255/ease-Desk.git
+   cd ease-Desk
+   ```
+3. Run the master installer:
+   ```bash
+   sudo ./scripts/install.sh
+   ```
+4. Follow the on-screen prompts. The system will provide you with a secure URL (e.g., `https://your-server-ip:8444`) to access your desktop.
+
+### Step-by-Step Installation (Docker)
+If you prefer not to modify your host system, you can run ease-Desk inside an isolated Docker container.
+
+1. Ensure Docker and Docker Compose are installed on your server.
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/charlietech255/ease-Desk.git
+   cd ease-Desk
+   ```
+3. Start the container in detached mode:
+   ```bash
+   docker-compose up -d --build
+   ```
+4. Access your desktop via your browser at `https://your-server-ip:8444`.
+
+### RDP Connection Step-by-Step
+If you prefer using Windows Remote Desktop Connection instead of the web browser, port `3389` is open and secured.
+
+1. Open the **Remote Desktop Connection** app on your Windows machine.
+2. In the "Computer" field, enter your server's IP address.
+3. Click "Connect".
+4. You will be prompted with an XRDP login screen. Enter your server username (e.g., `root` or `easedesk`) and your password.
+5. You are now connected directly to the ease-Desk environment.
 
 ---
 
-## Installation
+## 3. Troubleshoot
 
-### Automatic Installation (Debian / Ubuntu / Kali / Mint)
+Even the best systems encounter issues. Here is how to resolve common problems.
 
-Ili ku-install system-wide kwa urahisi:
+### Error: "Cannot connect to server" (Browser)
+- **Cause**: The Nginx service is down or the firewall is blocking port 8444.
+- **Solution**: Check if Nginx is running using `sudo systemctl status nginx`. Ensure port 8444 is open by running `sudo ufw allow 8444`.
+
+### Error: Black Screen on RDP Login
+- **Cause**: Another session is already occupying the display, or the Openbox window manager failed to start.
+- **Solution**: Restart the XRDP service by running `sudo systemctl restart xrdp`. If the issue persists, reboot the server.
+
+### Error: "SSL Verification Error" during Installation
+- **Cause**: Your server is missing core CA certificates.
+- **Solution**: Run `sudo apt-get install ca-certificates` and re-run the `install.sh` script.
+
+---
+
+## 4. Keep Updated & Uninstall
+
+### How to Update the Desktop
+The ease-Desk project is constantly improving. To get the latest features and security patches, simply pull the latest code and run the installer again. It will safely update your system without deleting your personal files.
 
 ```bash
-git clone https://github.com/charlietech255/ease-Desk.git
-cd ease-Desk
+cd /opt/ease-desk
+git pull
 sudo ./scripts/install.sh
 ```
 
-Hii script ita-install lightweight dependencies zote (GTK3 / Openbox) na kuweka symlink ya `desktop` moja kwa moja kwenye `/usr/local/bin/desktop`.
-
-### Manual Dependencies
-
-Kama unapendelea ku-install dependencies mwenyewe:
+### How to Uninstall
+If you need to remove ease-Desk completely and restore your server to its original state, we provide a clean uninstall script.
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y python3 python3-gi python3-gi-cairo gir1.2-gtk-3.0 openbox xvfb x11vnc
+sudo ./scripts/uninstall.sh
 ```
 
 ---
 
-## How to Use
+## 5. Developer Contact
 
-### 1. SSH with X11 Forwarding (Recommended)
+Feel free to reach out for business inquiries, custom features, or general feedback.
 
-Kutoka kwenye mashine yako (Linux, macOS, au Windows yenye WSLg / VcXsrv):
-
-```bash
-# Connect kwenye VPS yako ukiwa na X11 forwarding enabled
-ssh -X user@your-server-ip
-
-# Start the desktop
-desktop
-```
-
-ease-Desk ina-detect display moja kwa moja na ku-render window kwenye screen yako ya local.
-
-### 2. Android via Termux
-
-Kama unatumia simu ya Android:
-
-1. Fungua Termux na hakikisha Termux:X11 inafanya kazi.
-2. Connect kwenye VPS yako:
-   ```bash
-   ssh -X user@your-server-ip
-   ```
-3. Run `desktop`, na graphical environment itatokea ndani ya Termux:X11 mara moja.
-
-### 3. Headless VPS with Web Browser au VNC
-
-Kama server yako haina active X11 display:
-
-```bash
-desktop --resolution 1920x1080
-```
-
-Kisha fungua browser yako na tembelea:
-`http://your-server-ip:6080/vnc.html`
-
-Au connect kwa VNC client yoyote kupitia `your-server-ip:5900`.
+<a href="mailto:charliesyllas@gmail.com"><img src="https://img.shields.io/badge/Email-charliesyllas%40gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
+<a href="https://wa.me/255740528822"><img src="https://img.shields.io/badge/WhatsApp-%2B255740528822-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp"></a>
+<a href="https://www.tiktok.com/@dev_charlie"><img src="https://img.shields.io/badge/TikTok-dev__charlie-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok"></a>
+<a href="https://www.facebook.com/charliesyllas"><img src="https://img.shields.io/badge/Facebook-charlie_syllas-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="Facebook"></a>
+<a href="https://charlietech.site"><img src="https://img.shields.io/badge/Website-charlietech.site-0078D4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website"></a>
 
 ---
 
-## Command-Line Options
+## 6. Call for Contribution & Support
 
-```text
-usage: desktop [-h] [--resolution WxH] [--vnc-port PORT] [--novnc-port PORT]
-               [--no-vnc] [--no-novnc] [--native]
+### Contribute
+We welcome all minds to make ease-Desk better! Whether you are a Python developer, a UI designer, or a documentation expert, your help is appreciated. Please read our [CONTRIBUTING.md](CONTRIBUTING.md) to understand the project architecture and how to submit a Pull Request.
 
-ease-Desk Session Manager for VPS
+### Support
+If ease-Desk has saved you time or money, consider supporting the development. Your support helps keep the servers running and the coffee flowing.
 
-options:
-  -h, --help            show this help message and exit
-  --resolution WxH      virtual display resolution (default: 1920x1080x24)
-  --vnc-port PORT       VNC server port (default: 5900)
-  --novnc-port PORT     noVNC web client port (default: 6080)
-  --no-vnc              disable VNC server
-  --no-novnc            disable noVNC web server
-  --native              force native X11 display (ignore Xvfb)
-```
-
----
-
-## Docker Test Environment
-
-Kama unataka ku-test ease-Desk ndani ya isolated container kabla ya kuweka kwenye server halisi:
-
-```bash
-# Start the container
-docker-compose up -d
-
-# Connect via SSH (password: charlie)
-ssh -X -p 2222 charlie@localhost
-
-# Launch ease-Desk
-desktop
-```
-
----
-
-## Security Safeguards
-
-- Critical system directories (`/`, `/bin`, `/boot`, `/etc`, `/usr`, `/lib`, `/sys`, `/proc`) haziwezi ku-futiwa kwa bahati mbaya.
-- File paths zote zina-validate-iwa kwa absolute paths ili kuzuia directory traversal attacks.
-- Subprocesses zote ziko grouped kwenye isolated process groups ili zikizimwa zisibaki hewani.
-
----
-
-## Running Tests
-
-Ili ku-verify kama kila component inafanya kazi fresh:
-
-```bash
-python3 -m unittest discover -s tests
-python3 -m unittest discover -s file_manager/tests
-```
-
----
-
-## Contributing
-We welcome contributions from the community! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on code style, repository structure, and commit message formatting.
-
-## License
-
-MIT License. Developed by Charlie for simple, efficient VPS administration.
+<a href="https://www.buymeacoffee.com/devcharlie"><img src="https://img.shields.io/badge/Buy_Me_A_Coffee-Support_Project-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
