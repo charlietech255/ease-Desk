@@ -207,6 +207,9 @@ python3 -m unittest discover -s file_manager/tests
 
 ---
 
+## Contributing
+We welcome contributions from the community! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on code style, repository structure, and commit message formatting.
+
 ## License
 
 MIT License. Developed by Charlie for simple, efficient VPS administration.
