@@ -373,6 +373,22 @@ server {
   root /opt/ease-desk/shared/web;
   rewrite ^/logout$ /logout.html break;
  }
+
+ # ── /websockify & KasmVNC root-level assets ──────────────────────────────────
+ # KasmVNC's JS constructs WebSocket URL relative to the ORIGIN (not /kasmvnc/).
+ # So wss://host:8444/websockify must be proxied directly to KasmVNC.
+ # Same for /assets/, /core/, /vendor/, /app/ etc. that KasmVNC serves.
+ location ~* ^/(websockify|assets|core|vendor|app|images|sounds)(/.*)?$ {
+  proxy_pass ${PROXY_PASS};
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade \$http_upgrade;
+  proxy_set_header Connection \$connection_upgrade;
+  proxy_set_header Host \$host;
+  proxy_set_header X-Real-IP \$remote_addr;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_read_timeout 86400s;
+  proxy_send_timeout 86400s;
+ }
 }
 EOF
 
