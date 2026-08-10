@@ -79,6 +79,7 @@ class SettingsWindow(Gtk.Window):
         self._add_page("Services", "task_manager", self._build_services())
         self._add_page("Firewall", "webroot", self._build_firewall())
         self._add_page("Users", "folder", self._build_users())
+        self._add_page("ease-Desk", "settings", self._build_easedesk_control())
 
         # Build Sidebar Navigation
         self.nav_buttons = {}
@@ -155,6 +156,34 @@ class SettingsWindow(Gtk.Window):
             grid.attach(vl, 1, i, 1, 1)
 
         box.pack_start(grid, False, False, 0)
+
+        # --- Network Info ---
+        net_lbl = Gtk.Label(label="Network IPs:")
+        net_lbl.get_style_context().add_class("info-key")
+        net_lbl.set_halign(Gtk.Align.START)
+        net_lbl.set_margin_top(12)
+        box.pack_start(net_lbl, False, False, 0)
+        
+        try:
+            ips = subprocess.run(["hostname", "-I"], capture_output=True, text=True).stdout.strip()
+            if not ips: ips = "No IP found"
+        except:
+            ips = "Unknown"
+            
+        ip_val = Gtk.Label(label=ips)
+        ip_val.get_style_context().add_class("info-val")
+        ip_val.set_halign(Gtk.Align.START)
+        ip_val.set_selectable(True)
+        box.pack_start(ip_val, False, False, 0)
+
+        # --- System Updater ---
+        update_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        update_box.set_margin_top(20)
+        update_btn = Gtk.Button(label="Run System Update (apt)")
+        update_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo apt update && sudo apt upgrade -y && echo 'Done!' && sleep 3"]))
+        update_box.pack_start(update_btn, False, False, 0)
+        box.pack_start(update_box, False, False, 0)
+
         return box
 
     # ---------------------------------------------------------------------- Services
@@ -225,6 +254,15 @@ class SettingsWindow(Gtk.Window):
 
         scroll.add(listbox)
         box.pack_start(scroll, True, True, 0)
+
+        # --- Quick Log Viewer ---
+        log_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        log_box.set_margin_top(16)
+        log_btn = Gtk.Button(label="View Recent System Logs (journalctl)")
+        log_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo journalctl -xe -n 50 | less"]))
+        log_box.pack_start(log_btn, False, False, 0)
+        box.pack_start(log_box, False, False, 0)
+
         return box
 
     def _run_systemctl(self, action: str, svc: str) -> None:
@@ -312,4 +350,64 @@ class SettingsWindow(Gtk.Window):
             pass
             
         box.pack_start(listbox, True, True, 0)
+        return box
+
+    # ---------------------------------------------------------------------- ease-Desk Control
+    def _build_easedesk_control(self) -> Gtk.Widget:
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        box.set_margin_top(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        
+        lbl = Gtk.Label(label="ease-Desk System Control")
+        lbl.get_style_context().add_class("page-title")
+        lbl.set_halign(Gtk.Align.START)
+        box.pack_start(lbl, False, False, 0)
+
+        desc = Gtk.Label(label="Manage your desktop environment installation, configuration, and state.")
+        desc.set_halign(Gtk.Align.START)
+        desc.get_style_context().add_class("info-val")
+        box.pack_start(desc, False, False, 0)
+
+        # Actions Box
+        action_grid = Gtk.Grid()
+        action_grid.set_column_spacing(16)
+        action_grid.set_row_spacing(16)
+        action_grid.set_margin_top(20)
+
+        # Change Password
+        pw_btn = Gtk.Button(label="Change VNC Password")
+        pw_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo /bin/bash -c 'echo \"Enter new password:\"; read -s p1; echo \"Confirm:\"; read -s p2; if [ \"$p1\" = \"$p2\" ]; then printf \"%s\\n%s\\n\" \"$p1\" \"$p1\" | kasmvncpasswd -u $USER -rw ~/.kasmpasswd; echo \"Done! Restart ease-Desk to apply.\"; else echo \"Mismatch!\"; fi; sleep 3'"]))
+        
+        pw_desc = Gtk.Label(label="Update your remote desktop connection password.")
+        pw_desc.get_style_context().add_class("info-key")
+        pw_desc.set_halign(Gtk.Align.START)
+        
+        action_grid.attach(pw_btn, 0, 0, 1, 1)
+        action_grid.attach(pw_desc, 1, 0, 1, 1)
+
+        # Restart
+        res_btn = Gtk.Button(label="Restart ease-Desk")
+        res_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo systemctl restart easedesk"]))
+        
+        res_desc = Gtk.Label(label="Restart the display server and UI safely.")
+        res_desc.get_style_context().add_class("info-key")
+        res_desc.set_halign(Gtk.Align.START)
+        
+        action_grid.attach(res_btn, 0, 1, 1, 1)
+        action_grid.attach(res_desc, 1, 1, 1, 1)
+
+        # Uninstall
+        uni_btn = Gtk.Button(label="Uninstall System")
+        uni_btn.get_style_context().add_class("btn-danger")
+        uni_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo /opt/ease-desk/scripts/uninstall.sh"]))
+        
+        uni_desc = Gtk.Label(label="Completely remove ease-Desk and all settings from this VPS.")
+        uni_desc.get_style_context().add_class("info-key")
+        uni_desc.set_halign(Gtk.Align.START)
+        
+        action_grid.attach(uni_btn, 0, 2, 1, 1)
+        action_grid.attach(uni_desc, 1, 2, 1, 1)
+
+        box.pack_start(action_grid, False, False, 0)
         return box

@@ -110,3 +110,29 @@ entry:focus {
     border-color: #89b4fa;
     box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
 }
+
+/* ------------------------------------------------------------------ Special Buttons */
+.btn-danger {
+    background-image: linear-gradient(to bottom, #f38ba8, #eba0ac);
+    color: #11111b;
+    border-color: #eba0ac;
+    font-weight: bold;
+}
+.btn-danger:hover {
+    background-image: linear-gradient(to bottom, #eba0ac, #f38ba8);
+}
+.btn-danger:active {
+    background-image: none;
+    background-color: #f38ba8;
+}
+
+/* ------------------------------------------------------------------ Terminal / Log Viewer */
+.log-view {
+    background-color: #11111b;
+    color: #a6e3a1;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(205, 214, 244, 0.1);
+}
