@@ -361,9 +361,13 @@
      btn.disabled = false;
 
       if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
-       // Set cookie with Base64 credentials. Nginx will read this and inject the Authorization header
-       // for all requests to /kasmvnc/ and /websockify, completely avoiding browser Basic Auth popups.
+       // Set cookie for Nginx HTTP Basic Auth bypass
        document.cookie = "easedesk_auth=" + btoa(u + ":" + p) + "; path=/; max-age=86400; SameSite=Strict";
+       
+       // Store session token + VNC password for session-guard.js
+       sessionStorage.setItem('easedesk_session', '1');
+       sessionStorage.setItem('easedesk_user', u);
+       sessionStorage.setItem('easedesk_pass', p);
        
        // Go directly to KasmVNC
        window.location.replace('/kasmvnc/');

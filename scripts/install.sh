@@ -374,6 +374,13 @@ server {
   # Inject Basic Auth from Cookie
   proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
   proxy_hide_header WWW-Authenticate;
+  
+  # Disable compression so sub_filter can inspect the HTML body
+  proxy_set_header Accept-Encoding "";
+
+  # Inject session-guard script before any KasmVNC scripts run
+  sub_filter '<head>' '<head><script src="/session-guard.js"></script>';
+  sub_filter_once on;
  }
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
