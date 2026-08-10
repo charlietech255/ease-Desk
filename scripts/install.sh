@@ -223,10 +223,17 @@ if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
      chmod 600 "${u_home}/.kasmpasswd" 2>/dev/null || true
      [ "$TARGET_USER" != "root" ] && chown "${TARGET_USER}" "${u_home}/.kasmpasswd" 2>/dev/null || true
     done
-    if [ -z "$VNC_PASS" ]; then
+     if [ -z "$VNC_PASS" ]; then
      echo -e "${YELLOW} KasmVNC password set to 'easedesk123' (old format was incompatible). Change with: kasmvncpasswd -u ${TARGET_USER} ~/.kasmpasswd${NC}"
     else
      echo -e "${GREEN} KasmVNC native authentication configured.${NC}"
+    fi
+   fi
+
+   # Patch KasmVNC's index.html to force remote scaling by default
+   if [ -f /usr/share/kasmvnc/www/index.html ]; then
+    if ! grep -q "easedesk-force-remote-scale" /usr/share/kasmvnc/www/index.html; then
+     sed -i 's|</head>|<script>/* easedesk-force-remote-scale */ window.localStorage.setItem("kasm.scaling", "remote");</script></head>|g' /usr/share/kasmvnc/www/index.html
     fi
    fi
   fi
