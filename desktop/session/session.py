@@ -335,15 +335,8 @@ desktop:
                 "# ease-Desk xstartup for KasmVNC — do not remove\n"
                 "unset SESSION_MANAGER\n"
                 "unset DBUS_SESSION_BUS_ADDRESS\n\n"
-                "# Start a lightweight window manager so KasmVNC has a valid desktop\n"
-                "if command -v openbox >/dev/null 2>&1; then\n"
-                "    picom -b --backend xrender & \n"
-                "    exec openbox-session\n"
-                "elif command -v fluxbox >/dev/null 2>&1; then\n"
-                "    exec fluxbox\n"
-                "else\n"
-                "    exec xterm\n"
-                "fi\n"
+                "# Keep the X session alive while ease-Desk manages the window manager\n"
+                "exec sleep infinity\n"
             )
             with open(xstartup_path, "w") as f:
                 f.write(xstartup_content)
@@ -534,17 +527,6 @@ desktop:
             start_new_session=True,
         )
         self.spawned_processes.append(wm)
-        
-        if shutil.which("picom"):
-            picom = subprocess.Popen(
-                ["picom", "--backend", "xrender"],
-                env=os.environ.copy(),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-            self.spawned_processes.append(picom)
-            
         time.sleep(0.15)
 
     def _start_desktop_shell(self) -> subprocess.Popen:

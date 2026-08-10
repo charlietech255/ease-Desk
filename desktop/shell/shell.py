@@ -191,6 +191,7 @@ class DesktopShell:
   self.window.set_title("ease-Desk")
   self.window.set_decorated(False)
   self.window.set_default_size(1280, 720)
+  self.window.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
   self.window.fullscreen()
 
   self.window.connect("draw", self._on_draw_background)

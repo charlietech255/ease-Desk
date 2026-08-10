@@ -254,7 +254,7 @@ class EqualizerWidget(Gtk.DrawingArea):
     def set_playing(self, playing: bool) -> None:
         self._playing = playing
         if playing and self._tick_id is None:
-            self._tick_id = GLib.timeout_add(80, self._tick)
+            self._tick_id = GLib.timeout_add(250, self._tick)
         elif not playing and self._tick_id is not None:
             GLib.source_remove(self._tick_id)
             self._tick_id = None
