@@ -323,22 +323,25 @@ server {
  ssl_protocols TLSv1.2 TLSv1.3;
  ssl_ciphers HIGH:!aNULL:!MD5;
 
- # Redirect plain HTTP requests on this port to HTTPS
+ # Redirect plain HTTP to HTTPS
  error_page 497 =301 https://\$host:\$server_port\$request_uri;
 
- # ── Root: serve login page (unauthenticated) ────────────────────────────────
+ # ── Root → custom login page ────────────────────────────────────────────────
  location = / {
   root /opt/ease-desk/shared/web;
   try_files /login.html =404;
  }
 
- # ── /desktop: session-guard page (checks sessionStorage, clears auth on refresh)
- location = /desktop {
+ # ── Static web assets (login, logout, session-guard) ───────────────────────
+ location ~* ^/(login\.html|logout\.html|session-guard\.js|desktop\.html)$ {
   root /opt/ease-desk/shared/web;
-  try_files /desktop.html =404;
  }
 
- # ── /kasmvnc/: the actual KasmVNC proxy (auth required) ────────────────────
+ # ── /kasmvnc/: proxy to KasmVNC + inject session-guard script ──────────────
+ # No HTTP Basic Auth here — VNC protocol handles its own auth.
+ # Nginx injects session-guard.js at the top of <head> via sub_filter so that:
+ #   - Visitors without a sessionStorage token (refresh/new tab) → redirected to /
+ #   - Logged-in visitors → password + autoconnect injected into URL for noVNC
  location /kasmvnc/ {
   rewrite ^/kasmvnc(/.*)$ \$1 break;
   proxy_pass ${PROXY_PASS};
@@ -350,30 +353,25 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-  proxy_intercept_errors on;
-  error_page 401 =200 /;
-  proxy_hide_header WWW-Authenticate;
+
+  # Disable compression so sub_filter can inspect the HTML body
+  proxy_set_header Accept-Encoding "";
+
+  # Inject session-guard script before any KasmVNC scripts run
+  sub_filter '<head>' '<head><script src="/session-guard.js"></script>';
+  sub_filter_once on;
  }
 
- # ── /auth_check: XHR auth probe ────────────────────────────────────────────
+ # ── /auth_check: XHR credentials probe used by login.html ──────────────────
  location = /auth_check {
   proxy_pass ${PROXY_PASS}/;
   proxy_hide_header WWW-Authenticate;
  }
 
- # ── /logout: clears auth and redirects to login ────────────────────────────
+ # ── /logout ─────────────────────────────────────────────────────────────────
  location = /logout {
   root /opt/ease-desk/shared/web;
   rewrite ^/logout$ /logout.html break;
- }
-
- location = /login.html {
-  root /opt/ease-desk/shared/web;
- }
-
- location = /desktop.html {
-  root /opt/ease-desk/shared/web;
-  internal;
  }
 }
 EOF

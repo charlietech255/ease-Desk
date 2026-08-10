@@ -361,12 +361,12 @@
      btn.disabled = false;
 
      if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
-      // Store session token + credentials so desktop.html can complete the auth redirect
+      // Store session token + VNC password for session-guard.js injected in /kasmvnc/
       sessionStorage.setItem('easedesk_session', '1');
       sessionStorage.setItem('easedesk_user', u);
       sessionStorage.setItem('easedesk_pass', p);
-      // Navigate to transit page (desktop.html will read sessionStorage and go to /kasmvnc/)
-      window.location.replace('/desktop');
+      // Go directly to KasmVNC — session-guard.js will inject password & autoconnect
+      window.location.replace('/kasmvnc/');
      } else {
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';
