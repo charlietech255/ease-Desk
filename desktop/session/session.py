@@ -310,6 +310,25 @@ desktop:
             with open(kasm_yaml, "w") as f:
                 f.write(kasm_yaml_content)
             
+            # Patch KasmVNC's index.html to force 'scale' instead of 'remote' or 'none'
+            for base_dir in ["/usr/share/kasmvnc", "/usr/local/share/kasmvnc"]:
+                index_path = os.path.join(base_dir, "www", "index.html")
+                if os.path.exists(index_path) and os.access(index_path, os.W_OK):
+                    try:
+                        with open(index_path, "r") as f:
+                            content = f.read()
+                        
+                        # Only modify if it hasn't been hardcoded yet, or aggressively replace it
+                        # The UI.initSetting initializes scaling from local storage or defaults.
+                        # We will aggressively append a script block to force Local Scaling 
+                        if "/* easedesk-force-scale */" not in content:
+                            inject = "<script>/* easedesk-force-scale */ window.localStorage.setItem('kasm.scaling', 'scale');</script>"
+                            content = content.replace("</head>", f"{inject}</head>")
+                            with open(index_path, "w") as f:
+                                f.write(content)
+                    except Exception as e:
+                        print(f"  Warning: could not patch KasmVNC index.html: {e}")
+
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             xstartup_content = (
                 "#!/bin/bash\n"
