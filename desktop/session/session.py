@@ -252,6 +252,24 @@ class SessionManager:
         # Option A: KasmVNC
         if shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver"):
             print("Launching KasmVNC virtual display...")
+
+            # ── Start PulseAudio (virtual sink for browser audio via KasmVNC) ───
+            if shutil.which("pulseaudio"):
+                pulse_env = os.environ.copy()
+                pulse_env.setdefault("DBUS_SESSION_BUS_ADDRESS", "")
+                try:
+                    subprocess.run(
+                        ["pulseaudio", "--start", "--exit-idle-time=-1"],
+                        env=pulse_env,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=5,
+                    )
+                    print("  PulseAudio started (audio will stream via KasmVNC).", flush=True)
+                    os.environ["PULSE_SERVER"] = os.environ.get("PULSE_SERVER", "unix:/run/user/0/pulse/native")
+                except Exception as pa_err:
+                    print(f"  PulseAudio start warning: {pa_err}", flush=True)
+
             vnc_dir = os.path.expanduser("~/.vnc")
             os.makedirs(vnc_dir, exist_ok=True)
 

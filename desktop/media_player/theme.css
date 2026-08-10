@@ -1,0 +1,245 @@
+/* ============================================================
+   ease-Desk Media Player — Catppuccin Mocha Dark Theme
+   ============================================================ */
+
+/* ── Variables ────────────────────────────────────────────── */
+* {
+    background-color: transparent;
+    color: #cdd6f4;
+    font-family: "Inter", "Outfit", "Cantarell", sans-serif;
+    font-size: 13px;
+    outline: none;
+    border: none;
+}
+
+window.media-player {
+    background-color: #11111b;
+}
+
+/* ── Header Bar ──────────────────────────────────────────── */
+.mp-header {
+    background: linear-gradient(180deg, #1e1e2e 0%, #181825 100%);
+    border-bottom: 1px solid rgba(137,180,250,0.08);
+    padding: 12px 18px;
+    min-height: 60px;
+}
+
+.mp-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #cdd6f4;
+    letter-spacing: -0.3px;
+}
+
+.mp-subtitle {
+    font-size: 11px;
+    color: #6c7086;
+    margin-top: 2px;
+}
+
+.mp-logo {
+    font-size: 22px;
+}
+
+/* ── Sidebar / Playlist ──────────────────────────────────── */
+.mp-sidebar {
+    background-color: #181825;
+    border-right: 1px solid rgba(205,214,244,0.06);
+    min-width: 220px;
+}
+
+.mp-sidebar-header {
+    background-color: #1e1e2e;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(205,214,244,0.06);
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c7086;
+    letter-spacing: 0.8px;
+}
+
+.mp-playlist-item {
+    background: transparent;
+    border-radius: 8px;
+    padding: 2px 4px;
+    margin: 1px 6px;
+}
+
+.mp-playlist-item:hover {
+    background-color: rgba(137,180,250,0.08);
+}
+
+.mp-playlist-item.playing {
+    background-color: rgba(137,180,250,0.15);
+}
+
+.mp-track-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #cdd6f4;
+}
+
+.mp-track-name.playing {
+    color: #89b4fa;
+}
+
+.mp-track-duration {
+    font-size: 10px;
+    color: #6c7086;
+}
+
+.mp-add-btn {
+    background: rgba(137,180,250,0.1);
+    border: 1px solid rgba(137,180,250,0.2);
+    border-radius: 8px;
+    color: #89b4fa;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    margin: 8px;
+}
+
+.mp-add-btn:hover {
+    background: rgba(137,180,250,0.18);
+}
+
+/* ── Video / Art Area ─────────────────────────────────────── */
+.mp-canvas-area {
+    background-color: #000000;
+}
+
+.mp-art-overlay {
+    background: linear-gradient(135deg, #1e1e2e 0%, #181825 100%);
+}
+
+.mp-art-icon {
+    font-size: 80px;
+    color: rgba(137,180,250,0.15);
+}
+
+.mp-audio-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #cdd6f4;
+    letter-spacing: -0.5px;
+}
+
+.mp-audio-artist {
+    font-size: 14px;
+    color: #89b4fa;
+    margin-top: 4px;
+}
+
+/* ── Equalizer bars (animated) ───────────────────────────── */
+.mp-eq-bar {
+    background: linear-gradient(180deg, #89b4fa, #74c7ec);
+    border-radius: 3px 3px 0 0;
+    min-width: 4px;
+}
+
+/* ── Controls Bar ─────────────────────────────────────────── */
+.mp-controls {
+    background: linear-gradient(180deg, #181825 0%, #1e1e2e 100%);
+    border-top: 1px solid rgba(205,214,244,0.06);
+    padding: 12px 20px;
+}
+
+/* Seek / Progress */
+.mp-seek scale trough {
+    background-color: rgba(205,214,244,0.1);
+    border-radius: 4px;
+    min-height: 4px;
+}
+
+.mp-seek scale trough highlight {
+    background: linear-gradient(90deg, #89b4fa, #74c7ec);
+    border-radius: 4px;
+}
+
+.mp-seek scale slider {
+    background-color: #89b4fa;
+    border-radius: 50%;
+    min-width: 14px;
+    min-height: 14px;
+    border: 2px solid #1e1e2e;
+    box-shadow: 0 0 0 3px rgba(137,180,250,0.3);
+}
+
+/* Volume */
+.mp-volume scale trough {
+    background-color: rgba(205,214,244,0.08);
+    border-radius: 3px;
+    min-height: 3px;
+}
+
+.mp-volume scale trough highlight {
+    background-color: #a6e3a1;
+    border-radius: 3px;
+}
+
+.mp-volume scale slider {
+    background-color: #a6e3a1;
+    border-radius: 50%;
+    min-width: 10px;
+    min-height: 10px;
+}
+
+/* Playback control buttons */
+.mp-ctrl-btn {
+    background: transparent;
+    border-radius: 50%;
+    padding: 8px;
+    color: #cdd6f4;
+    font-size: 18px;
+    min-width: 38px;
+    min-height: 38px;
+}
+
+.mp-ctrl-btn:hover {
+    background: rgba(205,214,244,0.08);
+    color: #89b4fa;
+}
+
+.mp-ctrl-btn.primary {
+    background: linear-gradient(135deg, #89b4fa, #74c7ec);
+    color: #1e1e2e;
+    border-radius: 50%;
+    min-width: 46px;
+    min-height: 46px;
+    font-size: 20px;
+}
+
+.mp-ctrl-btn.primary:hover {
+    background: linear-gradient(135deg, #74c7ec, #89b4fa);
+    box-shadow: 0 4px 20px rgba(137,180,250,0.4);
+}
+
+.mp-time-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c7086;
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+}
+
+.mp-vol-icon {
+    font-size: 14px;
+    color: #6c7086;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+scrollbar {
+    background-color: transparent;
+    min-width: 4px;
+}
+
+scrollbar slider {
+    background-color: rgba(205,214,244,0.1);
+    border-radius: 4px;
+    min-width: 4px;
+    min-height: 40px;
+}
+
+scrollbar slider:hover {
+    background-color: rgba(205,214,244,0.2);
+}

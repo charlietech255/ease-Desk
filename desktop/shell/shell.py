@@ -96,6 +96,13 @@ PINNED_APPS_CONFIG = [
   "target": "app://wallpaper",
   "tooltip": "Personalize Desktop & Wallpapers",
  },
+ {
+  "id": "media_player",
+  "name": "Media Player",
+  "icon_key": "media",
+  "target": "app://media_player",
+  "tooltip": "Play Music & Video",
+ },
 ]
 
 
@@ -645,14 +652,15 @@ class DesktopShell:
   apps_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
   
   app_entries = [
-   ("File Manager",   "thispc://",         "folder"),
-   ("Web Browser",    "app://browser",     "browser"),
-   ("Terminal",       "app://terminal",    "terminal"),
-   ("Task Manager",   "app://task_manager","task_manager"),
-   ("Wallpaper",      "app://wallpaper",   "settings"),
-   ("System Logs",    "/var/log",          "text"),
-   ("Configuration",  "/etc",              "config"),
-   ("Web Root",       "/var/www",          "webroot"),
+   ("File Manager",   "thispc://",             "folder"),
+   ("Web Browser",    "app://browser",         "browser"),
+   ("Terminal",       "app://terminal",        "terminal"),
+   ("Task Manager",   "app://task_manager",    "task_manager"),
+   ("Media Player",   "app://media_player",    "media"),
+   ("Wallpaper",      "app://wallpaper",       "settings"),
+   ("System Logs",    "/var/log",              "text"),
+   ("Configuration",  "/etc",                  "config"),
+   ("Web Root",       "/var/www",              "webroot"),
   ]
   
   all_app_buttons = []
@@ -1405,6 +1413,11 @@ class DesktopShell:
    app_id = "editor"
    title = "Editor"
    icon_key = "editor"
+  elif target_path in ("app://media_player", "media_player"):
+   cmd = [sys.executable, "-m", "desktop.media_player.app"]
+   app_id = "media_player"
+   title = "Media Player"
+   icon_key = "media"
   else:
    cmd = [sys.executable, "-m", "file_manager.app", target_path]
    app_id = "this_pc" if target_path == "thispc://" else "files"

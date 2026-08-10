@@ -166,10 +166,28 @@ if command -v apt-get >/dev/null 2>&1; then
  # Install ultra-lightweight native WebKit browser (Epiphany) for fast startup & minimal RAM (<80MB)
  echo -e "${CYAN} Installing Lightweight WebKit Browser (Epiphany)...${NC}"
  apt-get install -y -qq epiphany-browser 2>/dev/null || true
+
+ # Install PulseAudio + GStreamer + mpv for audio/media support
+ echo -e "${CYAN} Installing Audio & Media Player dependencies...${NC}"
+ apt-get install -y -qq \
+  pulseaudio \
+  pulseaudio-utils \
+  mpv \
+  gstreamer1.0-tools \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-libav \
+  gstreamer1.0-gtk3 \
+  python3-gst-1.0 \
+  libgstreamer1.0-dev \
+  2>/dev/null || apt-get install -y -qq pulseaudio mpv gstreamer1.0-tools gstreamer1.0-plugins-good 2>/dev/null || true
+ echo -e "${GREEN} Audio & media dependencies installed.${NC}"
+
 elif command -v dnf >/dev/null 2>&1; then
- dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool
+ dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool pulseaudio mpv gstreamer1-plugins-good gstreamer1-plugins-bad-free
 elif command -v pacman >/dev/null 2>&1; then
- pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool
+ pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool pulseaudio mpv gst-plugins-good gst-plugins-bad
 elif command -v pkg >/dev/null 2>&1; then
  pkg install -y python x11-repo xwayland tigervnc git
 fi
