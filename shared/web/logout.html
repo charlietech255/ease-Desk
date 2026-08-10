@@ -7,18 +7,18 @@
 </head>
 <body>
     <script>
-        // Send a fake basic auth request to clear the browser's credentials cache
+        // Clear the auth cookie by setting its expiration to the past
+        document.cookie = "easedesk_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        // Also send a fake basic auth request to clear any leftover browser credentials cache
         const xhr = new XMLHttpRequest();
         xhr.open("GET", "/", true, "logout", "logout" + Math.random());
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
-                // Redirect back to login page
-                window.location.href = "/";
+                window.location.replace("/");
             }
         };
-        xhr.onerror = function() {
-            window.location.href = "/";
-        };
+        xhr.onerror = function() { window.location.replace("/"); };
         xhr.send();
     </script>
 </body>

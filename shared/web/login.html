@@ -360,13 +360,13 @@
      loader.style.display = 'none';
      btn.disabled = false;
 
-     if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
-      // Store session token + VNC password for session-guard.js injected in /kasmvnc/
-      sessionStorage.setItem('easedesk_session', '1');
-      sessionStorage.setItem('easedesk_user', u);
-      sessionStorage.setItem('easedesk_pass', p);
-      // Go directly to KasmVNC — session-guard.js will inject password & autoconnect
-      window.location.replace('/kasmvnc/');
+      if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
+       // Set cookie with Base64 credentials. Nginx will read this and inject the Authorization header
+       // for all requests to /kasmvnc/ and /websockify, completely avoiding browser Basic Auth popups.
+       document.cookie = "easedesk_auth=" + btoa(u + ":" + p) + "; path=/; max-age=86400; SameSite=Strict";
+       
+       // Go directly to KasmVNC
+       window.location.replace('/kasmvnc/');
      } else {
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';

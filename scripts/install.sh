@@ -355,11 +355,10 @@ server {
   root /opt/ease-desk/shared/web;
  }
 
- # ── /kasmvnc/: proxy to KasmVNC + inject session-guard script ──────────────
- # No HTTP Basic Auth here — VNC protocol handles its own auth.
- # Nginx injects session-guard.js at the top of <head> via sub_filter so that:
- #   - Visitors without a sessionStorage token (refresh/new tab) → redirected to /
- #   - Logged-in visitors → password + autoconnect injected into URL for noVNC
+ # ── /kasmvnc/: proxy to KasmVNC ─────────────────────────────────────────────
+ # Nginx reads the base64 credentials from the 'easedesk_auth' cookie (set by login.html)
+ # and injects the Authorization header before proxying to KasmVNC.
+ # This completely bypasses the browser's native Basic Auth dialog.
  location /kasmvnc/ {
   rewrite ^/kasmvnc(/.*)$ \$1 break;
   proxy_pass ${PROXY_PASS};
@@ -372,12 +371,9 @@ server {
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
 
-  # Disable compression so sub_filter can inspect the HTML body
-  proxy_set_header Accept-Encoding "";
-
-  # Inject session-guard script before any KasmVNC scripts run
-  sub_filter '<head>' '<head><script src="/session-guard.js"></script>';
-  sub_filter_once on;
+  # Inject Basic Auth from Cookie
+  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
+  proxy_hide_header WWW-Authenticate;
  }
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
@@ -406,6 +402,10 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
+
+  # Inject Basic Auth from Cookie
+  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
+  proxy_hide_header WWW-Authenticate;
  }
 }
 EOF
