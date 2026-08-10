@@ -122,7 +122,7 @@ class SessionManager:
             primary_ip = ips[0] if ips else "localhost"
             is_kasm = shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver")
             if is_kasm:
-                url_params = "?resize=remote"
+                url_params = "?autoconnect=true&resize=scale"
                 print("\n" + "=" * 64)
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
