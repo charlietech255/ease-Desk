@@ -350,7 +350,8 @@
    // Send XMLHttpRequest to authenticate against our special /auth_check endpoint
    const xhr = new XMLHttpRequest();
    
-   xhr.open("GET", "/auth_check", true, u, p);
+   xhr.open("GET", "/auth_check", true);
+   xhr.setRequestHeader("Authorization", "Basic " + btoa(u + ":" + p));
    
    xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
