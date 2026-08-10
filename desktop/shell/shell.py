@@ -91,10 +91,10 @@ PINNED_APPS_CONFIG = [
  },
  {
   "id": "settings",
-  "name": "Themes & Wallpaper",
+  "name": "System Settings",
   "icon_key": "settings",
-  "target": "app://wallpaper",
-  "tooltip": "Personalize Desktop & Wallpapers",
+  "target": "app://settings",
+  "tooltip": "System Settings & Updates",
  },
  {
   "id": "media_player",

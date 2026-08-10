@@ -94,8 +94,10 @@ class SpotlightWindow(Gtk.Window):
                 self.shell._launch_path("app://task_manager")
             elif q in ("files", "this pc", "file manager"):
                 self.shell._launch_path("thispc://")
-            elif q in ("wallpaper", "settings", "theme", "personalize"):
+            elif q in ("wallpaper", "theme", "personalize"):
                 self.shell._launch_path("app://wallpaper")
+            elif q in ("settings", "system"):
+                self.shell._launch_path("app://settings")
             elif os.path.exists(query):
                 self.shell._launch_path(query)
             else:
