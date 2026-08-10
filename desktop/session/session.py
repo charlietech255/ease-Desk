@@ -122,14 +122,15 @@ class SessionManager:
             primary_ip = ips[0] if ips else "localhost"
             is_kasm = shutil.which("vncserver") and os.path.exists("/usr/bin/kasmvncserver")
             if is_kasm:
+                url_params = "?autoconnect=true&resize=scale"
                 print("\n" + "=" * 64)
                 print("         🚀 ease-Desk Server is Running! (KasmVNC)       ")
                 print("=" * 64)
                 print("  Open this link in your browser (Phone / PC / Tablet):")
-                print(f"  👉 http://{primary_ip}:8444/")
+                print(f"  👉 http://{primary_ip}:8444/{url_params}")
                 print("")
                 print("  Local access (SSH tunnel):")
-                print(f"  👉 http://localhost:8444/")
+                print(f"  👉 http://localhost:8444/{url_params}")
                 print("-" * 64)
             else:
                 url_params = "?autoconnect=true&resize=scale"
@@ -293,8 +294,21 @@ class SessionManager:
             # Write minimal kasmvnc.yaml — only disable SSL, let KasmVNC use its natural port
             # Bind to 127.0.0.1 so external access MUST go through Nginx
             kasm_yaml = os.path.join(vnc_dir, "kasmvnc.yaml")
+            res_w = self.resolution.split('x')[0]
+            res_h = self.resolution.split('x')[1]
+            kasm_yaml_content = f"""network:
+  protocol: http
+  interface: 127.0.0.1
+  ssl:
+    require_ssl: false
+desktop:
+  allow_resize: false
+  resolution:
+    width: {res_w}
+    height: {res_h}
+"""
             with open(kasm_yaml, "w") as f:
-                f.write("network:\n  protocol: http\n  interface: 127.0.0.1\n  ssl:\n    require_ssl: false\n")
+                f.write(kasm_yaml_content)
             
             xstartup_path = os.path.join(vnc_dir, "xstartup")
             xstartup_content = (
