@@ -1,15 +1,15 @@
+version: "3.8"
 
 services:
-  charlie-vps:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: charlie-vps
-    hostname: charlie-vps
-    ports:
-      - "2222:22"
-      - "5900:5900"
-      - "6080:6080"
-    environment:
-      - DISPLAY=:99
+  easedesk:
+    build: .
+    container_name: easedesk
     restart: unless-stopped
+    ports:
+      - "8444:8444"
+    volumes:
+      - ./workspace:/home/easedesk
+    environment:
+      - EASEDESK_VNC_PASS=easedesk123
+      - TZ=UTC
+    shm_size: "1g"

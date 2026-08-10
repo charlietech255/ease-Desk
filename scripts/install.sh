@@ -140,6 +140,7 @@ if command -v apt-get >/dev/null 2>&1; then
   xrdp \
   xorgxrdp \
   nginx \
+  fail2ban \
   procps \
   scrot \
   wmctrl \
@@ -153,14 +154,14 @@ if command -v apt-get >/dev/null 2>&1; then
   hicolor-icon-theme \
   >/dev/null 2>&1 || {
    echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx git curl wget wmctrl xdotool >/dev/null 2>&1 || true
+   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx fail2ban git curl wget wmctrl xdotool >/dev/null 2>&1 || true
   }
   adwaita-icon-theme \
   papirus-icon-theme \
   hicolor-icon-theme \
   >/dev/null 2>&1 || {
    echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx git curl wget >/dev/null 2>&1 || true
+   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx fail2ban git curl wget >/dev/null 2>&1 || true
   }
 
  # Install ultra-lightweight native WebKit browser (Epiphany) for fast startup & minimal RAM (<80MB)
@@ -186,9 +187,9 @@ if command -v apt-get >/dev/null 2>&1; then
  echo -e "${GREEN} Audio & media dependencies installed.${NC}"
 
 elif command -v dnf >/dev/null 2>&1; then
- dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool pulseaudio mpv gstreamer1-plugins-good gstreamer1-plugins-bad-free
+ dnf install -y python3 python3-gobject gtk3 vte291 xorg-x11-server-Xvfb x11vnc novnc python3-websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx fail2ban git curl wget wmctrl xdotool pulseaudio mpv gstreamer1-plugins-good gstreamer1-plugins-bad-free
 elif command -v pacman >/dev/null 2>&1; then
- pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx git curl wget wmctrl xdotool pulseaudio mpv gst-plugins-good gst-plugins-bad
+ pacman -Sy --noconfirm python python-gobject gtk3 vte3 xorg-server-xvfb x11vnc novnc websockify xrdp xorgxrdp epiphany firefox chromium openbox nginx fail2ban git curl wget wmctrl xdotool pulseaudio mpv gst-plugins-good gst-plugins-bad
 elif command -v pkg >/dev/null 2>&1; then
  pkg install -y python x11-repo xwayland tigervnc git
 fi
@@ -339,6 +340,10 @@ map \$http_upgrade \$connection_upgrade {
  ''  close;
 }
 
+# Rate limiting for auth endpoints (5 req/s per IP, burst of 10)
+limit_req_zone \$binary_remote_addr zone=easedesk_auth:10m rate=5r/s;
+
+
 server {
  listen 8444 ssl default_server;
  listen [::]:8444 ssl default_server;
@@ -382,12 +387,16 @@ server {
   # Inject Basic Auth from Cookie
   proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
   proxy_hide_header WWW-Authenticate;
+  
+  # Apply rate limiting to KasmVNC auth/traffic initiation
+  limit_req zone=easedesk_auth burst=10 nodelay;
  }
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
  location = /auth_check {
   proxy_pass ${PROXY_PASS}/;
   proxy_hide_header WWW-Authenticate;
+  limit_req zone=easedesk_auth burst=10 nodelay;
  }
 
  # ── /logout ─────────────────────────────────────────────────────────────────
@@ -556,6 +565,36 @@ PKLA_EOF
  # Also ensure iptables accepts port 3389
  iptables -I INPUT -p tcp --dport 3389 -j ACCEPT 2>/dev/null || true
 fi
+
+# ------------------------------------------------------------------------------
+# 7.5. Security: Fail2Ban Configuration for XRDP and Nginx
+# ------------------------------------------------------------------------------
+if command -v fail2ban-client >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+ echo -e "${CYAN}️ Configuring Fail2Ban for XRDP and Nginx...${NC}"
+ cat << 'F2B_EOF' > /etc/fail2ban/jail.local
+[DEFAULT]
+bantime  = 24h
+findtime = 10m
+maxretry = 5
+
+[xrdp]
+enabled = true
+port    = 3389
+logpath = /var/log/xrdp-sesman.log
+          /var/log/auth.log
+backend = auto
+
+[nginx-http-auth]
+enabled = true
+port    = 80,443,8444
+logpath = /var/log/nginx/error.log
+F2B_EOF
+
+ systemctl enable fail2ban >/dev/null 2>&1 || true
+ systemctl restart fail2ban >/dev/null 2>&1 || true
+ echo -e "${GREEN} Fail2Ban configured (XRDP & Nginx) with 24h ban for 5 failed attempts.${NC}"
+fi
+
 
 # ------------------------------------------------------------------------------
 # 8. End-to-End Health Verification & Access Summary
