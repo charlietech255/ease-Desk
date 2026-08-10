@@ -257,16 +257,28 @@ class SessionManager:
             if shutil.which("pulseaudio"):
                 pulse_env = os.environ.copy()
                 pulse_env.setdefault("DBUS_SESSION_BUS_ADDRESS", "")
+                
+                # If running as root, we need to run it in system mode or bypass the root check
+                is_root = os.geteuid() == 0
+                if is_root:
+                    subprocess.run(["usermod", "-aG", "pulse-access", "root"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    cmd = ["pulseaudio", "--system", "-D", "--exit-idle-time=-1"]
+                else:
+                    cmd = ["pulseaudio", "--start", "--exit-idle-time=-1"]
+
                 try:
                     subprocess.run(
-                        ["pulseaudio", "--start", "--exit-idle-time=-1"],
+                        cmd,
                         env=pulse_env,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                         timeout=5,
                     )
                     print("  PulseAudio started (audio will stream via KasmVNC).", flush=True)
-                    os.environ["PULSE_SERVER"] = os.environ.get("PULSE_SERVER", "unix:/run/user/0/pulse/native")
+                    if is_root:
+                        os.environ["PULSE_SERVER"] = "/run/pulse/native"
+                    else:
+                        os.environ["PULSE_SERVER"] = f"unix:/run/user/{os.geteuid()}/pulse/native"
                 except Exception as pa_err:
                     print(f"  PulseAudio start warning: {pa_err}", flush=True)
 

@@ -86,6 +86,15 @@ class GstPlayer:
             self._pipe.set_property("video-sink", sink)
             self._video_widget = sink.props.widget  # type: ignore[union-attr]
 
+        # Robust audio sink (try autoaudiosink, fallback to fakesink so playback doesn't crash if PulseAudio is dead)
+        audio_sink = Gst.ElementFactory.make("autoaudiosink", "audio-sink")
+        if not audio_sink:
+            audio_sink = Gst.ElementFactory.make("pulsesink", "audio-sink")
+        if not audio_sink:
+            audio_sink = Gst.ElementFactory.make("fakesink", "audio-sink")
+        if audio_sink:
+            self._pipe.set_property("audio-sink", audio_sink)
+
         # Bus for EOS / error messages
         bus = self._pipe.get_bus()
         bus.add_signal_watch()
@@ -394,10 +403,29 @@ class MediaPlayerWindow(Gtk.Window):
     def _make_player(self) -> GstPlayer | SubprocessPlayer:
         if _GST_OK:
             try:
-                return GstPlayer()
+                p = GstPlayer()
+                p._on_error = self._on_player_error
+                return p
             except Exception:
                 pass
-        return SubprocessPlayer()
+        p2 = SubprocessPlayer()
+        p2._on_error = self._on_player_error
+        return p2
+
+    def _on_player_error(self, err: str) -> None:
+        print(f"Media Player Error: {err}", file=sys.stderr)
+        self._play_btn.set_label("▶")
+        self._eq.set_playing(False)
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text="Playback Error",
+        )
+        dialog.format_secondary_text(err)
+        dialog.connect("response", lambda d, r: d.destroy())
+        dialog.show_all()
 
     # ── UI Construction ────────────────────────────────────────────────────
     def _build_ui(self) -> None:
