@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ease-Desk | Desktop</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: #1e1e2e; }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // --- Session Guard ---
+    // If no session token exists in sessionStorage (i.e. new tab or refresh),
+    // clear Basic Auth and send the user back to the login page.
+    const token = sessionStorage.getItem('easedesk_session');
+    if (!token) {
+      // Overwrite cached Basic Auth by sending a garbage credential request
+      const killer = new XMLHttpRequest();
+      killer.open('GET', '/', true, 'logout', 'logout' + Math.random());
+      killer.onreadystatechange = function() {
+        if (killer.readyState === 4) {
+          window.location.replace('/');
+        }
+      };
+      killer.onerror = function() { window.location.replace('/'); };
+      killer.send();
+    } else {
+      // Session is alive — mount the desktop iframe
+      const frame = document.createElement('iframe');
+      frame.src = '/kasmvnc/';
+      frame.allow = 'fullscreen';
+      document.body.appendChild(frame);
+    }
+  </script>
+</body>
+</html>

@@ -307,7 +307,7 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
    -subj "/C=US/ST=State/L=City/O=ease-Desk/CN=${PUBLIC_IP}" >/dev/null 2>&1 || true
  fi
 
- cat << EOF > /tmp/easedesk.conf
+ cat <<EOF > /tmp/easedesk.conf
 map \$http_upgrade \$connection_upgrade {
  default upgrade;
  ''  close;
@@ -326,7 +326,21 @@ server {
  # Redirect plain HTTP requests on this port to HTTPS
  error_page 497 =301 https://\$host:\$server_port\$request_uri;
 
- location / {
+ # ── Root: serve login page (unauthenticated) ────────────────────────────────
+ location = / {
+  root /opt/ease-desk/shared/web;
+  try_files /login.html =404;
+ }
+
+ # ── /desktop: session-guard page (checks sessionStorage, clears auth on refresh)
+ location = /desktop {
+  root /opt/ease-desk/shared/web;
+  try_files /desktop.html =404;
+ }
+
+ # ── /kasmvnc/: the actual KasmVNC proxy (auth required) ────────────────────
+ location /kasmvnc/ {
+  rewrite ^/kasmvnc(/.*)$ \$1 break;
   proxy_pass ${PROXY_PASS};
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
@@ -336,30 +350,28 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-  
-  # Intercept 401 errors to serve our custom session-clear page (status 200 hides native prompt)
   proxy_intercept_errors on;
-  error_page 401 =200 /login.html;
+  error_page 401 =200 /;
   proxy_hide_header WWW-Authenticate;
-
-  # Inject script to force logout on page refresh
-  proxy_set_header Accept-Encoding "";
-  sub_filter '<head>' '<head><script>const nv=performance.getEntriesByType("navigation");if((nv.length>0&&nv[0].type==="reload")||(performance.navigation&&performance.navigation.type===1)){window.location.href="/logout";}</script>';
-  sub_filter_once on;
  }
 
- # Special endpoint for XHR authentication checks
+ # ── /auth_check: XHR auth probe ────────────────────────────────────────────
  location = /auth_check {
   proxy_pass ${PROXY_PASS}/;
   proxy_hide_header WWW-Authenticate;
  }
 
+ # ── /logout: clears auth and redirects to login ────────────────────────────
  location = /logout {
   root /opt/ease-desk/shared/web;
   rewrite ^/logout$ /logout.html break;
  }
 
  location = /login.html {
+  root /opt/ease-desk/shared/web;
+ }
+
+ location = /desktop.html {
   root /opt/ease-desk/shared/web;
   internal;
  }

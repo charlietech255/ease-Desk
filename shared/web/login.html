@@ -360,8 +360,10 @@
      btn.disabled = false;
 
      if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
-      // Pass credentials in URL to force browser to cache Basic Auth for the origin
-      window.location.href = window.location.protocol + "//" + encodeURIComponent(u) + ":" + encodeURIComponent(p) + "@" + window.location.host + "/";
+      // Store a session marker so desktop.html knows we just logged in (not a cold refresh)
+      sessionStorage.setItem('easedesk_session', '1');
+      // Pass credentials in URL to cache Basic Auth for the origin, then redirect to desktop proxy
+      window.location.href = window.location.protocol + "//" + encodeURIComponent(u) + ":" + encodeURIComponent(p) + "@" + window.location.host + "/desktop";
      } else {
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';
