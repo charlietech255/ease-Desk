@@ -27,6 +27,8 @@ class TextViewerWindow(Gtk.Window):
         textview.get_buffer().set_text(content)
 
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.add(textview)
 

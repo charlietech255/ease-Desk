@@ -265,6 +265,28 @@ def human_size(num: float) -> str:
     return f"{num:.1f} PB"
 
 
+def uptime() -> str:
+    try:
+        with open("/proc/uptime", "r") as f:
+            uptime_seconds = float(f.readline().split()[0])
+            days = int(uptime_seconds // 86400)
+            hours = int((uptime_seconds % 86400) // 3600)
+            minutes = int((uptime_seconds % 3600) // 60)
+            if days > 0:
+                return f"{days} days, {hours} hours, {minutes} mins"
+            return f"{hours} hours, {minutes} mins"
+    except Exception:
+        return "Unknown"
+
+
+def kernel() -> str:
+    try:
+        with open("/proc/version", "r") as f:
+            return f.readline().split()[2]
+    except Exception:
+        return "Unknown"
+
+
 def summary() -> dict:
     """A compact dict used by the desktop shell VPS info panel."""
     used, total = memory()
@@ -272,6 +294,8 @@ def summary() -> dict:
     return {
         "hostname": hostname(),
         "os": os_name(),
+        "kernel": kernel(),
+        "uptime": uptime(),
         "cpu": cpu_count(),
         "mem_used": human_size(used),
         "mem_total": human_size(total),

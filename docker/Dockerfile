@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-gdkpixbuf-2.0 \
     gir1.2-vte-2.91 \
     openbox \
+    wmctrl \
     xvfb \
     x11vnc \
     novnc \

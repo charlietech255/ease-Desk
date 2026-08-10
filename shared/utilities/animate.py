@@ -38,49 +38,20 @@ def _step(widget, start, end, steps, on_done, state):
 
 
 def fade_in(widget, duration_ms=220, on_done=None):
-    """Fade a widget in from transparent to fully opaque."""
-    if not _is_composited():
-        widget.show()
-        if on_done:
-            on_done()
-        return
-    steps = max(2, int(duration_ms / _TICK_MS))
-    widget.set_opacity(0.0)
+    """Instant show to avoid VPS CPU lag."""
+    widget.set_opacity(1.0)
     widget.show()
-    GLib.timeout_add(_TICK_MS, _step, widget, 0.0, 1.0, steps, on_done, {"n": 0})
-
+    if on_done:
+        on_done()
 
 def fade_out(widget, duration_ms=200, on_done=None):
-    """Fade a widget out; `on_done` is called when fully transparent."""
-    if not _is_composited():
-        if on_done:
-            on_done()
-        return
-    steps = max(2, int(duration_ms / _TICK_MS))
-    GLib.timeout_add(_TICK_MS, _step, widget, 1.0, 0.0, steps, on_done, {"n": 0})
+    """Instant hide to avoid VPS CPU lag."""
+    widget.set_opacity(0.0)
+    widget.hide()
+    if on_done:
+        on_done()
 
 
 def pulse(widget, property_getter, property_setter, start, peak, base, duration_ms=220):
-    """Animate a scalar widget property up to `peak` and back to `base`.
-
-    Used for the desktop icon hover effect (font size / padding).
-    """
-    state = {"n": 0}
-
-    def tick():
-        state["n"] += 1
-        total = int(duration_ms / _TICK_MS)
-        mid = total // 2
-        n = state["n"]
-        if n <= mid:
-            t = n / mid
-            v = start + (peak - start) * (1 - (1 - t) ** 2)
-        else:
-            t = (n - mid) / mid
-            v = peak - (peak - base) * (1 - (1 - t) ** 2)
-        property_setter(v)
-        if n >= total:
-            return False
-        return True
-
-    GLib.timeout_add(_TICK_MS, tick)
+    """No-op pulse to save CPU."""
+    property_setter(base)

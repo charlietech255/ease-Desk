@@ -187,6 +187,8 @@ class FileManagerWindow(Gtk.Window):
     # ---------------------------------------------------- THIS PC VIEW
     def _build_thispc_view(self) -> Gtk.Widget:
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_min_content_height(150)
         scrolled.set_min_content_width(200)
@@ -422,6 +424,8 @@ class FileManagerWindow(Gtk.Window):
         self.view.set_margin(12)
 
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_min_content_height(150)
         scrolled.set_min_content_width(200)

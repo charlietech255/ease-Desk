@@ -363,14 +363,7 @@
           <to>next</to>
         </action>
       </mousebind>
-      <mousebind button="Left" action="Press">
-        <action name="Focus"/>
-        <action name="Raise"/>
-      </mousebind>
-      <mousebind button="Right" action="Press">
-        <action name="Focus"/>
-        <action name="Raise"/>
-      </mousebind>
+      <!-- Removed Left/Right Press Focus/Raise that caused windows to minimize -->
     </context>
     <context name="Root">
       <mousebind button="Middle" action="Press">

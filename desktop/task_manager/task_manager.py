@@ -171,6 +171,8 @@ class TaskManagerWindow(Gtk.Window):
         self.tree_view.get_selection().connect("changed", self._on_selection_changed)
 
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_min_content_height(150)
         scrolled.set_min_content_width(200)

@@ -14,11 +14,40 @@ window.shell {
     font-family: "Cantarell", "Ubuntu", "Inter", sans-serif;
 }
 
+/* ------------------------------------------------------------------ Native Buttons */
+button {
+    background-image: linear-gradient(to bottom, #45475a, #313244);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+    border: 1px solid #181825;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #cdd6f4;
+    font-size: 13px;
+    transition: all 150ms ease;
+}
+button:hover {
+    background-image: linear-gradient(to bottom, #585b70, #45475a);
+    border-color: #11111b;
+    cursor: pointer;
+}
+button:active {
+    background-image: none;
+    background-color: #1e1e2e;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    border-color: #11111b;
+}
+button:focus {
+    outline-color: rgba(137, 180, 250, 0.6);
+    outline-style: solid;
+    outline-offset: -1px;
+    outline-width: 2px;
+}
+
 /* ------------------------------------------------------------------ Unified Bottom Panel (Deepin style) */
 .bottom-panel {
     background: rgba(20, 20, 25, 0.88);
     border-top: 1px solid rgba(205, 214, 244, 0.05);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45);
+    box-shadow: none; /* Removed glass shadow */
 }
 
 /* ------------------------------------------------------------------ Start Button */
@@ -31,6 +60,7 @@ window.shell {
 }
 .start-btn:hover {
     background: rgba(137, 180, 250, 0.15);
+    cursor: pointer;
 }
 .start-btn:active {
     background: rgba(137, 180, 250, 0.25);
@@ -93,6 +123,7 @@ window.shell {
 .power-btn:hover {
     background: rgba(243, 139, 168, 0.15);
     color: #f38ba8;
+    cursor: pointer;
 }
 
 /* ------------------------------------------------------------------ Quick Action Buttons (top bar) */
@@ -109,6 +140,7 @@ window.shell {
 .quick-btn:hover {
     background: rgba(205, 214, 244, 0.10);
     color: #cdd6f4;
+    cursor: pointer;
 }
 
 /* ------------------------------------------------------------------ Server / Hostname Label */
@@ -136,6 +168,7 @@ window.shell {
 }
 .dock-btn:hover {
     background: rgba(137, 180, 250, 0.15);
+    cursor: pointer;
 }
 .dock-btn:active {
     background: rgba(137, 180, 250, 0.25);
@@ -198,6 +231,7 @@ window.shell {
 .icon-btn:hover {
     background: rgba(205, 214, 244, 0.08);
     border-color: rgba(205, 214, 244, 0.12);
+    cursor: pointer;
 }
 .icon-btn:active,
 .icon-btn.selected {
@@ -218,7 +252,7 @@ window.shell {
     background-color: rgba(24, 24, 37, 0.90);
     border: 1px solid rgba(205, 214, 244, 0.08);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+    box-shadow: none; /* Removed dramatic shadow */
 }
 .vps-title { color: #89b4fa; font-weight: 700; font-size: 12px; letter-spacing: 0.4px; }
 .vps-key   { color: #6c7086; font-size: 11px; font-weight: 600; }
@@ -230,7 +264,7 @@ window.shell {
     background-color: #1e1e2e;
     border: 1px solid rgba(205, 214, 244, 0.10);
     border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.70);
+    box-shadow: none; /* Removed dramatic shadow */
 }
 .cal-title    { color: #89b4fa; font-weight: 700; font-size: 13px; }
 .cal-stat-key { color: #6c7086; font-size: 11px; font-weight: 600; }
@@ -274,6 +308,7 @@ window.shell {
 }
 .color-btn:hover {
     border-color: #89b4fa;
+    cursor: pointer;
 }
 .color-btn.active {
     border-color: #cdd6f4;
@@ -292,6 +327,7 @@ window.shell {
     background: rgba(137, 180, 250, 0.20);
     border-color: #89b4fa;
     color: #cdd6f4;
+    cursor: pointer;
 }
 
 

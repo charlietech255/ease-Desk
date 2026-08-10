@@ -844,6 +844,7 @@ class DesktopShell:
 
   btn.add(box)
   btn.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
+  btn.connect("realize", lambda w: w.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.HAND2)))
   btn.connect("button-press-event", lambda w, ev, it=item: self._on_icon_click(w, ev, it))
   btn.connect("motion-notify-event", self._on_icon_motion)
   btn.connect("button-release-event", self._on_icon_release)
@@ -908,7 +909,7 @@ class DesktopShell:
  def _on_desktop_click(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
   if event.button == 1:
    self._deselect_all()
-   return False
+   return True
   if event.button == 3:
    self._deselect_all()
    self._show_desktop_menu(event)
@@ -1376,7 +1377,12 @@ class DesktopShell:
    app_id = "task_manager"
    title = "Task Manager"
    icon_key = "task_manager"
-  elif target_path in ("app://wallpaper", "wallpaper", "settings"):
+  elif target_path in ("app://settings", "settings"):
+   cmd = [sys.executable, "-m", "desktop.settings.app"]
+   app_id = "settings"
+   title = "Settings"
+   icon_key = "settings"
+  elif target_path in ("app://wallpaper", "wallpaper"):
    self._dialog_change_wallpaper()
    return
   elif target_path in ("app://browser", "browser"):

@@ -274,7 +274,7 @@ class SessionManager:
                 "unset DBUS_SESSION_BUS_ADDRESS\n\n"
                 "# Start a lightweight window manager so KasmVNC has a valid desktop\n"
                 "if command -v openbox >/dev/null 2>&1; then\n"
-                "    picom -b --backend xrender --blur-method box --blur-size 10 --shadow & \n"
+                "    picom -b --backend xrender & \n"
                 "    exec openbox-session\n"
                 "elif command -v fluxbox >/dev/null 2>&1; then\n"
                 "    exec fluxbox\n"
@@ -474,7 +474,7 @@ class SessionManager:
         
         if shutil.which("picom"):
             picom = subprocess.Popen(
-                ["picom", "--backend", "xrender", "--blur-method", "box", "--blur-size", "10", "--shadow"],
+                ["picom", "--backend", "xrender"],
                 env=os.environ.copy(),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

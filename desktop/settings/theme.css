@@ -1,0 +1,113 @@
+/* ease-Desk VPS Control Center Theme */
+
+window {
+    background-color: #1e1e2e;
+}
+
+/* ------------------------------------------------------------------ Typography */
+.page-title {
+    color: #89b4fa;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+.sidebar-title {
+    color: #cdd6f4;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.info-key {
+    color: #a6adc8;
+    font-size: 13px;
+    font-weight: 600;
+}
+.info-val {
+    color: #cdd6f4;
+    font-size: 13px;
+    font-weight: 400;
+}
+.status-ok { color: #a6e3a1; font-weight: 700; font-size: 12px; }
+.status-crit { color: #f38ba8; font-weight: 700; font-size: 12px; }
+
+/* ------------------------------------------------------------------ Layout */
+.sidebar {
+    background-color: rgba(24, 24, 37, 0.95);
+    border-right: 1px solid rgba(205, 214, 244, 0.08);
+}
+.content-area {
+    background-color: #1e1e2e;
+}
+
+/* ------------------------------------------------------------------ Navigation Buttons */
+.nav-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #a6adc8;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 150ms ease;
+}
+.nav-btn:hover {
+    background: rgba(205, 214, 244, 0.05);
+    color: #cdd6f4;
+}
+.nav-btn.active {
+    background: rgba(137, 180, 250, 0.15);
+    border-color: rgba(137, 180, 250, 0.25);
+    color: #89b4fa;
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ Buttons */
+button {
+    background-image: linear-gradient(to bottom, #45475a, #313244);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+    border: 1px solid #181825;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #cdd6f4;
+    font-size: 12px;
+    transition: all 150ms ease;
+}
+button:hover {
+    background-image: linear-gradient(to bottom, #585b70, #45475a);
+    border-color: #11111b;
+    cursor: pointer;
+}
+button:active {
+    background-image: none;
+    background-color: #1e1e2e;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    border-color: #11111b;
+}
+
+/* ------------------------------------------------------------------ ListBox */
+list {
+    background-color: #181825;
+    border-radius: 8px;
+    border: 1px solid rgba(205, 214, 244, 0.05);
+}
+row {
+    border-bottom: 1px solid rgba(205, 214, 244, 0.05);
+    transition: all 150ms ease;
+}
+row:hover {
+    background-color: rgba(205, 214, 244, 0.03);
+}
+
+/* ------------------------------------------------------------------ Entry */
+entry {
+    background-color: #11111b;
+    border: 1px solid rgba(205, 214, 244, 0.2);
+    border-radius: 6px;
+    color: #cdd6f4;
+    padding: 6px 12px;
+    caret-color: #89b4fa;
+}
+entry:focus {
+    border-color: #89b4fa;
+    box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
