@@ -364,13 +364,13 @@
        // Set cookie for Nginx HTTP Basic Auth bypass
        document.cookie = "easedesk_auth=" + btoa(u + ":" + p) + "; path=/; max-age=86400; SameSite=Strict";
        
-       // Store session token + VNC password for session-guard.js
+       // Store session token + VNC password for desktop.html wrapper
        sessionStorage.setItem('easedesk_session', '1');
        sessionStorage.setItem('easedesk_user', u);
        sessionStorage.setItem('easedesk_pass', p);
        
-       // Go directly to KasmVNC
-       window.location.replace('/kasmvnc/');
+       // Go to desktop.html (which securely hosts KasmVNC in an iframe)
+       window.location.replace('/desktop.html');
      } else {
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';
