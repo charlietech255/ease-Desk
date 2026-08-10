@@ -233,7 +233,7 @@ if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
    # Patch KasmVNC's index.html to force remote scaling by default
    if [ -f /usr/share/kasmvnc/www/index.html ]; then
     if ! grep -q "easedesk-force-remote-scale" /usr/share/kasmvnc/www/index.html; then
-     sed -i 's|</head>|<script>/* easedesk-force-remote-scale */ window.localStorage.setItem("kasm.scaling", "remote");</script></head>|g' /usr/share/kasmvnc/www/index.html
+     sed -i 's|</head>|<style>body, html, #noVNC_container { overflow: hidden !important; }</style><script>/* easedesk-force-remote-scale */ window.localStorage.setItem("kasm.scaling", "remote");</script></head>|g' /usr/share/kasmvnc/www/index.html
     fi
    fi
   fi

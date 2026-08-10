@@ -49,6 +49,7 @@
       const u = new URL(window.location.protocol + '//' + window.location.host + '/kasmvnc/');
       u.searchParams.set('password', pw);
       u.searchParams.set('autoconnect', 'true');
+      u.searchParams.set('resize', 'remote');
       
       iframe.src = u.toString();
       document.body.appendChild(iframe);
