@@ -129,9 +129,15 @@ def rename(path: str, new_name: str) -> str:
     return target
 
 
-def delete(path: str, recursive: bool = True) -> None:
+from file_manager.core import trash
+
+def delete(path: str, recursive: bool = True, permanent: bool = False) -> None:
     assert_destructible(path)
     try:
+        if not permanent:
+            trash.send_to_trash(path)
+            return
+            
         if os.path.islink(path):
             os.unlink(path)
         elif os.path.isdir(path):

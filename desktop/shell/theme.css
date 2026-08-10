@@ -58,10 +58,10 @@ button:focus {
     transition: background 150ms ease;
 }
 .start-btn:hover {
-    background: rgba(137, 180, 250, 0.15);
+    background: rgba(255, 255, 255, 0.1);
 }
 .start-btn:active {
-    background: rgba(137, 180, 250, 0.25);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 /* ------------------------------------------------------------------ Clock (centered, GNOME) */
@@ -163,10 +163,10 @@ button:focus {
     transition: all 130ms ease;
 }
 .dock-btn:hover {
-    background: rgba(137, 180, 250, 0.15);
+    background: rgba(255, 255, 255, 0.1);
 }
 .dock-btn:active {
-    background: rgba(137, 180, 250, 0.25);
+    background: rgba(255, 255, 255, 0.15);
 }
 .dock-indicator {
     background: transparent;
@@ -178,21 +178,21 @@ button:focus {
     transition: all 200ms ease;
 }
 .dock-indicator.active {
-    background: #89b4fa;
+    background: #cdd6f4;
     min-width: 12px;
 }
 
 /* ------------------------------------------------------------------ Running Task Buttons */
 .running-task-btn {
     background: rgba(49, 50, 68, 0.70);
-    border: 1px solid rgba(137, 180, 250, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     padding: 0 4px;
     transition: all 120ms ease;
 }
 .running-task-btn:hover {
-    background: rgba(137, 180, 250, 0.18);
-    border-color: rgba(137, 180, 250, 0.45);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 .running-task-inner-btn {
     padding: 3px 6px;

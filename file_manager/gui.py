@@ -89,6 +89,13 @@ class FileManagerWindow(Gtk.Window):
         self.action_bar = self._build_actions()
         root.pack_start(self.action_bar, False, False, 0)
 
+        # Paned for Left Sidebar and Main Stack
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        
+        self.sidebar = self._build_sidebar()
+        self.paned.pack1(self.sidebar, False, False)
+        self.paned.set_position(180)
+
         # Main Stack: page 1 = This PC overview, page 2 = File Explorer
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
@@ -102,7 +109,8 @@ class FileManagerWindow(Gtk.Window):
         self.explorer_container = self._build_explorer_view()
         self.stack.add_named(self.explorer_container, "explorer")
 
-        root.pack_start(self.stack, True, True, 0)
+        self.paned.pack2(self.stack, True, False)
+        root.pack_start(self.paned, True, True, 0)
 
         # Bottom status bar
         self.status_label = Gtk.Label(label="")
@@ -117,39 +125,36 @@ class FileManagerWindow(Gtk.Window):
         bar.set_style(Gtk.ToolbarStyle.TEXT)
         bar.get_style_context().add_class("toolbar")
 
-        self.back_btn = _mk("← Back")
-        self.forward_btn = _mk("→ Forward")
-        self.up_btn = _mk("↑ Up")
-        self.thispc_btn = _mk("This PC")
-        self.home_btn = _mk("~ Home")
+        self.back_btn = _mk("←")
+        self.forward_btn = _mk("→")
+        self.up_btn = _mk("↑")
 
-        for btn in (self.back_btn, self.forward_btn, self.up_btn, self.thispc_btn, self.home_btn):
+        for btn in (self.back_btn, self.forward_btn, self.up_btn):
             item = Gtk.ToolItem()
             item.add(btn)
             bar.insert(item, -1)
-            bar.insert(Gtk.SeparatorToolItem(), -1)
 
         self.back_btn.connect("clicked", lambda *_: self._history_move(-1))
         self.forward_btn.connect("clicked", lambda *_: self._history_move(1))
         self.up_btn.connect("clicked", lambda *_: self._go_up())
-        self.thispc_btn.connect("clicked", lambda *_: self._navigate(THIS_PC_URI))
-        self.home_btn.connect("clicked", lambda *_: self._navigate(os.path.expanduser("~")))
+
+        bar.insert(Gtk.SeparatorToolItem(), -1)
 
         self.path_entry = Gtk.Entry()
         self.path_entry.set_hexpand(True)
-        self.path_entry.set_placeholder_text("Enter path or 'thispc'…")
+        self.path_entry.set_placeholder_text("Enter path...")
         path_item = Gtk.ToolItem()
         path_item.set_expand(True)
         path_item.add(self.path_entry)
         bar.insert(path_item, -1)
 
-        self.sort_btn = _mk("⇃⇂ Arrange")
+        self.sort_btn = _mk("⇃⇂ Sort")
         item_sort = Gtk.ToolItem()
         item_sort.add(self.sort_btn)
         bar.insert(item_sort, -1)
         self.sort_btn.connect("clicked", lambda *_: self._popup_sort_menu())
 
-        self.refresh_btn = _mk("⟳ Refresh")
+        self.refresh_btn = _mk("⟳")
         item = Gtk.ToolItem()
         item.add(self.refresh_btn)
         bar.insert(item, -1)
@@ -163,6 +168,41 @@ class FileManagerWindow(Gtk.Window):
 
         return bar
 
+    def _build_sidebar(self) -> Gtk.Widget:
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.get_style_context().add_class("sidebar")
+        
+        self.sidebar_list = Gtk.ListBox()
+        self.sidebar_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        
+        items = [
+            ("This PC", THIS_PC_URI),
+            ("Home", os.path.expanduser("~")),
+            ("Desktop", os.path.expanduser("~/Desktop")),
+            ("Documents", os.path.expanduser("~/Documents")),
+            ("Downloads", os.path.expanduser("~/Downloads")),
+            ("Recycle Bin", "trash://")
+        ]
+        
+        for name, path in items:
+            row = Gtk.ListBoxRow()
+            lbl = Gtk.Label(label=name)
+            lbl.set_xalign(0)
+            lbl.get_style_context().add_class("sidebar-row")
+            row.add(lbl)
+            row.target_path = path
+            self.sidebar_list.add(row)
+            
+        self.sidebar_list.connect("row-activated", self._on_sidebar_row_activated)
+        
+        scrolled.add(self.sidebar_list)
+        return scrolled
+
+    def _on_sidebar_row_activated(self, listbox, row):
+        if hasattr(row, 'target_path'):
+            self._navigate(row.target_path)
+
     def _build_actions(self) -> Gtk.Widget:
         actions = [
             ("Open", self._open_selected),
@@ -172,15 +212,19 @@ class FileManagerWindow(Gtk.Window):
             ("Copy", self._copy_selected),
             ("Cut", self._cut_selected),
             ("Paste", self._paste),
+            ("Restore", self._restore_selected),
+            ("Empty Trash", self._empty_trash),
             ("Properties", self._properties_selected),
         ]
         bar = Gtk.Box(spacing=6)
         bar.set_no_show_all(True)
         bar.get_style_context().add_class("action-bar")
+        self.action_buttons = {}
         for label, callback in actions:
             btn = _mk(label)
             btn.get_style_context().add_class("action-btn")
             btn.connect("clicked", lambda *_, cb=callback: cb())
+            self.action_buttons[label] = btn
             bar.pack_start(btn, False, False, 0)
         return bar
 
@@ -698,12 +742,60 @@ class FileManagerWindow(Gtk.Window):
             self.status_label.set_text(f"{parts_count} Drives / Partitions available  •  Windows This PC Mode")
             return
 
+        # MODE 3: TRASH EXPLORER
+        if self.current_dir == "trash://":
+            self.thispc_container.hide()
+            self.explorer_container.show()
+            self.stack.set_visible_child_name("explorer")
+            self.action_bar.show()
+            self.sort_btn.set_sensitive(False)
+            
+            # Show Trash-specific actions
+            if hasattr(self, 'action_buttons'):
+                self.action_buttons.get("Restore", Gtk.Button()).show()
+                self.action_buttons.get("Empty Trash", Gtk.Button()).show()
+                self.action_buttons.get("New Folder", Gtk.Button()).hide()
+                self.action_buttons.get("Rename", Gtk.Button()).hide()
+                self.action_buttons.get("Copy", Gtk.Button()).hide()
+                self.action_buttons.get("Cut", Gtk.Button()).hide()
+                self.action_buttons.get("Paste", Gtk.Button()).hide()
+            
+            from file_manager.core import trash
+            try:
+                items = trash.list_trash()
+            except Exception as exc:
+                self._error(str(exc))
+                items = []
+                
+            self.model.clear()
+            for item in items:
+                cat, desc, _ = types.categorize(item["name"], False, False)
+                pixbuf = get_icon_pixbuf(cat, size=48)
+                self.model.append([pixbuf, item["name"], item["trash_path"], "Deleted: " + item["deletion_date"], False, 0, 0])
+                
+            self.path_entry.set_text("Recycle Bin")
+            self.header.set_title("Recycle Bin")
+            self.header.set_subtitle("Deleted Items")
+            self.set_title("Recycle Bin — ease-Desk")
+            self._update_status()
+            return
+
         # MODE 2: FOLDER EXPLORER
         self.thispc_container.hide()
         self.explorer_container.show()
         self.stack.set_visible_child_name("explorer")
         self.action_bar.show()
         self.sort_btn.set_sensitive(True)
+        
+        # Hide Trash-specific actions by default
+        if hasattr(self, 'action_buttons'):
+            self.action_buttons.get("Restore", Gtk.Button()).hide()
+            self.action_buttons.get("Empty Trash", Gtk.Button()).hide()
+            self.action_buttons.get("New Folder", Gtk.Button()).show()
+            self.action_buttons.get("Rename", Gtk.Button()).show()
+            self.action_buttons.get("Copy", Gtk.Button()).show()
+            self.action_buttons.get("Cut", Gtk.Button()).show()
+            self.action_buttons.get("Paste", Gtk.Button()).show()
 
         try:
             entries = fs.list_dir(self.current_dir)
@@ -1151,6 +1243,91 @@ class FileManagerWindow(Gtk.Window):
         dialog.destroy()
         return value
 
+    def _delete_selected(self) -> None:
+        paths = self._selected_paths()
+        if not paths:
+            return
+            
+        if self.current_dir == "trash://":
+            # Permanent delete
+            msg = f"Permanently delete {len(paths)} item(s)?"
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                modal=True,
+                destroy_with_parent=True,
+                message_type=Gtk.MessageType.WARNING,
+                buttons=Gtk.ButtonsType.OK_CANCEL,
+                text=msg,
+            )
+            dialog.set_title("Permanent Delete")
+            dialog.get_widget_for_response(Gtk.ResponseType.OK).get_style_context().add_class("destructive-action")
+            res = dialog.run()
+            dialog.destroy()
+            if res != Gtk.ResponseType.OK:
+                return
+                
+            from file_manager.core import trash
+            for p in paths:
+                try:
+                    trash.delete_permanently(os.path.basename(p))
+                except Exception as exc:
+                    self._error(str(exc))
+            self._reload()
+            return
+
+        msg = f"Move {len(paths)} item(s) to Recycle Bin?"
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            destroy_with_parent=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text=msg,
+        )
+        dialog.set_title("Recycle Bin")
+        res = dialog.run()
+        dialog.destroy()
+        if res != Gtk.ResponseType.OK:
+            return
+
+        for p in paths:
+            try:
+                fs.delete(p, recursive=True, permanent=False)
+            except fs.FileOpError as exc:
+                self._error(str(exc))
+        self._reload()
+
+    def _restore_selected(self) -> None:
+        if self.current_dir != "trash://": return
+        paths = self._selected_paths()
+        from file_manager.core import trash
+        for p in paths:
+            try:
+                trash.restore_trash(os.path.basename(p))
+            except Exception as exc:
+                self._error(str(exc))
+        self._reload()
+        
+    def _empty_trash(self) -> None:
+        if self.current_dir != "trash://": return
+        msg = "Are you sure you want to permanently erase all items in the Recycle Bin?"
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            destroy_with_parent=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text=msg,
+        )
+        dialog.set_title("Empty Recycle Bin")
+        dialog.get_widget_for_response(Gtk.ResponseType.OK).get_style_context().add_class("destructive-action")
+        res = dialog.run()
+        dialog.destroy()
+        if res == Gtk.ResponseType.OK:
+            from file_manager.core import trash
+            trash.empty_trash()
+            self._reload()
+
     def _confirm(self, title: str, body: str, confirm_label: str) -> bool:
         dialog = Gtk.MessageDialog(
             transient_for=self,
@@ -1171,7 +1348,8 @@ class FileManagerWindow(Gtk.Window):
         return response == Gtk.ResponseType.OK
 
     def _info_table(self, title: str, rows: list[tuple[str, str]]) -> None:
-        dialog = Gtk.Dialog(title=title, transient_for=self, modal=True, destroy_with_parent=True)
+        dialog = Gtk.Dialog(transient_for=self, modal=True, destroy_with_parent=True, use_header_bar=1)
+        dialog.set_title(title)
         dialog.set_default_size(480, -1)
         content = dialog.get_content_area()
         grid = Gtk.Grid()

@@ -115,11 +115,51 @@ def _load_css() -> None:
         border-top: 1px solid rgba(255,255,255,0.06);
     }
     .iconview {
-        background-color: #131722;
+        background-color: #1e1e2e;
     }
     .iconview:selected {
-        background-color: #26334d;
+        background-color: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 6px;
+    }
+    
+    /* --- MENUS --- */
+    menu, .menu, popover {
+        background-color: #1e1e2e;
+        border: 1px solid rgba(205, 214, 244, 0.1);
+        border-radius: 8px;
+        padding: 4px;
+        color: #cdd6f4;
+    }
+    menuitem {
+        color: #cdd6f4;
+        padding: 6px 12px;
+        border-radius: 6px;
+        transition: background 100ms ease;
+    }
+    menuitem:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* --- SIDEBAR --- */
+    .sidebar {
+        background-color: #11111b;
+        border-right: 1px solid rgba(205, 214, 244, 0.05);
+    }
+    .sidebar-row {
+        padding: 8px 12px;
+        color: #a6adc8;
+        font-weight: 500;
+        border-radius: 6px;
+        margin: 2px 8px;
+    }
+    .sidebar-row:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #cdd6f4;
+    }
+    .sidebar-row:selected {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
     }
 
     /* --- THIS PC / PARTITION VIEW STYLING --- */
@@ -128,8 +168,8 @@ def _load_css() -> None:
         padding: 20px 24px;
     }
     .thispc-banner {
-        background-color: rgba(49, 50, 68, 0.4);
-        border: 1px solid rgba(205, 214, 244, 0.08);
+        background-color: rgba(30, 30, 46, 0.6);
+        border: 1px solid rgba(205, 214, 244, 0.05);
         border-radius: 12px;
         padding: 14px 20px;
         margin-bottom: 20px;
