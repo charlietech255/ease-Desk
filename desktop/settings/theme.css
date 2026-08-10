@@ -75,7 +75,6 @@ button {
 button:hover {
     background-image: linear-gradient(to bottom, #585b70, #45475a);
     border-color: #11111b;
-    cursor: pointer;
 }
 button:active {
     background-image: none;
