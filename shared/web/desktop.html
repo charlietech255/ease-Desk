@@ -48,6 +48,8 @@
       const u = new URL(window.location.protocol + '//' + window.location.host + '/novnc/vnc.html');
       u.searchParams.set('autoconnect', 'true');
       u.searchParams.set('resize', 'scale');
+      u.searchParams.set('password', pw);
+      u.searchParams.set('path', 'websockify');
       
       iframe.src = u.toString();
       document.body.appendChild(iframe);
