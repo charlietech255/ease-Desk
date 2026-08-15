@@ -175,7 +175,7 @@ class DesktopShell:
   self.drag_offset_y: int = 0
   self.wallpaper_path: str = DEFAULT_WALLPAPER
   self.wallpaper_mode: str = "fill"
-  self.solid_color: str = "#080b11"
+  self.solid_color: str = "#050505"
   self.wallpaper_pixbuf: GdkPixbuf.Pixbuf | None = None
   self._cached_scaled_pixbuf: GdkPixbuf.Pixbuf | None = None
   self._cached_draw_params: tuple[int, int, str, str, str] | None = None
@@ -225,7 +225,7 @@ class DesktopShell:
   wp_conf = get_wallpaper_config(CONFIG_FILE)
   self.wallpaper_path = wp_conf.get("wallpaper", DEFAULT_WALLPAPER)
   self.wallpaper_mode = wp_conf.get("wallpaper_mode", "fill")
-  self.solid_color = wp_conf.get("solid_color", "#080b11")
+  self.solid_color = wp_conf.get("solid_color", "#050505")
 
   if self.wallpaper_mode == "solid":
    self.wallpaper_pixbuf = None
@@ -360,7 +360,7 @@ class DesktopShell:
   ]
   self.wallpaper_path = DEFAULT_WALLPAPER
   self.wallpaper_mode = "fill"
-  self.solid_color = "#080b11"
+  self.solid_color = "#050505"
 
   if os.path.exists(CONFIG_FILE):
    try:
@@ -385,7 +385,7 @@ class DesktopShell:
      else:
       self.wallpaper_path = saved_wp
      self.wallpaper_mode = data.get("wallpaper_mode", "fill")
-     self.solid_color = data.get("solid_color", "#080b11")
+     self.solid_color = data.get("solid_color", "#050505")
      return
    except Exception:
     pass
@@ -571,41 +571,42 @@ class DesktopShell:
   provider = Gtk.CssProvider()
   provider.load_from_data(b"""
    .start-menu-win {
-    background: rgba(24, 24, 37, 0.90);
-    border: 1px solid rgba(205, 214, 244, 0.12);
-    border-radius: 16px;
-    box-shadow: 4px 4px 20px rgba(0,0,0,0.6);
+    background: rgba(5, 5, 5, 0.95);
+    border: 1px solid #00ff41;
+    border-radius: 2px;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.15);
    }
    .start-menu-sidebar {
-    background: rgba(30, 30, 46, 0.4);
-    border-right: 1px solid rgba(205, 214, 244, 0.08);
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
+    background: rgba(10, 10, 15, 0.8);
+    border-right: 1px solid #1a4d2e;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
     padding: 12px 6px;
    }
    .start-menu-search {
-    background: rgba(49, 50, 68, 0.7);
-    border: 1px solid rgba(137, 180, 250, 0.2);
-    border-radius: 10px;
-    color: #cdd6f4;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #1a4d2e;
+    border-radius: 2px;
+    color: #00ff41;
     font-size: 13px;
     padding: 10px 14px;
    }
    .start-menu-app-btn {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 2px;
     padding: 10px 12px;
     transition: all 130ms ease;
    }
    .start-menu-app-btn:hover {
-    background: rgba(137, 180, 250, 0.15);
-    border-color: rgba(137, 180, 250, 0.25);
+    background: rgba(0, 255, 65, 0.1);
+    border-color: #00ff41;
    }
    .start-menu-app-name {
-    color: #cdd6f4;
+    color: #00ff41;
     font-size: 13px;
     font-weight: 500;
+    text-transform: uppercase;
    }
   """)
   Gtk.StyleContext.add_provider_for_screen(

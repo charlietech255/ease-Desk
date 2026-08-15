@@ -3,19 +3,19 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>ease-Desk | Login</title>
- <!-- Use Outfit Font for a premium feel -->
- <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+ <title>ease-Desk | Auth Gateway</title>
+ <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
  <style>
   :root {
-   --bg-color: #1e1e2e;
-   --card-bg: rgba(24, 24, 37, 0.85);
-   --card-border: rgba(205, 214, 244, 0.08);
-   --primary: #89b4fa;
-   --primary-glow: rgba(137, 180, 250, 0.35);
-   --text-main: #cdd6f4;
-   --text-muted: #a6adc8;
-   --error: #f38ba8;
+   --bg-color: #050505;
+   --terminal-bg: #0a0a0f;
+   --primary: #00ff41;
+   --primary-glow: rgba(0, 255, 65, 0.4);
+   --primary-dim: rgba(0, 255, 65, 0.15);
+   --text-main: #00ff41;
+   --text-muted: #2f8e4b;
+   --error: #ff003c;
+   --border-color: #1a4d2e;
   }
 
   * {
@@ -26,7 +26,7 @@
 
   body, html {
    height: 100%;
-   font-family: 'Outfit', sans-serif;
+   font-family: 'Fira Code', monospace;
    background-color: var(--bg-color);
    color: var(--text-main);
    overflow: hidden;
@@ -36,299 +36,274 @@
    justify-content: center;
   }
 
-  /* Background subtle mesh */
-  .bg-mesh {
+  /* Scanline effect */
+  body::before {
+   content: " ";
+   display: block;
    position: absolute;
-   top: 0; left: 0; right: 0; bottom: 0;
-   background: radial-gradient(circle at 15% 50%, rgba(137, 180, 250, 0.08), transparent 40%),
-      radial-gradient(circle at 85% 30%, rgba(166, 227, 161, 0.06), transparent 40%),
-      radial-gradient(circle at 50% 80%, rgba(116, 199, 236, 0.06), transparent 50%);
-   z-index: 1;
-   filter: blur(40px);
-   animation: breathe 18s ease-in-out infinite alternate;
+   top: 0;
+   left: 0;
+   bottom: 0;
+   right: 0;
+   background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+   z-index: 100;
+   background-size: 100% 2px, 3px 100%;
+   pointer-events: none;
   }
 
-  @keyframes breathe {
-   0% { transform: scale(1); opacity: 0.8; }
-   100% { transform: scale(1.1); opacity: 1; }
+  /* Glitchy CRT flicker */
+  @keyframes flicker {
+   0% { opacity: 0.95; }
+   5% { opacity: 0.85; }
+   10% { opacity: 0.95; }
+   15% { opacity: 1; }
+   50% { opacity: 0.98; }
+   100% { opacity: 1; }
   }
 
-  .orb {
-   position: absolute;
-   border-radius: 50%;
-   filter: blur(60px);
-   z-index: 2;
-   transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  .orb-1 {
-   width: 300px; height: 300px;
-   background: rgba(137, 180, 250, 0.18);
-   top: 15%; left: 25%;
-  }
-
-  .orb-2 {
-   width: 220px; height: 220px;
-   background: rgba(166, 227, 161, 0.15);
-   bottom: 20%; right: 25%;
-  }
-
-  /* Glassmorphism Card */
   .login-wrapper {
    position: relative;
    z-index: 10;
    width: 100%;
-   max-width: 420px;
+   max-width: 500px;
    padding: 0 20px;
-   perspective: 1000px;
+   animation: flicker 0.15s infinite;
   }
 
   .login-card {
-   background: var(--card-bg);
-   border: 1px solid var(--card-border);
-   border-radius: 28px;
-   padding: 48px 40px;
-   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-   backdrop-filter: blur(24px);
-   -webkit-backdrop-filter: blur(24px);
-   text-align: center;
-   opacity: 0;
-   transform: translateY(30px) rotateX(5deg);
-   animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+   background: var(--terminal-bg);
+   border: 1px solid var(--border-color);
+   padding: 40px;
+   box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 10px var(--primary-dim);
+   position: relative;
+  }
+  
+  .login-card::before {
+   content: '';
+   position: absolute;
+   top: -2px; left: -2px; right: -2px; bottom: -2px;
+   background: linear-gradient(45deg, transparent 40%, var(--primary-dim) 50%, transparent 60%);
+   z-index: -1;
+   animation: borderGlow 4s linear infinite;
   }
 
-  @keyframes slideUpFade {
-   to {
-    opacity: 1;
-    transform: translateY(0) rotateX(0);
-   }
+  @keyframes borderGlow {
+   0% { background-position: 0% 0%; }
+   100% { background-position: 100% 100%; }
+  }
+
+  /* Terminal Header */
+  .terminal-header {
+   display: flex;
+   justify-content: space-between;
+   border-bottom: 1px solid var(--border-color);
+   padding-bottom: 10px;
+   margin-bottom: 30px;
+   font-size: 12px;
+   color: var(--text-muted);
   }
 
   .logo {
-   font-size: 32px;
+   font-size: 24px;
    font-weight: 700;
-   letter-spacing: -0.5px;
-   margin-bottom: 8px;
-  }
-
-  .logo span {
-   background: linear-gradient(135deg, #89b4fa, #74c7ec);
-   -webkit-background-clip: text;
-   -webkit-text-fill-color: transparent;
+   margin-bottom: 10px;
+   text-shadow: 0 0 5px var(--primary-glow);
   }
 
   .subtitle {
-   font-size: 15px;
+   font-size: 14px;
    color: var(--text-muted);
-   margin-bottom: 36px;
-   font-weight: 400;
+   margin-bottom: 30px;
   }
 
-  /* Floating Label Inputs */
+  /* Typing effect for subtitle */
+  .typewriter {
+   display: inline-block;
+   overflow: hidden;
+   white-space: nowrap;
+   border-right: 2px solid var(--primary);
+   animation: typing 1.5s steps(30, end), blink-caret .75s step-end infinite;
+  }
+
+  @keyframes typing {
+   from { width: 0 }
+   to { width: 100% }
+  }
+
+  @keyframes blink-caret {
+   from, to { border-color: transparent }
+   50% { border-color: var(--primary); }
+  }
+
+  /* Inputs */
   .input-group {
+   margin-bottom: 25px;
    position: relative;
-   margin-bottom: 24px;
-   text-align: left;
+  }
+
+  .input-group label {
+   display: block;
+   font-size: 13px;
+   margin-bottom: 8px;
+   color: var(--text-muted);
+  }
+
+  .input-group label::before {
+   content: '>';
+   margin-right: 8px;
+   color: var(--primary);
   }
 
   .input-group input {
    width: 100%;
-   padding: 16px 16px 16px 16px;
-   background: rgba(0, 0, 0, 0.2);
-   border: 1px solid rgba(255, 255, 255, 0.08);
-   border-radius: 14px;
+   padding: 12px 15px;
+   background: #020202;
+   border: 1px solid var(--border-color);
    color: var(--text-main);
-   font-size: 15px;
-   font-family: 'Outfit', sans-serif;
+   font-family: 'Fira Code', monospace;
+   font-size: 14px;
    outline: none;
-   transition: all 0.3s ease;
+   transition: all 0.2s ease;
   }
 
-  .input-group label {
-   position: absolute;
-   left: 16px;
-   top: 17px;
-   color: var(--text-muted);
-   font-size: 15px;
-   transition: all 0.25s ease;
-   pointer-events: none;
-  }
-
-  .input-group input:focus,
-  .input-group input:not(:placeholder-shown) {
-   border-color: rgba(56, 189, 248, 0.5);
-   background: rgba(0, 0, 0, 0.4);
-   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
-  }
-
-  .input-group input:focus + label,
-  .input-group input:not(:placeholder-shown) + label {
-   top: -10px;
-   left: 12px;
-   font-size: 12px;
-   padding: 0 6px;
-   background: #181825;
-   border-radius: 4px;
-   color: var(--primary);
+  .input-group input:focus {
+   border-color: var(--primary);
+   box-shadow: 0 0 10px var(--primary-dim);
   }
 
   /* Button */
   .btn-login {
-   position: relative;
    width: 100%;
-   padding: 15px;
-   margin-top: 10px;
-   background: linear-gradient(135deg, #89b4fa 0%, #74c7ec 100%);
-   border: none;
-   border-radius: 14px;
-   color: #1e1e2e;
+   padding: 14px;
+   margin-top: 15px;
+   background: transparent;
+   border: 1px solid var(--primary);
+   color: var(--primary);
    font-size: 15px;
-   font-weight: 700;
-   font-family: 'Outfit', sans-serif;
+   font-weight: 600;
+   font-family: 'Fira Code', monospace;
    cursor: pointer;
+   text-transform: uppercase;
+   letter-spacing: 2px;
+   transition: all 0.2s ease;
+   position: relative;
    overflow: hidden;
-   transition: transform 0.3s ease, box-shadow 0.3s ease;
-   box-shadow: 0 8px 20px -6px var(--primary-glow);
-  }
-
-  .btn-login::before {
-   content: '';
-   position: absolute;
-   top: 0; left: -100%;
-   width: 100%; height: 100%;
-   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-   transition: left 0.5s ease;
   }
 
   .btn-login:hover {
-   transform: translateY(-2px);
-   box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.5);
-  }
-
-  .btn-login:hover::before {
-   left: 100%;
-  }
-
-  .btn-login:active {
-   transform: translateY(1px);
+   background: var(--primary);
+   color: var(--bg-color);
+   box-shadow: 0 0 15px var(--primary-glow);
   }
 
   .btn-login:disabled {
-   opacity: 0.7;
+   border-color: var(--text-muted);
+   color: var(--text-muted);
    cursor: not-allowed;
-   transform: none;
+  }
+
+  .btn-login:disabled:hover {
+   background: transparent;
+   box-shadow: none;
   }
 
   /* Loader */
   .loader {
-   display: inline-block;
-   width: 22px;
-   height: 22px;
-   border: 3px solid rgba(255,255,255,0.3);
-   border-radius: 50%;
-   border-top-color: #fff;
-   animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
    display: none;
-   vertical-align: middle;
+   font-size: 14px;
+  }
+  
+  .loader::after {
+   content: '...';
+   animation: dots 1.5s steps(4, end) infinite;
   }
 
-  @keyframes spin {
-   to { transform: rotate(360deg); }
+  @keyframes dots {
+   0%, 20% { content: ''; }
+   40% { content: '.'; }
+   60% { content: '..'; }
+   80%, 100% { content: '...'; }
   }
 
   /* Error Message */
   .error-msg {
    color: var(--error);
-   font-size: 14px;
+   font-size: 13px;
    margin-top: 20px;
    min-height: 20px;
    opacity: 0;
-   transform: translateY(5px);
-   transition: all 0.3s ease;
+   text-shadow: 0 0 5px rgba(255, 0, 60, 0.4);
   }
 
   .error-msg.visible {
    opacity: 1;
-   transform: translateY(0);
   }
 
   /* Footer */
   .footer {
    position: absolute;
-   bottom: 30px;
+   bottom: 20px;
    width: 100%;
    text-align: center;
-   font-size: 13px;
+   font-size: 12px;
    color: var(--text-muted);
    z-index: 10;
-   opacity: 0;
-   animation: fadeIn 1s ease 1s forwards;
   }
 
   .footer a {
    color: var(--primary);
    text-decoration: none;
-   transition: color 0.2s ease;
-   font-weight: 500;
   }
 
   .footer a:hover {
-   color: #7dd3fc;
-  }
-
-  @keyframes fadeIn {
-   to { opacity: 1; }
+   text-decoration: underline;
+   text-shadow: 0 0 5px var(--primary-glow);
   }
  </style>
 </head>
 <body>
 
- <div class="bg-mesh"></div>
- <div class="orb orb-1" id="orb1"></div>
- <div class="orb orb-2" id="orb2"></div>
-
  <div class="login-wrapper">
   <div class="login-card">
-   <div class="logo">ease<span>Desk</span></div>
-   <div class="subtitle">Cloud Workspace Authentication</div>
+   <div class="terminal-header">
+    <span>root@ease-Desk:~# ./auth_gateway.sh</span>
+    <span id="clock">00:00:00</span>
+   </div>
+   
+   <div class="logo">EASE_DESK // SECURE_AUTH</div>
+   <div class="subtitle"><span class="typewriter">Initializing connection protocol...</span></div>
 
    <form id="loginForm">
     <div class="input-group">
-     <input type="text" id="username" placeholder=" " autocomplete="username" required>
-     <label for="username">Username</label>
+     <label for="username">TARGET_USER</label>
+     <input type="text" id="username" autocomplete="username" spellcheck="false" required autofocus>
     </div>
     
     <div class="input-group">
-     <input type="password" id="password" placeholder=" " autocomplete="current-password" required>
-     <label for="password">Password</label>
+     <label for="password">ACCESS_TOKEN</label>
+     <input type="password" id="password" autocomplete="current-password" required>
     </div>
 
     <button type="submit" class="btn-login" id="loginBtn">
-     <span id="btnText">Connect to Desktop</span>
-     <div class="loader" id="loader"></div>
+     <span id="btnText">EXECUTE_LOGIN</span>
+     <span class="loader" id="loader">AUTHENTICATING</span>
     </button>
 
-    <div class="error-msg" id="errorMsg">Invalid username or password.</div>
+    <div class="error-msg" id="errorMsg">[!] ERROR: INVALID CREDENTIALS_DETECTED</div>
    </form>
   </div>
  </div>
 
  <div class="footer">
-  ease Desk | Created by charlie <a href="https://charlietech.site" target="_blank">[charlietech.site]</a>
+  ease-Desk v2.0 | <a href="https://charlietech.site" target="_blank">charlietech.site</a>
  </div>
 
  <script>
-  // Parallax effect for floating orbs
-  document.addEventListener('mousemove', (e) => {
-   const orb1 = document.getElementById('orb1');
-   const orb2 = document.getElementById('orb2');
-   
-   const x = e.clientX / window.innerWidth;
-   const y = e.clientY / window.innerHeight;
-
-   orb1.style.transform = `translate(${x * 40}px, ${y * 40}px)`;
-   orb2.style.transform = `translate(${x * -30}px, ${y * -30}px)`;
-  });
+  // Simple Clock
+  setInterval(() => {
+   const d = new Date();
+   document.getElementById('clock').innerText = d.toTimeString().split(' ')[0];
+  }, 1000);
 
   // Login Logic
   document.getElementById('loginForm').addEventListener('submit', function(e) {
@@ -347,31 +322,28 @@
    errorMsg.classList.remove('visible');
    btn.disabled = true;
 
-   // Send XMLHttpRequest to authenticate against our special /auth_check endpoint
    const xhr = new XMLHttpRequest();
-   
    xhr.open("GET", "/auth_check", true);
    xhr.setRequestHeader("Authorization", "Basic " + btoa(u + ":" + p));
    
    xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
-     // Reset UI State
-     btnText.style.display = 'inline-block';
-     loader.style.display = 'none';
-     btn.disabled = false;
-
-      if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
-       // Set cookie for Nginx HTTP Basic Auth bypass
-       document.cookie = "easedesk_auth=" + btoa(u + ":" + p) + "; path=/; max-age=86400; SameSite=Strict";
-       
-       // Store session token + VNC password for desktop.html wrapper
-       sessionStorage.setItem('easedesk_session', '1');
-       sessionStorage.setItem('easedesk_user', u);
-       sessionStorage.setItem('easedesk_pass', p);
-       
-       // Go to desktop.html (which securely hosts KasmVNC in an iframe)
+     if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 404) {
+      document.cookie = "easedesk_auth=" + btoa(u + ":" + p) + "; path=/; max-age=86400; SameSite=Strict";
+      sessionStorage.setItem('easedesk_session', '1');
+      sessionStorage.setItem('easedesk_user', u);
+      sessionStorage.setItem('easedesk_pass', p);
+      
+      // Simulate connection delay for effect
+      btnText.style.display = 'none';
+      loader.innerText = "ACCESS GRANTED";
+      setTimeout(() => {
        window.location.replace('/desktop.html');
+      }, 500);
      } else {
+      btnText.style.display = 'inline-block';
+      loader.style.display = 'none';
+      btn.disabled = false;
       errorMsg.classList.add('visible');
       document.getElementById('password').value = '';
       document.getElementById('password').focus();
@@ -383,7 +355,7 @@
     btnText.style.display = 'inline-block';
     loader.style.display = 'none';
     btn.disabled = false;
-    errorMsg.innerText = "Network error occurred.";
+    errorMsg.innerText = "[!] ERROR: NETWORK_UNREACHABLE";
     errorMsg.classList.add('visible');
    };
 
