@@ -47,7 +47,7 @@
       // Construct the internal URL for noVNC (websockify proxy)
       const u = new URL(window.location.protocol + '//' + window.location.host + '/novnc/vnc.html');
       u.searchParams.set('autoconnect', 'true');
-      u.searchParams.set('resize', 'scale');
+      u.searchParams.set('resize', 'remote');
       u.searchParams.set('quality', '6');
       u.searchParams.set('compression', '2');
       
