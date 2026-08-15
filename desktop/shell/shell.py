@@ -1249,7 +1249,9 @@ class DesktopShell:
   self._last_tasks_snapshot = current_snapshot
 
   # 3. Rebuild running tasks in the TOP BAR (GNOME window list style)
-  target_box = self.running_tasks_topbar_box
+  target_box = getattr(self, "running_tasks_topbar_box", None)
+  if target_box is None:
+   return
   for child in target_box.get_children():
    target_box.remove(child)
 
@@ -1352,7 +1354,8 @@ class DesktopShell:
  def _tick_clock_and_stats(self) -> bool:
   # Clock & Date
   self.clock_time_label.set_text(time.strftime("%H:%M"))
-  self.clock_date_label.set_text(time.strftime("%a, %b %d"))
+  if hasattr(self, "clock_date_label"):
+   self.clock_date_label.set_text(time.strftime("%a, %b %d"))
 
   self._poll_processes()
   return True
@@ -1368,7 +1371,8 @@ class DesktopShell:
     pass
 
   info = sysinfo.summary()
-  self.server_label.set_text(f"Server: {info['hostname']}")
+  if hasattr(self, "server_label"):
+   self.server_label.set_text(f"Server: {info['hostname']}")
   if hasattr(self, "vps_rows") and len(self.vps_rows) >= 5:
    self.vps_rows[0][1].set_text(info["hostname"])
    self.vps_rows[1][1].set_text(info["os"])
