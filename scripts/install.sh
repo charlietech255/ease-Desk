@@ -195,52 +195,7 @@ elif command -v pkg >/dev/null 2>&1; then
 fi
 echo -e "${GREEN} System dependencies and real web browser installed.${NC}"
 
-# Install KasmVNC if on supported OS (Ubuntu/Debian)
-KASM_VERSION="1.5.0"
-if [ -f "/etc/os-release" ] && command -v apt-get >/dev/null 2>&1; then
- . /etc/os-release
- OS_CODENAME="${VERSION_CODENAME:-${UBUNTU_CODENAME}}"
- ARCH=$(uname -m)
- if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
- 
- SUPPORTED_CODENAMES="bookworm bullseye focal jammy noble trixie kali-rolling"
- if echo "$SUPPORTED_CODENAMES" | grep -q "$OS_CODENAME" && [ "$ARCH" != "$(uname -m)" ]; then
-  echo -e "${CYAN} Installing KasmVNC for ${OS_CODENAME} (${ARCH})...${NC}"
-  wget -qO /tmp/kasmvncserver.deb "https://github.com/kasmtech/KasmVNC/releases/download/v${KASM_VERSION}/kasmvncserver_${OS_CODENAME}_${KASM_VERSION}_${ARCH}.deb" || true
-  if [ -s /tmp/kasmvncserver.deb ]; then
-   apt-get install -y -qq /tmp/kasmvncserver.deb >/dev/null 2>&1 || echo -e "${YELLOW}KasmVNC installation failed, will fallback to Xvfb.${NC}"
-   rm -f /tmp/kasmvncserver.deb
-   usermod -aG ssl-cert "$TARGET_USER" 2>/dev/null || true
-   
-   # ALWAYS recreate ~/.kasmpasswd in KasmVNC's native format.
-   # vncpasswd creates an x11vnc-format file that KasmVNC cannot read.
-   if command -v kasmvncpasswd >/dev/null 2>&1; then
-    # Use the user's password if available, otherwise set a known fallback
-    _KASM_PASS="${VNC_PASS:-easedesk123}"
-    for u_home in "$TARGET_HOME" "/root"; do
-     [ -d "$u_home" ] || continue
-     # Remove any stale file or incompatible symlink
-     rm -f "${u_home}/.kasmpasswd"
-     printf '%s\n%s\n' "$_KASM_PASS" "$_KASM_PASS" | kasmvncpasswd -u "${TARGET_USER}" -rw "${u_home}/.kasmpasswd" > /dev/null 2>&1 || true
-     chmod 600 "${u_home}/.kasmpasswd" 2>/dev/null || true
-     [ "$TARGET_USER" != "root" ] && chown "${TARGET_USER}" "${u_home}/.kasmpasswd" 2>/dev/null || true
-    done
-     if [ -z "$VNC_PASS" ]; then
-     echo -e "${YELLOW} KasmVNC password set to 'easedesk123' (old format was incompatible). Change with: kasmvncpasswd -u ${TARGET_USER} ~/.kasmpasswd${NC}"
-    else
-     echo -e "${GREEN} KasmVNC native authentication configured.${NC}"
-    fi
-   fi
 
-   # Patch KasmVNC's index.html to force remote scaling by default
-   if [ -f /usr/share/kasmvnc/www/index.html ]; then
-    if ! grep -q "easedesk-force-remote-scale" /usr/share/kasmvnc/www/index.html; then
-     sed -i 's|</head>|<style>body, html, #noVNC_container { overflow: hidden !important; }</style><script>/* easedesk-force-remote-scale */ window.localStorage.setItem("kasm.scaling", "remote");</script></head>|g' /usr/share/kasmvnc/www/index.html
-    fi
-   fi
-  fi
- fi
-fi
 
 # Store password with x11vnc
 if [ -n "$VNC_PASS" ] && command -v x11vnc >/dev/null 2>&1; then
@@ -321,10 +276,10 @@ if command -v nginx >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
  [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
 
  if command -v kasmvncserver >/dev/null 2>&1; then
-  PROXY_PASS="http://127.0.0.1:8445"
- else
-  PROXY_PASS="http://127.0.0.1:6080"
+  # We still want to remove it if it exists so we don't accidentally conflict
+  apt-get remove -y -qq kasmvncserver >/dev/null 2>&1 || true
  fi
+ PROXY_PASS="http://127.0.0.1:6080"
 
  mkdir -p /etc/nginx/ssl
  if [ ! -f /etc/nginx/ssl/easedesk.crt ]; then
@@ -604,10 +559,8 @@ echo -e "${CYAN} [7/7] Running End-to-End System Health Checks...${NC}"
 if [ "$(id -u)" -eq 0 ]; then
  # Wait for service to warm up
  for _ in $(seq 1 30); do
-  if command -v kasmvncserver >/dev/null 2>&1; then
-   port_busy 8444 && break
-  else
-   port_busy 6080 && break
+  if port_busy 6080; then
+   break
   fi
   sleep 1
  done
@@ -620,9 +573,6 @@ if [ "$(id -u)" -eq 0 ]; then
   echo -e "${GREEN} WebSocket proxy active on :6080${NC}"
  fi
 
- if port_busy 8444; then
-  echo -e "${GREEN} KasmVNC server active on :8444${NC}"
- fi
 
  if port_busy 3389; then
   echo -e "${GREEN} Native RDP server active on :3389${NC}"
@@ -632,11 +582,7 @@ if [ "$(id -u)" -eq 0 ]; then
  [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
  BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
- if command -v kasmvncserver >/dev/null 2>&1; then
-  WEB_URL="http://${BASE_URL}:8444/"
- else
-  WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
- fi
+ WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
 
  echo ""
  echo -e "${GREEN}${BOLD}================================================================${NC}"
