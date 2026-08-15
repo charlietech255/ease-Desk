@@ -24,7 +24,7 @@ button {
     color: #00ff41;
     font-size: 13px;
     transition: all 150ms ease;
-    text-transform: uppercase;
+    
 }
 button:hover {
     background-color: #00ff41;
@@ -90,7 +90,7 @@ button:focus {
     color: #2f8e4b;
     font-size: 10px;
     font-weight: 400;
-    text-transform: uppercase;
+    
 }
 
 /* ------------------------------------------------------------------ Status Area (right panel) */
@@ -109,7 +109,7 @@ button:focus {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 1px;
-    text-transform: uppercase;
+    
 }
 .status-ok   { color: #00ff41; text-shadow: 0 0 5px rgba(0, 255, 65, 0.5); }
 .status-warn { color: #f9e2af; text-shadow: 0 0 5px rgba(249, 226, 175, 0.5); }
@@ -142,7 +142,7 @@ button:focus {
     font-size: 12px;
     font-weight: 500;
     transition: all 150ms ease;
-    text-transform: uppercase;
+    
 }
 .quick-btn:hover {
     border-color: #00ff41;
@@ -212,7 +212,7 @@ button:focus {
     color: #00ff41;
     font-size: 11px;
     font-weight: 500;
-    text-transform: uppercase;
+    
 }
 .running-task-close-btn {
     color: #2f8e4b;
@@ -253,7 +253,7 @@ button:focus {
     font-size: 12px;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 255, 65, 0.5);
     margin-top: 4px;
-    text-transform: uppercase;
+    
 }
 
 /* ------------------------------------------------------------------ Server Info Panel */
@@ -263,10 +263,10 @@ button:focus {
     border-radius: 2px;
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
 }
-.vps-title { color: #00ff41; font-weight: 700; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; text-shadow: 0 0 5px rgba(0,255,65,0.4); }
-.vps-key   { color: #2f8e4b; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.vps-title { color: #00ff41; font-weight: 700; font-size: 12px; letter-spacing: 1px;  text-shadow: 0 0 5px rgba(0,255,65,0.4); }
+.vps-key   { color: #2f8e4b; font-size: 11px; font-weight: 600;  }
 .vps-val   { color: #00ff41; font-size: 11px; font-weight: 400; }
-.hint      { color: #2f8e4b; font-size: 11px; text-transform: uppercase; }
+.hint      { color: #2f8e4b; font-size: 11px;  }
 
 /* ------------------------------------------------------------------ Calendar / Clock Flyout */
 .cal-window {
@@ -275,8 +275,8 @@ button:focus {
     border-radius: 2px;
     box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
 }
-.cal-title    { color: #00ff41; font-weight: 700; font-size: 13px; text-transform: uppercase; text-shadow: 0 0 5px rgba(0,255,65,0.4); }
-.cal-stat-key { color: #2f8e4b; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.cal-title    { color: #00ff41; font-weight: 700; font-size: 13px;  text-shadow: 0 0 5px rgba(0,255,65,0.4); }
+.cal-stat-key { color: #2f8e4b; font-size: 11px; font-weight: 600;  }
 .cal-stat-val { color: #00ff41; font-size: 11px; font-weight: 500; }
 
 /* ------------------------------------------------------------------ Wallpaper Dialog */
@@ -285,7 +285,7 @@ button:focus {
     font-weight: 700;
     font-size: 11px;
     letter-spacing: 1px;
-    text-transform: uppercase;
+    
 }
 .wp-card {
     background: rgba(10, 10, 15, 0.8);
@@ -309,7 +309,7 @@ button:focus {
     font-size: 11px;
     font-weight: 500;
     margin-top: 4px;
-    text-transform: uppercase;
+    
 }
 .color-btn {
     border-radius: 2px;
@@ -333,7 +333,7 @@ button:focus {
     color: #00ff41;
     font-weight: 500;
     transition: all 120ms ease;
-    text-transform: uppercase;
+    
 }
 .wallpaper-btn:hover {
     background: rgba(0, 255, 65, 0.1);

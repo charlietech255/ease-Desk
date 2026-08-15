@@ -606,7 +606,7 @@ class DesktopShell:
     color: #00ff41;
     font-size: 13px;
     font-weight: 500;
-    text-transform: uppercase;
+    
    }
   """)
   Gtk.StyleContext.add_provider_for_screen(
