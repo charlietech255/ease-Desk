@@ -21,163 +21,163 @@ from shared.utilities import animate  # noqa: E402
 
 def _load_css() -> None:
     css = b"""
-    window, .app-window { background-color: #131722; color: #dce3f0; }
+    window, .app-window { background-color: #ffffff; color: #333333; }
     toolbar {
-        background-color: #0f131c;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
         padding: 4px 8px;
     }
     toolbar button {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: transparent;
+        border: 1px solid transparent;
         border-radius: 6px;
         padding: 4px 10px;
-        color: #cbd5e1;
-        font-weight: 600;
+        color: #555555;
+        font-weight: 500;
     }
     toolbar button:hover {
-        background-color: rgba(122, 162, 247, 0.2);
-        color: #93c5fd;
-        border-color: #7aa2f7;
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #000000;
+        border-color: rgba(0, 0, 0, 0.1);
     }
     toolbar button:active {
-        background-color: rgba(122, 162, 247, 0.35);
+        background-color: rgba(0, 0, 0, 0.1);
     }
     entry {
-        background-color: #0a0d14;
+        background-color: #ffffff;
         border-radius: 6px;
-        border: 1px solid rgba(255,255,255,0.12);
-        color: #f1f5f9;
+        border: 1px solid rgba(0,0,0,0.1);
+        color: #333333;
         padding: 4px 10px;
     }
     entry:focus {
-        border-color: #7aa2f7;
+        border-color: #007aff;
     }
     headerbar {
-        background-color: #181825;
-        border-bottom: 1px solid rgba(205, 214, 244, 0.08);
+        background-color: #ffffff;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
         box-shadow: none;
     }
     headerbar label.title {
-        font-weight: 700;
+        font-weight: 600;
         font-size: 14px;
-        color: #cdd6f4;
+        color: #333333;
     }
     headerbar label.subtitle {
         font-size: 11px;
-        color: #a6adc8;
+        color: #888888;
     }
     
     .toolbar {
-        background-color: #1e1e2e;
-        border-bottom: 1px solid rgba(205, 214, 244, 0.05);
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
         padding: 8px 12px;
     }
     .tool-btn {
-        background-color: rgba(49, 50, 68, 0.6);
-        color: #cdd6f4;
-        border: 1px solid rgba(205, 214, 244, 0.08);
+        background-color: transparent;
+        color: #555555;
+        border: 1px solid transparent;
         border-radius: 8px;
-        font-weight: 600;
+        font-weight: 500;
         padding: 6px 12px;
         transition: all 150ms ease;
     }
     .tool-btn:hover {
-        background-color: rgba(49, 50, 68, 0.95);
-        border-color: rgba(137, 180, 250, 0.35);
+        background-color: rgba(0,0,0,0.05);
+        border-color: rgba(0,0,0,0.1);
     }
     .tool-btn:active {
-        background-color: rgba(137, 180, 250, 0.2);
+        background-color: rgba(0,0,0,0.1);
     }
     .action-bar {
-        background-color: #121620;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
         padding: 5px 10px;
     }
     .action-btn {
-        background: rgba(255,255,255,0.05);
-        color: #cbd5e1;
-        border: 1px solid rgba(255,255,255,0.08);
+        background: transparent;
+        color: #555555;
+        border: 1px solid transparent;
         border-radius: 6px;
-        font-weight: 600;
+        font-weight: 500;
         padding: 3px 10px;
     }
     .action-btn:hover {
-        background-color: rgba(255,255,255,0.12);
-        color: #ffffff;
-        border-color: rgba(255,255,255,0.2);
+        background-color: rgba(0,0,0,0.05);
+        color: #000000;
+        border-color: rgba(0,0,0,0.1);
     }
     .statusbar {
-        background-color: #0f131c;
-        color: #8a97ad;
+        background-color: #f8f9fa;
+        color: #888888;
         padding: 5px 14px;
         font-size: 12px;
-        border-top: 1px solid rgba(255,255,255,0.06);
+        border-top: 1px solid rgba(0,0,0,0.05);
     }
     .iconview {
-        background-color: #1e1e2e;
+        background-color: #ffffff;
     }
     .iconview:selected {
-        background-color: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 122, 255, 0.1);
+        border: 1px solid rgba(0, 122, 255, 0.2);
         border-radius: 6px;
     }
     
     /* --- MENUS --- */
     menu, .menu, popover {
-        background-color: #1e1e2e;
-        border: 1px solid rgba(205, 214, 244, 0.1);
+        background-color: #ffffff;
+        border: 1px solid rgba(0,0,0,0.1);
         border-radius: 8px;
         padding: 4px;
-        color: #cdd6f4;
+        color: #333333;
     }
     menuitem {
-        color: #cdd6f4;
+        color: #333333;
         padding: 6px 12px;
         border-radius: 6px;
         transition: background 100ms ease;
     }
     menuitem:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.05);
     }
 
     /* --- SIDEBAR --- */
     .sidebar {
-        background-color: #11111b;
-        border-right: 1px solid rgba(205, 214, 244, 0.05);
+        background-color: #f8f9fa;
+        border-right: 1px solid rgba(0,0,0,0.05);
     }
     .sidebar-row {
         padding: 8px 12px;
-        color: #a6adc8;
+        color: #555555;
         font-weight: 500;
         border-radius: 6px;
         margin: 2px 8px;
     }
     .sidebar-row:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #cdd6f4;
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #333333;
     }
     .sidebar-row:selected {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
+        background-color: rgba(0, 122, 255, 0.1);
+        color: #007aff;
     }
 
     /* --- THIS PC / PARTITION VIEW STYLING --- */
     .thispc-container {
-        background-color: #11111b; /* Deepin Dark Background */
+        background-color: #ffffff;
         padding: 20px 24px;
     }
     .thispc-banner {
-        background-color: rgba(30, 30, 46, 0.6);
-        border: 1px solid rgba(205, 214, 244, 0.05);
+        background-color: #f8f9fa;
+        border: 1px solid rgba(0,0,0,0.05);
         border-radius: 12px;
         padding: 14px 20px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     .thispc-sec-title {
-        color: #a6adc8;
-        font-weight: 700;
+        color: #888888;
+        font-weight: 600;
         font-size: 14px;
         margin-top: 16px;
         margin-bottom: 12px;
@@ -185,73 +185,73 @@ def _load_css() -> None:
 
     /* Drive / Partition Card */
     .drive-card {
-        background-color: rgba(49, 50, 68, 0.55);
-        border: 1px solid rgba(205, 214, 244, 0.08);
+        background-color: #ffffff;
+        border: 1px solid rgba(0,0,0,0.1);
         border-radius: 16px;
         padding: 14px 18px;
         min-width: 260px;
         min-height: 84px;
         transition: all 180ms ease-in-out;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .drive-card:hover {
-        background-color: rgba(49, 50, 68, 0.85);
-        border-color: rgba(137, 180, 250, 0.45);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        background-color: #f8f9fa;
+        border-color: rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     .drive-card:active, .drive-card.selected {
-        background-color: rgba(137, 180, 250, 0.25);
-        border-color: #89b4fa;
+        background-color: rgba(0, 122, 255, 0.05);
+        border-color: #007aff;
     }
     .drive-title {
-        color: #cdd6f4;
-        font-weight: 700;
+        color: #333333;
+        font-weight: 600;
         font-size: 14px;
     }
     .drive-sub {
-        color: #a6adc8;
+        color: #888888;
         font-size: 12px;
     }
     .drive-meta {
-        color: #6c7086;
+        color: #aaaaaa;
         font-size: 11px;
     }
 
     /* Progress bar for storage partitions */
     progressbar {
         border-radius: 6px;
-        background-color: rgba(24, 24, 37, 0.8);
+        background-color: rgba(0,0,0,0.05);
         min-height: 10px;
-        border: 1px solid rgba(205, 214, 244, 0.05);
+        border: 1px solid rgba(0,0,0,0.05);
     }
     progressbar progress {
-        background-image: linear-gradient(to right, #89b4fa, #74c7ec);
+        background-image: linear-gradient(to right, #007aff, #00c6ff);
         border-radius: 6px;
         min-height: 10px;
     }
     .drive-warn progress {
-        background-image: linear-gradient(to right, #f9e2af, #f38ba8);
+        background-image: linear-gradient(to right, #ffcc00, #ff9500);
     }
     .drive-crit progress {
-        background-image: linear-gradient(to right, #f38ba8, #eba0ac);
+        background-image: linear-gradient(to right, #ff3b30, #ff2d55);
     }
 
     /* Quick folder card */
     .folder-card {
-        background-color: rgba(49, 50, 68, 0.4);
-        border: 1px solid rgba(205, 214, 244, 0.05);
+        background-color: #ffffff;
+        border: 1px solid rgba(0,0,0,0.1);
         border-radius: 12px;
         padding: 10px 16px;
         min-width: 160px;
         transition: all 150ms ease-in-out;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .folder-card:hover {
-        background-color: rgba(49, 50, 68, 0.8);
-        border-color: rgba(137, 180, 250, 0.35);
+        background-color: #f8f9fa;
+        border-color: rgba(0,0,0,0.15);
     }
     .folder-card:active {
-        background-color: rgba(137, 180, 250, 0.2);
+        background-color: rgba(0, 122, 255, 0.05);
     }
     """
     provider = Gtk.CssProvider()
@@ -271,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
     # Enforce global dark mode for file manager to fix white title bar
     settings = Gtk.Settings.get_default()
     if settings:
-        settings.set_property("gtk-application-prefer-dark-theme", True)
+        settings.set_property("gtk-application-prefer-dark-theme", False)
         
     _load_css()
 

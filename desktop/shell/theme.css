@@ -53,7 +53,7 @@ window.shell {
     background: transparent;
     border: none;
     border-radius: 8px;
-    padding: 8px;
+    padding: 4px; min-width: 36px; min-height: 36px;
     transition: all 150ms ease;
 }
 .left-dock-btn:hover {
@@ -64,7 +64,7 @@ window.shell {
     background: transparent;
     border: none;
     border-radius: 8px;
-    padding: 8px;
+    padding: 4px; min-width: 36px; min-height: 36px;
     color: #ff4d4f; /* red */
     transition: all 150ms ease;
 }

@@ -472,6 +472,7 @@ class DesktopShell:
   bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
   bar.get_style_context().add_class("top-bar")
   bar.set_size_request(-1, 32)
+  bar.set_hexpand(True)
   right_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
   right_box.set_margin_end(16)
   
@@ -554,7 +555,7 @@ class DesktopShell:
    self.desktop_fixed.remove(child)
   self.icon_buttons.clear()
 
-  current_x = 0
+  current_x = 70
   current_y = 0
   icon_width = 80
   icon_height = 90
