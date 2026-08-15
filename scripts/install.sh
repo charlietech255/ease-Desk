@@ -313,13 +313,10 @@ server {
   root /opt/ease-desk/shared/web;
  }
 
- # ── /kasmvnc/: proxy to KasmVNC ─────────────────────────────────────────────
- # Nginx reads the base64 credentials from the 'easedesk_auth' cookie (set by login.html)
- # and injects the Authorization header before proxying to KasmVNC.
- # This completely bypasses the browser's native Basic Auth dialog.
- location /kasmvnc/ {
-  rewrite ^/kasmvnc(/.*)$ \$1 break;
-  proxy_pass ${PROXY_PASS};
+ # ── /novnc/: proxy noVNC web UI (served by websockify) ─────────────────────
+ location /novnc/ {
+  rewrite ^/novnc(/.*)$ $1 break;
+  proxy_pass http://127.0.0.1:6080;
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection \$connection_upgrade;
@@ -328,13 +325,7 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-
-  # Inject Basic Auth from Cookie
-  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
-  proxy_hide_header WWW-Authenticate;
-  
-  # Apply rate limiting to KasmVNC auth/traffic initiation
-  limit_req zone=easedesk_auth burst=10 nodelay;
+  proxy_pass http://127.0.0.1:6080/;
  }
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
@@ -342,6 +333,19 @@ server {
   proxy_pass ${PROXY_PASS}/;
   proxy_hide_header WWW-Authenticate;
   limit_req zone=easedesk_auth burst=10 nodelay;
+ }
+
+ # ── /websockify: WebSocket VNC tunnel ──────────────────────────────────────
+ location /websockify {
+  proxy_pass http://127.0.0.1:6080;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade \$http_upgrade;
+  proxy_set_header Connection \$connection_upgrade;
+  proxy_set_header Host \$host;
+  proxy_set_header X-Real-IP \$remote_addr;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_read_timeout 86400s;
+  proxy_send_timeout 86400s;
  }
 
  # ── /logout ─────────────────────────────────────────────────────────────────

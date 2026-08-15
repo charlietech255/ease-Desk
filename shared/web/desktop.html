@@ -37,19 +37,19 @@
       sessionStorage.removeItem('easedesk_user');
       sessionStorage.removeItem('easedesk_pass');
 
-      // Create an iframe to hold KasmVNC. 
-      // This prevents the password from appearing in the user's address bar.
+      // Create an iframe to hold noVNC.
       const iframe = document.createElement('iframe');
       
       // Allow fullscreen and clipboard operations for the VNC session
       iframe.setAttribute('allowfullscreen', 'true');
       iframe.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
       
-      // Construct the internal URL for KasmVNC
-      const u = new URL(window.location.protocol + '//' + window.location.host + '/kasmvnc/');
-      u.searchParams.set('password', pw);
+      // Construct the internal URL for noVNC (websockify proxy)
+      const u = new URL(window.location.protocol + '//' + window.location.host + '/novnc/vnc.html');
       u.searchParams.set('autoconnect', 'true');
-      u.searchParams.set('resize', 'remote');
+      u.searchParams.set('resize', 'scale');
+      u.searchParams.set('quality', '6');
+      u.searchParams.set('compression', '2');
       
       iframe.src = u.toString();
       document.body.appendChild(iframe);
