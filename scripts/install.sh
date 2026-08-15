@@ -136,6 +136,7 @@ if command -v apt-get >/dev/null 2>&1; then
    python3 \
    wayvnc \
    sway \
+   xwayland \
    gir1.2-gtk-layer-shell-0.1 \
    novnc \
    websockify \
@@ -150,7 +151,7 @@ if command -v apt-get >/dev/null 2>&1; then
    hicolor-icon-theme \
    >/dev/null 2>&1 || {
    echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 sway wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
+   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 sway xwayland wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
   }
 
 
