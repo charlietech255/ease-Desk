@@ -41,9 +41,8 @@ class SpotlightWindow(Gtk.Window):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.shell = parent_shell
         self.set_decorated(False)
-        self.set_transient_for(parent_shell.window)
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_default_size(580, 56)
+        self.set_default_size(600, 56)
         self.set_skip_taskbar_hint(True)
         self.set_skip_pager_hint(True)
         self.set_app_paintable(True)
@@ -274,10 +273,10 @@ class DashboardPanel(Gtk.Revealer):
 
         actions_grid = Gtk.Grid(column_spacing=8, row_spacing=8)
         actions = [
-            ("Wallpaper", lambda *_: self.shell._dialog_change_wallpaper()),
-            ("Screenshot", lambda *_: self.shell._take_screenshot()),
-            ("Add Shortcut", lambda *_: self.shell._dialog_add_shortcut()),
-            ("Exit Session", lambda *_: self.shell._exit()),
+            ("Wallpaper",   lambda *_: self.shell._dialog_change_wallpaper()),
+            ("Screenshot",  lambda *_: self.shell._take_screenshot()),
+            ("Add Shortcut",lambda *_: self.shell._dialog_add_shortcut()),
+            ("Exit Session",lambda *_: self.shell._exit()),
         ]
         for idx, (label_txt, cb) in enumerate(actions):
             btn = Gtk.Button.new_with_label(label_txt)

@@ -1,119 +1,264 @@
-/* ease-Desk — Kwacha OS Prototype Theme
- * Clean, minimalistic glassmorphism.
- */
+/* ===========================================================================
+   ease-Desk — Premium Dark Shell Theme
+   Glassmorphism + Depth + Smooth animations
+   =========================================================================== */
 
-/* ------------------------------------------------------------------ Base */
-window.shell {
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+* {
+    font-family: "Inter", "Ubuntu", "Segoe UI", sans-serif;
+}
+
+/* ── Transparent window base ─────────────────────────────────────────────── */
+window {
     background-color: transparent;
 }
 
-* {
-    font-family: "Inter", "Ubuntu", sans-serif;
-}
-
-/* ------------------------------------------------------------------ Top Bar */
+/* ── Top Bar ─────────────────────────────────────────────────────────────── */
 .top-bar {
-    background-color: rgba(0, 0, 0, 0.4);
-    color: #ffffff;
+    background: linear-gradient(
+        180deg,
+        rgba(5, 5, 12, 0.88) 0%,
+        rgba(10, 10, 22, 0.72) 100%
+    );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0 12px;
+    min-height: 36px;
 }
 
 .topbar-icon {
-    opacity: 0.9;
+    opacity: 0.85;
+    -gtk-icon-size: 16px;
 }
 
 .topbar-clock {
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.92);
     font-size: 13px;
     font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
-/* ------------------------------------------------------------------ Left Dock */
-.left-dock {
-    background-color: rgba(20, 15, 10, 0.5); /* translucent dark brown/black */
-    border-radius: 12px;
-    padding: 12px 6px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.left-dock-btn-arrow {
-    background-color: rgba(0, 0, 0, 0.6);
+.topbar-clock:hover {
     color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    padding: 4px;
-    min-height: 24px;
-    transition: all 150ms ease;
 }
-.left-dock-btn-arrow:hover {
-    background-color: rgba(0, 0, 0, 0.8);
+
+/* ── Left Dock ───────────────────────────────────────────────────────────── */
+.left-dock {
+    background: linear-gradient(
+        180deg,
+        rgba(12, 12, 26, 0.82) 0%,
+        rgba(8, 8, 18, 0.90) 100%
+    );
+    border-right: 1px solid rgba(255, 255, 255, 0.055);
+    padding: 12px 0;
+    min-width: 60px;
 }
 
 .left-dock-btn {
     background: transparent;
     border: none;
-    border-radius: 8px;
-    padding: 4px; min-width: 36px; min-height: 36px;
-    transition: all 150ms ease;
+    border-radius: 10px;
+    padding: 7px;
+    margin: 2px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
 }
+
 .left-dock-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.left-dock-btn:active {
+    background: rgba(255, 255, 255, 0.16);
 }
 
 .left-dock-btn-power {
     background: transparent;
     border: none;
-    border-radius: 8px;
-    padding: 4px; min-width: 36px; min-height: 36px;
-    color: #ff4d4f; /* red */
-    transition: all 150ms ease;
-}
-.left-dock-btn-power:hover {
-    background: rgba(255, 77, 79, 0.2);
+    border-radius: 10px;
+    padding: 7px;
+    margin: 2px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    transition: background-color 150ms ease;
 }
 
-/* ------------------------------------------------------------------ Bottom Center Dock */
+.left-dock-btn-power:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+.left-dock-btn-power:active {
+    background: rgba(239, 68, 68, 0.32);
+}
+
+/* Dock separator */
+.dock-sep {
+    background-color: rgba(255, 255, 255, 0.08);
+    margin: 6px 14px;
+    min-height: 1px;
+}
+
+/* ── Desktop Icon Grid ───────────────────────────────────────────────────── */
+.icon-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 10px 6px;
+    min-width: 80px;
+    min-height: 80px;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.10);
+}
+
+.icon-btn:active {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.icon-name {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 500;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    margin-top: 4px;
+}
+
+/* ── Spotlight Search ────────────────────────────────────────────────────── */
+.spotlight-window {
+    background: rgba(18, 18, 28, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.spotlight-entry {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 20px;
+    font-weight: 300;
+    font-family: "Inter", sans-serif;
+    padding: 14px 24px;
+    caret-color: #a78bfa;
+}
+
+.spotlight-entry:focus {
+    border: none;
+    box-shadow: none;
+}
+
+/* ── Dashboard / Quick Settings Panel ───────────────────────────────────── */
+.dashboard-panel {
+    background: rgba(10, 10, 20, 0.95);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+    padding: 0 20px 24px 20px;
+}
+
+.dash-header {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: "Inter", sans-serif;
+}
+
+.dash-section-lbl {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    margin-top: 18px;
+    margin-bottom: 6px;
+}
+
+.dash-stat-key {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.dash-stat-val {
+    color: rgba(255, 255, 255, 0.90);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dash-action-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 12px;
+    transition: background-color 130ms ease, border-color 130ms ease;
+}
+
+.dash-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+.dash-action-btn:active {
+    background: rgba(255, 255, 255, 0.20);
+}
+
+/* Progress bars */
+progressbar > trough {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    min-height: 5px;
+    border: none;
+}
+
+progressbar > trough > progress {
+    background: linear-gradient(to right, #7c3aed, #a78bfa);
+    border-radius: 8px;
+    border: none;
+}
+
+progressbar.warning > trough > progress {
+    background: linear-gradient(to right, #d97706, #fbbf24);
+}
+
+progressbar.critical > trough > progress {
+    background: linear-gradient(to right, #dc2626, #f87171);
+}
+
+/* ── Bottom Dock (if used) ───────────────────────────────────────────────── */
 .bottom-dock {
-    background-color: rgba(30, 30, 35, 0.6);
-    border-radius: 12px;
-    padding: 8px 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: rgba(12, 12, 24, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 8px 20px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
 .bottom-dock-btn {
     background: transparent;
     border: none;
-    border-radius: 8px;
-    padding: 6px 12px;
-    transition: all 150ms ease;
+    border-radius: 10px;
+    padding: 6px 14px;
+    transition: background-color 130ms ease;
 }
+
 .bottom-dock-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.10);
 }
 
 .bottom-dock-label {
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.70);
     font-size: 11px;
     font-weight: 500;
-}
-
-/* ------------------------------------------------------------------ Desktop Icons */
-.icon-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 10px 8px;
-    min-width: 88px;
-    min-height: 88px;
-    transition: all 120ms ease;
-}
-.icon-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-.icon-name {
-    color: #ffffff;
-    font-weight: 500;
-    font-size: 12px;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    margin-top: 4px;
 }
