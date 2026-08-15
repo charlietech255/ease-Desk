@@ -129,40 +129,30 @@ echo -e "${CYAN} [3/7] Installing System Dependencies...${NC}"
 if command -v apt-get >/dev/null 2>&1; then
  export DEBIAN_FRONTEND=noninteractive
  # Install base dependencies
- apt-get install -y -qq \
-  git \
-  curl \
-  wget \
-  python3 \
-  x11vnc \
-  novnc \
-  websockify \
-  xrdp \
-  xorgxrdp \
-  nginx \
-  fail2ban \
-  procps \
-  scrot \
-  wmctrl \
-  xdotool \
-  net-tools \
-  net-tools \
-  fonts-dejavu-core \
-  fonts-noto-color-emoji \
-  adwaita-icon-theme \
-  papirus-icon-theme \
-  hicolor-icon-theme \
-  >/dev/null 2>&1 || {
+  apt-get install -y -qq \
+   git \
+   curl \
+   wget \
+   python3 \
+   wayvnc \
+   sway \
+   gir1.2-gtk-layer-shell-0.1 \
+   novnc \
+   websockify \
+   nginx \
+   fail2ban \
+   grim \
+   slurp \
+   fonts-dejavu-core \
+   fonts-noto-color-emoji \
+   adwaita-icon-theme \
+   papirus-icon-theme \
+   hicolor-icon-theme \
+   >/dev/null 2>&1 || {
    echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 labwc wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
+   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 sway wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
   }
-  adwaita-icon-theme \
-  papirus-icon-theme \
-  hicolor-icon-theme \
-  >/dev/null 2>&1 || {
-   echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx fail2ban git curl wget >/dev/null 2>&1 || true
-  }
+
 
  # Install ultra-lightweight native WebKit browser (Epiphany) for fast startup & minimal RAM (<80MB)
  echo -e "${CYAN} Installing Lightweight WebKit Browser (Epiphany)...${NC}"

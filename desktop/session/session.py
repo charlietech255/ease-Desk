@@ -21,23 +21,26 @@ class SessionManager:
         print("\nStarting ease-Desk (Wayland)...")
         os.environ["PYTHONPATH"] = self.root_dir + os.pathsep + os.environ.get("PYTHONPATH", "")
         
-        # 1. Start labwc in headless mode
+        # 1. Start sway in headless mode
         os.environ["WLR_BACKENDS"] = "headless"
-        os.environ["WLR_RENDERER"] = "pixman"
+        os.environ["WLR_RENDERER_ALLOW_SOFTWARE"] = "1"
+        os.environ["WLR_NO_HARDWARE_CURSORS"] = "1"
         os.environ["LIBSEAT_BACKEND"] = "noop"
         os.environ["WLR_LIBINPUT_NO_DEVICES"] = "1"
-        os.environ["WLR_HEADLESS_OUTPUTS"] = "1"
         
         runtime_dir = f"/tmp/ease-desk-runtime-{os.geteuid()}"
         os.makedirs(runtime_dir, mode=0o700, exist_ok=True)
         os.environ["XDG_RUNTIME_DIR"] = runtime_dir
         
-        # Create a startup script for labwc
+        # Create a startup script for sway
         startup_script = os.path.join(self.root_dir, "scripts", "wayland_init.sh")
         with open(startup_script, "w") as f:
             f.write(f"""#!/bin/bash
 # ease-Desk Wayland Startup Script
 export PYTHONPATH="{self.root_dir}:$PYTHONPATH"
+
+# Set background to black to hide sway logo
+swaymsg "output * bg #050505 solid_color" >/dev/null 2>&1
 
 # Start VNC Server
 wayvnc 127.0.0.1 5900 &
@@ -50,7 +53,24 @@ exec python3 -m desktop.shell.shell
 """)
         os.chmod(startup_script, 0o755)
 
-        cmd = ["labwc", "-s", startup_script]
+        # Create sway config
+        sway_config = os.path.join(self.root_dir, "scripts", "sway_config")
+        with open(sway_config, "w") as f:
+            f.write(f"""
+# Sway config for ease-Desk Headless Mode
+output HEADLESS-1 resolution 1920x1080 position 0,0
+default_border none
+default_floating_border none
+xwayland enable
+
+# Force all windows to float (Openbox-like behavior)
+for_window [class=".*"] floating enable
+for_window [app_id=".*"] floating enable
+
+exec {startup_script}
+""")
+
+        cmd = ["sway", "-c", sway_config]
         proc = subprocess.Popen(cmd)
         
         print("\n" + "=" * 64)
