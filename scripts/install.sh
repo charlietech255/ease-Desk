@@ -129,30 +129,36 @@ echo -e "${CYAN} [3/7] Installing System Dependencies...${NC}"
 if command -v apt-get >/dev/null 2>&1; then
  export DEBIAN_FRONTEND=noninteractive
  # Install base dependencies
-  apt-get install -y -qq \
-   git \
-   curl \
-   wget \
-   python3 \
-   wayvnc \
-   sway \
-   xwayland \
-   gir1.2-gtk-layer-shell-0.1 \
-   novnc \
-   websockify \
-   nginx \
-   fail2ban \
-   grim \
-   slurp \
-   fonts-dejavu-core \
-   fonts-noto-color-emoji \
-   adwaita-icon-theme \
-   papirus-icon-theme \
-   hicolor-icon-theme \
-   >/dev/null 2>&1 || {
-   echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 sway xwayland wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
-  }
+ apt-get install -y -qq \
+  git \
+  curl \
+  wget \
+  openssl \
+  python3 \
+  python3-gi \
+  gir1.2-gtk-3.0 \
+  gir1.2-vte-2.91 \
+  wayvnc \
+  sway \
+  xwayland \
+  novnc \
+  websockify \
+  nginx \
+  fail2ban \
+  grim \
+  slurp \
+  fonts-dejavu-core \
+  fonts-noto-color-emoji \
+  adwaita-icon-theme \
+  papirus-icon-theme \
+  hicolor-icon-theme \
+  >/dev/null 2>&1 || {
+  echo -e "${YELLOW}Retrying essential apt packages...${NC}"
+  apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 sway xwayland wayvnc novnc websockify nginx fail2ban git curl wget >/dev/null 2>&1 || true
+ }
+ # Try to install gtk-layer-shell (optional — shell still works without it)
+ apt-get install -y -qq gir1.2-gtk-layer-shell-0.1 >/dev/null 2>&1 || \
+  apt-get install -y -qq gir1.2-gtk4-layer-shell >/dev/null 2>&1 || true
 
 
  # Install ultra-lightweight native WebKit browser (Epiphany) for fast startup & minimal RAM (<80MB)
@@ -188,16 +194,18 @@ echo -e "${GREEN} System dependencies and real web browser installed.${NC}"
 
 
 
-# Store password with x11vnc
-if [ -n "$VNC_PASS" ] && command -v x11vnc >/dev/null 2>&1; then
+# Store password for wayvnc as a plain-text credentials file.
+# wayvnc reads: username=<user>\npassword=<pass>\n
+if [ -n "$VNC_PASS" ]; then
  for u_home in "$TARGET_HOME" "/root"; do
   [ -d "$u_home" ] || continue
   mkdir -p "${u_home}/.vnc"
-  x11vnc -storepasswd "$VNC_PASS" "${u_home}/.vnc/passwd" >/dev/null 2>&1 || true
-  chmod 600 "${u_home}/.vnc/passwd" 2>/dev/null || true
+  # Plain-text pass used by session.py to build wayvnc credentials file
+  printf '%s' "$VNC_PASS" > "${u_home}/.vnc/plainpass"
+  chmod 600 "${u_home}/.vnc/plainpass"
   [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" 2>/dev/null || true
  done
- echo -e "${GREEN} Password saved securely.${NC}"
+ echo -e "${GREEN} Password saved securely (wayvnc credentials).${NC}"
 fi
 
 # Ensure noVNC index.html symlink exists
@@ -330,7 +338,7 @@ server {
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
  location = /auth_check {
-  proxy_pass ${PROXY_PASS}/;
+  proxy_pass http://127.0.0.1:6080/;
   proxy_hide_header WWW-Authenticate;
   limit_req zone=easedesk_auth burst=10 nodelay;
  }
@@ -354,12 +362,9 @@ server {
   rewrite ^/logout$ /logout.html break;
  }
 
- # ── /websockify & KasmVNC root-level assets ──────────────────────────────────
- # KasmVNC's JS constructs WebSocket URL relative to the ORIGIN (not /kasmvnc/).
- # So wss://host:8444/websockify must be proxied directly to KasmVNC.
- # Same for /assets/, /core/, /vendor/, /app/ etc. that KasmVNC serves.
- location ~* ^/(websockify|assets|core|vendor|app|images|sounds)(/.*)?$ {
-  proxy_pass ${PROXY_PASS};
+ # ── noVNC static assets (core/, vendor/, app/, images/, sounds/) ─────────────
+ location ~* ^/(assets|core|vendor|app|images|sounds)(/.*)?$ {
+  proxy_pass http://127.0.0.1:6080;
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection \$connection_upgrade;
@@ -368,10 +373,6 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-
-  # Inject Basic Auth from Cookie
-  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
-  proxy_hide_header WWW-Authenticate;
  }
 }
 EOF
@@ -576,7 +577,7 @@ if [ "$(id -u)" -eq 0 ]; then
  [ -z "$PUBLIC_IP" ] && PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
  BASE_URL="${PUBLIC_IP:-127.0.0.1}"
 
- WEB_URL="http://${BASE_URL}/vnc.html?autoconnect=true&resize=scale"
+ WEB_URL="https://${BASE_URL}:8444"
 
  echo ""
  echo -e "${GREEN}${BOLD}================================================================${NC}"
