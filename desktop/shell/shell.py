@@ -241,6 +241,11 @@ class ShellApp:
         self.bg_win = Gtk.Window()
         self.bg_win.set_decorated(False)
         self.bg_win.set_resizable(False)
+        # Solid dark background — no transparency needed
+        self.bg_win.override_background_color(
+            Gtk.StateFlags.NORMAL,
+            Gdk.RGBA(0.02, 0.02, 0.07, 1.0),  # #050512
+        )
 
         if LAYER_SHELL:
             _layer(self.bg_win, "BACKGROUND", ["TOP", "BOTTOM", "LEFT", "RIGHT"])
@@ -364,11 +369,6 @@ def main() -> int:
             Gtk.StyleContext.add_provider_for_screen(
                 screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
             )
-
-    # ── Enable compositor transparency ────────────────────────────────────────
-    screen = Gdk.Screen.get_default()
-    if screen and screen.get_rgba_visual():
-        Gtk.Widget.set_default_visual(screen.get_rgba_visual())
 
     app = ShellApp()
     app.show_all()

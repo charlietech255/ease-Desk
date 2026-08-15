@@ -9,10 +9,9 @@
     font-family: "Inter", "Ubuntu", "Segoe UI", sans-serif;
 }
 
-/* ── Transparent window base ─────────────────────────────────────────────── */
-window {
-    background-color: transparent;
-}
+/* ── Transparent window base — only use where compositor supports RGBA ── */
+/* DO NOT set window background-color: transparent — it renders black on
+   headless wayvnc. Instead give each surface an explicit dark color.    */
 
 /* ── Top Bar ─────────────────────────────────────────────────────────────── */
 .top-bar {
