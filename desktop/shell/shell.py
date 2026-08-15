@@ -435,7 +435,23 @@ class DesktopShell:
   outer.pack_start(desk_event, True, True, 0)
   
   # Deepin-style Unified Bottom Panel
-  outer.pack_end(self._build_bottom_panel(), False, False, 0)
+    # Top Bar
+  self.top_bar = self._build_top_bar()
+  self.top_bar.set_valign(Gtk.Align.START)
+  self.top_bar.set_halign(Gtk.Align.FILL)
+  self.overlay.add_overlay(self.top_bar)
+
+  # Left Dock
+  self.left_dock = self._build_left_dock()
+  self.left_dock.set_valign(Gtk.Align.CENTER)
+  self.left_dock.set_halign(Gtk.Align.START)
+  self.overlay.add_overlay(self.left_dock)
+
+  # Bottom Center Dock
+  self.bottom_dock = self._build_bottom_dock()
+  self.bottom_dock.set_valign(Gtk.Align.END)
+  self.bottom_dock.set_halign(Gtk.Align.CENTER)
+  self.overlay.add_overlay(self.bottom_dock)
 
   self._build_icon_column()
   self.overlay.add(outer)
@@ -452,339 +468,87 @@ class DesktopShell:
   self.spotlight = SpotlightWindow(self)
   
   # Bottom hint (hidden or moved; let's omit for clean look or place in info panel, but omitte # ---------------------------------------------------------- UNIFIED BOTTOM PANEL
- def _build_bottom_panel(self) -> Gtk.Widget:
+ def _build_top_bar(self) -> Gtk.Widget:
   bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-  bar.get_style_context().add_class("bottom-panel")
-  bar.set_size_request(-1, 52)
-
-  # ---- LEFT SECTION: Start Menu Button
-  left_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-  left_box.set_margin_start(8)
-
-  self.start_btn = Gtk.Button()
-  img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf("activity", size=24))
-  self.start_btn.add(img)
-  self.start_btn.get_style_context().add_class("start-btn")
-  self.start_btn.set_tooltip_text("Start Menu")
-  self.start_btn.connect("clicked", lambda *_: self._popup_activities())
-  left_box.pack_start(self.start_btn, False, False, 0)
-
-  bar.pack_start(left_box, False, False, 0)
-
-  # ---- CENTER SECTION: Pinned & Running Apps
-  center_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-  center_box.set_halign(Gtk.Align.CENTER)
+  bar.get_style_context().add_class("top-bar")
+  bar.set_size_request(-1, 32)
+  right_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+  right_box.set_margin_end(16)
   
-  self.pinned_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-  self.pinned_buttons = {}
-  self.pinned_indicators = {}
-  for app in PINNED_APPS_CONFIG:
-   item_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-   item_box.get_style_context().add_class("dock-item-box")
-
-   btn = Gtk.Button()
-   btn.get_style_context().add_class("dock-btn")
-   btn.set_relief(Gtk.ReliefStyle.NONE)
-   btn.set_tooltip_text(app["tooltip"])
-   btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf(app["icon_key"], size=28)))
-   btn.connect("clicked", lambda *_, p=app["target"]: self._launch_path(p))
-
-   indicator = Gtk.Box()
-   indicator.get_style_context().add_class("dock-indicator")
-   indicator.set_halign(Gtk.Align.CENTER)
-
-   item_box.pack_start(btn, False, False, 0)
-   item_box.pack_start(indicator, False, False, 0)
-
-   self.pinned_buttons[app["id"]] = btn
-   self.pinned_indicators[app["id"]] = indicator
-   self.pinned_box.pack_start(item_box, False, False, 0)
+  wifi_img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf("network-wireless", size=16))
+  wifi_img.get_style_context().add_class("topbar-icon")
+  right_box.pack_start(wifi_img, False, False, 0)
   
-  center_box.pack_start(self.pinned_box, False, False, 0)
+  bat_img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf("battery-good", size=16))
+  bat_img.get_style_context().add_class("topbar-icon")
+  right_box.pack_start(bat_img, False, False, 0)
   
-  # Separator between pinned and running
-  center_box.pack_start(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL), False, False, 6)
+  self.clock_time_label = Gtk.Label(label="11:05 AM")
+  self.clock_time_label.get_style_context().add_class("topbar-clock")
+  right_box.pack_start(self.clock_time_label, False, False, 0)
   
-  self.running_tasks_topbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-  center_box.pack_start(self.running_tasks_topbar_box, False, False, 0)
-  
-  bar.set_center_widget(center_box)
-
-  # ---- RIGHT SECTION: System status, Clock, Exit
-  right_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-  right_box.set_margin_end(12)
-
-  self.server_label = Gtk.Label()
-  self.server_label.get_style_context().add_class("server")
-  right_box.pack_start(self.server_label, False, False, 0)
-
-  clock_event = Gtk.EventBox()
-  clock_event.set_visible_window(False)
-  clock_event.connect("button-press-event", lambda *_: self.dashboard.toggle())
-  clock_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-  clock_box.get_style_context().add_class("clock-widget-box")
-  clock_box.set_valign(Gtk.Align.CENTER)
-
-  self.clock_time_label = Gtk.Label(label="00:00")
-  self.clock_time_label.get_style_context().add_class("clock-time")
-  self.clock_date_label = Gtk.Label(label="Today")
-  self.clock_date_label.get_style_context().add_class("clock-date")
-
-  clock_box.pack_start(self.clock_time_label, False, False, 0)
-  clock_box.pack_start(self.clock_date_label, False, False, 0)
-  clock_event.add(clock_box)
-  right_box.pack_start(clock_event, False, False, 0)
-
-  exit_btn = Gtk.Button()
-  exit_btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("settings", size=20)))
-  exit_btn.get_style_context().add_class("power-btn")
-  exit_btn.set_tooltip_text("Exit Desktop Session")
-  exit_btn.connect("clicked", lambda *_: self._exit())
-  right_box.pack_start(exit_btn, False, False, 0)
-
   bar.pack_end(right_box, False, False, 0)
-
   return bar
-  return dock
 
- # ---------------------------------------------------- START MENU (DEEPIN STYLE)
- def _popup_activities(self) -> None:
-  """Show a Deepin-style floating start menu at bottom-left."""
-  if hasattr(self, "_activities_win") and self._activities_win is not None:
-   self._activities_win.destroy()
-   self._activities_win = None
-   return
-
-  win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
-  win.set_transient_for(self.window)
-  win.set_decorated(False)
-  win.set_skip_taskbar_hint(True)
-  win.set_skip_pager_hint(True)
-  win.set_app_paintable(True)
-  self._activities_win = win
-
-  # Floating dimensions
-  win.set_default_size(360, 520)
-  screen_h = self.window.get_allocation().height or 720
-  win.move(12, screen_h - 520 - 64) # Offset from bottom panel
-
-  provider = Gtk.CssProvider()
-  provider.load_from_data(b"""
-   .start-menu-win {
-    background: rgba(5, 5, 5, 0.95);
-    border: 1px solid #00ff41;
-    border-radius: 2px;
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.15);
-   }
-   .start-menu-sidebar {
-    background: rgba(10, 10, 15, 0.8);
-    border-right: 1px solid #1a4d2e;
-    border-top-left-radius: 2px;
-    border-bottom-left-radius: 2px;
-    padding: 12px 6px;
-   }
-   .start-menu-search {
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    color: #00ff41;
-    font-size: 13px;
-    padding: 10px 14px;
-   }
-   .start-menu-app-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 2px;
-    padding: 10px 12px;
-    transition: all 130ms ease;
-   }
-   .start-menu-app-btn:hover {
-    background: rgba(0, 255, 65, 0.1);
-    border-color: #00ff41;
-   }
-   .start-menu-app-name {
-    color: #00ff41;
-    font-size: 13px;
-    font-weight: 500;
-    
-   }
-  """)
-  Gtk.StyleContext.add_provider_for_screen(
-   Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-  )
-
-  outer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-  outer.get_style_context().add_class("start-menu-win")
-
-  # --- Sidebar
-  sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-  sidebar.get_style_context().add_class("start-menu-sidebar")
-  sidebar.set_size_request(52, -1)
+ def _build_left_dock(self) -> Gtk.Widget:
+  dock_event = Gtk.EventBox()
+  dock_event.set_visible_window(False)
+  dock = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+  dock.get_style_context().add_class("left-dock")
+  dock.set_margin_start(16)
   
-  def _sb_btn(icon_name, cb):
-      b = Gtk.Button()
-      b.set_relief(Gtk.ReliefStyle.NONE)
-      b.get_style_context().add_class("dock-btn")
-      b.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf(icon_name, size=24)))
-      b.connect("clicked", lambda *_: (win.destroy(), setattr(self, "_activities_win", None), cb()))
-      return b
-      
-  sidebar.pack_start(_sb_btn("home", lambda: self._launch_path(os.path.expanduser("~"))), False, False, 0)
-  sidebar.pack_start(_sb_btn("settings", lambda: self._dialog_change_wallpaper()), False, False, 0)
-  sidebar.pack_start(_sb_btn("computer", lambda: self._launch_path("thispc://")), False, False, 0)
-  sidebar.pack_end(_sb_btn("trash", lambda: self._exit()), False, False, 0)
-  outer.pack_start(sidebar, False, False, 0)
-
-  # --- Main Content
-  main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-  main_box.set_margin_top(16)
-  main_box.set_margin_bottom(16)
-  main_box.set_margin_start(16)
-  main_box.set_margin_end(16)
+  arrow_btn = Gtk.Button()
+  arrow_btn.set_label(">")
+  arrow_btn.get_style_context().add_class("left-dock-btn-arrow")
+  dock.pack_start(arrow_btn, False, False, 0)
   
-  search_entry = Gtk.SearchEntry()
-  search_entry.set_placeholder_text("Search apps...")
-  search_entry.get_style_context().add_class("start-menu-search")
-  main_box.pack_start(search_entry, False, False, 0)
+  set_btn = Gtk.Button()
+  set_btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("preferences-system", size=24)))
+  set_btn.get_style_context().add_class("left-dock-btn")
+  set_btn.connect("clicked", lambda *_: GLib.idle_add(self._launch_path, "/opt/ease-desk/desktop/settings/app.py"))
+  dock.pack_start(set_btn, False, False, 0)
   
-  scroll = Gtk.ScrolledWindow()
-  scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+  file_btn = Gtk.Button()
+  file_btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("system-file-manager", size=24)))
+  file_btn.get_style_context().add_class("left-dock-btn")
+  file_btn.connect("clicked", lambda *_: GLib.idle_add(self._launch_path, "/opt/ease-desk/file_manager/app.py"))
+  dock.pack_start(file_btn, False, False, 0)
   
-  apps_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+  app_btn = Gtk.Button()
+  app_btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("application-x-executable", size=24)))
+  app_btn.get_style_context().add_class("left-dock-btn")
+  dock.pack_start(app_btn, False, False, 0)
   
-  app_entries = [
-   ("File Manager",   "thispc://",             "folder"),
-   ("Web Browser",    "app://browser",         "browser"),
-   ("Terminal",       "app://terminal",        "terminal"),
-   ("Task Manager",   "app://task_manager",    "task_manager"),
-   ("Media Player",   "app://media_player",    "media"),
-   ("Wallpaper",      "app://wallpaper",       "settings"),
-   ("System Logs",    "/var/log",              "text"),
-   ("Configuration",  "/etc",                  "config"),
-   ("Web Root",       "/var/www",              "webroot"),
-  ]
+  pwr_btn = Gtk.Button()
+  pwr_btn.add(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("system-shutdown", size=24)))
+  pwr_btn.get_style_context().add_class("left-dock-btn-power")
+  pwr_btn.connect("clicked", lambda *_: self._exit())
+  dock.pack_start(pwr_btn, False, False, 0)
   
-  all_app_buttons = []
-  for name, target, icon_key in app_entries:
-      btn = Gtk.Button()
-      btn.set_relief(Gtk.ReliefStyle.NONE)
-      btn.get_style_context().add_class("start-menu-app-btn")
-      
-      hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
-      img = Gtk.Image.new_from_pixbuf(get_icon_pixbuf(icon_key, size=28))
-      lbl = Gtk.Label(label=name, xalign=0)
-      lbl.get_style_context().add_class("start-menu-app-name")
-      hbox.pack_start(img, False, False, 0)
-      hbox.pack_start(lbl, True, True, 0)
-      
-      btn.add(hbox)
-      btn.connect("clicked", lambda *_, t=target: (win.destroy(), setattr(self, "_activities_win", None), self._launch_path(t)))
-      apps_list.pack_start(btn, False, False, 0)
-      all_app_buttons.append((btn, name.lower()))
-      
-  scroll.add(apps_list)
-  main_box.pack_start(scroll, True, True, 0)
+  dock_event.add(dock)
+  return dock_event
+
+ def _build_bottom_dock(self) -> Gtk.Widget:
+  dock_event = Gtk.EventBox()
+  dock_event.set_visible_window(False)
+  dock = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+  dock.get_style_context().add_class("bottom-dock")
+  dock.set_margin_bottom(16)
   
-  def on_search_changed(entry):
-   query = entry.get_text().strip().lower()
-   for btn, name in all_app_buttons:
-    btn.set_visible(not query or query in name)
-  search_entry.connect("search-changed", on_search_changed)
+  file_btn = Gtk.Button()
+  file_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+  file_box.pack_start(Gtk.Image.new_from_pixbuf(get_icon_pixbuf("system-file-manager", size=28)), False, False, 0)
+  lbl = Gtk.Label(label="Files")
+  lbl.get_style_context().add_class("bottom-dock-label")
+  file_box.pack_start(lbl, False, False, 0)
+  file_btn.add(file_box)
+  file_btn.get_style_context().add_class("bottom-dock-btn")
+  file_btn.connect("clicked", lambda *_: GLib.idle_add(self._launch_path, "/opt/ease-desk/file_manager/app.py"))
   
-  outer.pack_start(main_box, True, True, 0)
+  dock.pack_start(file_btn, False, False, 0)
+  dock_event.add(dock)
+  return dock_event
 
-  win.connect("key-press-event", lambda w, ev: (
-   w.destroy() or setattr(self, "_activities_win", None)
-  ) if ev.keyval == Gdk.KEY_Escape else None)
-
-  win.add(outer)
-  win.show_all()
-  search_entry.grab_focus()
-
- # ---------------------------------------------------- CALENDAR FLYOUT
- def _toggle_calendar(self) -> None:
-  if self._cal_window is not None:
-   self._cal_window.destroy()
-   self._cal_window = None
-   return
-
-  win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
-  win.set_transient_for(self.window)
-  win.set_decorated(False)
-  win.set_skip_taskbar_hint(True)
-  win.set_skip_pager_hint(True)
-  win.get_style_context().add_class("cal-window")
-
-  vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-  vbox.set_margin_start(16)
-  vbox.set_margin_end(16)
-  vbox.set_margin_top(14)
-  vbox.set_margin_bottom(14)
-
-  # Header with today's date
-  header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-  title = Gtk.Label(label=f" {time.strftime('%A, %B %d, %Y')}")
-  title.get_style_context().add_class("cal-title")
-  header.pack_start(title, True, True, 0)
-  vbox.pack_start(header, False, False, 0)
-
-  # Calendar Widget
-  cal = Gtk.Calendar()
-  cal.get_style_context().add_class("cal-widget")
-  vbox.pack_start(cal, True, True, 0)
-
-  # Server Specs / Uptime Summary
-  stats_grid = Gtk.Grid(column_spacing=12, row_spacing=4)
-  info = sysinfo.summary()
-  stats = [
-   ("Host:", info.get("hostname", "vps")),
-   ("Platform:", info.get("os", "Linux")),
-   ("CPU Cores:", f"{info.get('cpu', 1)} cores"),
-   ("Disk Usage:", f"{info.get('disk_used', '')} / {info.get('disk_total', '')}"),
-  ]
-  for idx, (k_text, v_text) in enumerate(stats):
-   kl = Gtk.Label(label=k_text, xalign=0)
-   kl.get_style_context().add_class("cal-stat-key")
-   vl = Gtk.Label(label=v_text, xalign=0)
-   vl.get_style_context().add_class("cal-stat-val")
-   stats_grid.attach(kl, 0, idx, 1, 1)
-   stats_grid.attach(vl, 1, idx, 1, 1)
-
-  vbox.pack_start(stats_grid, False, False, 4)
-
-  # Quick Buttons
-  btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-  wp_btn = Gtk.Button.new_with_label(" Wallpaper")
-  wp_btn.get_style_context().add_class("quick-btn")
-  wp_btn.connect("clicked", lambda *_: (win.destroy(), self._dialog_change_wallpaper()))
-
-  shot_btn = Gtk.Button.new_with_label(" Screenshot")
-  shot_btn.get_style_context().add_class("quick-btn")
-  shot_btn.connect("clicked", lambda *_: (win.destroy(), self._take_screenshot()))
-
-  btn_box.pack_start(wp_btn, True, True, 0)
-  btn_box.pack_start(shot_btn, True, True, 0)
-  vbox.pack_start(btn_box, False, False, 2)
-
-  win.add(vbox)
-
-  # Position top-right near clock
-  screen_w = self.window.get_allocation().width or 1280
-  win.set_default_size(290, 360)
-  win.move(max(10, screen_w - 320), 54)
-
-  win.connect("focus-out-event", lambda *_: (win.destroy(), setattr(self, "_cal_window", None)))
-  win.show_all()
-  self._cal_window = win
-
- def _take_screenshot(self) -> None:
-  out_path = os.path.expanduser(f"~/Desktop/screenshot_{int(time.time())}.png")
-  if shutil.which("scrot"):
-   subprocess.Popen(["scrot", out_path])
-  elif shutil.which("import"):
-   subprocess.Popen(["import", "-window", "root", out_path])
-
- # ---------------------------------------------------- ICON COLUMN
  def _build_icon_column(self) -> None:
   for child in self.desktop_fixed.get_children():
    self.desktop_fixed.remove(child)

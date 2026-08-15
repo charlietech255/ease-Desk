@@ -15,21 +15,21 @@ class SpotlightWindow(Gtk.Window):
 
     _CSS = b"""
         .spotlight-window {
-            background-color: rgba(24, 24, 37, 0.92);
-            border: 1px solid rgba(137, 180, 250, 0.22);
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             border-radius: 14px;
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.65);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
         }
         .spotlight-entry {
             background: transparent;
             border: none;
             box-shadow: none;
-            color: #cdd6f4;
+            color: #333333;
             font-size: 22px;
             font-weight: 300;
-            font-family: "Cantarell", "Ubuntu", sans-serif;
+            font-family: "Inter", "Ubuntu", sans-serif;
             padding: 14px 24px;
-            caret-color: #89b4fa;
+            caret-color: #000000;
         }
         .spotlight-entry:focus {
             border: none;
@@ -120,20 +120,20 @@ class DashboardPanel(Gtk.Revealer):
 
     _CSS = b"""
         .dashboard-panel {
-            background-color: rgba(24, 24, 37, 0.95);
-            border-left: 1px solid rgba(205, 214, 244, 0.08);
+            background-color: rgba(255, 255, 255, 0.95);
+            border-left: 1px solid rgba(0, 0, 0, 0.05);
             padding: 0px 20px 20px 20px;
-            box-shadow: -8px 0 28px rgba(0, 0, 0, 0.55);
+            box-shadow: -8px 0 28px rgba(0, 0, 0, 0.15);
         }
         .dash-header {
-            color: #cdd6f4;
+            color: #333333;
             font-size: 16px;
             font-weight: 700;
-            font-family: "Cantarell", "Ubuntu", sans-serif;
+            font-family: "Inter", "Ubuntu", sans-serif;
             margin-bottom: 4px;
         }
         .dash-section-lbl {
-            color: #6c7086;
+            color: #888888;
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 0.8px;
@@ -141,36 +141,36 @@ class DashboardPanel(Gtk.Revealer):
             margin-bottom: 6px;
         }
         .dash-stat-key {
-            color: #a6adc8;
+            color: #555555;
             font-size: 12px;
             font-weight: 500;
         }
         .dash-stat-val {
-            color: #cdd6f4;
+            color: #333333;
             font-size: 12px;
             font-weight: 600;
         }
         .dash-action-btn {
-            background: rgba(49, 50, 68, 0.70);
-            border: 1px solid rgba(205, 214, 244, 0.10);
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            color: #cdd6f4;
+            color: #333333;
             font-size: 12px;
             font-weight: 500;
             padding: 6px 10px;
             transition: all 130ms ease;
         }
         .dash-action-btn:hover {
-            background: rgba(137, 180, 250, 0.18);
-            border-color: rgba(137, 180, 250, 0.35);
+            background: rgba(0, 0, 0, 0.1);
+            border-color: rgba(0, 0, 0, 0.15);
         }
         progressbar > trough {
-            background-color: rgba(30, 30, 46, 0.70);
+            background-color: rgba(0, 0, 0, 0.1);
             border-radius: 6px;
             min-height: 6px;
         }
         progressbar > trough > progress {
-            background: linear-gradient(to right, #89b4fa, #74c7ec);
+            background: linear-gradient(to right, #007aff, #00c6ff);
             border-radius: 6px;
         }
         progressbar.warning > trough > progress {

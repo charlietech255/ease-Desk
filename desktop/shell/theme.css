@@ -1,342 +1,119 @@
-/* ease-Desk — Cyber/Hacker Lab Theme
- * Color palette based on HackTheBox / Cyberpunk aesthetic.
- * Background: #050505 | Surface: #0a0a0f | Overlay: #12121a
- * Accent: #00ff41 | Text: #00ff41 | Subtext: #2f8e4b
- * Success: #00ff41 | Warning: #f9e2af | Error: #ff003c
+/* ease-Desk — Kwacha OS Prototype Theme
+ * Clean, minimalistic glassmorphism.
  */
 
 /* ------------------------------------------------------------------ Base */
 window.shell {
-    background-color: #050505;
+    background-color: transparent;
 }
 
 * {
-    font-family: "Fira Code", "Courier New", monospace;
-    text-shadow: 0 0 2px rgba(0, 255, 65, 0.2);
+    font-family: "Inter", "Ubuntu", sans-serif;
 }
 
-/* ------------------------------------------------------------------ Native Buttons */
-button {
-    background-color: #0a0a0f;
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
+/* ------------------------------------------------------------------ Top Bar */
+.top-bar {
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+}
+
+.topbar-icon {
+    opacity: 0.9;
+}
+
+.topbar-clock {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ Left Dock */
+.left-dock {
+    background-color: rgba(20, 15, 10, 0.5); /* translucent dark brown/black */
+    border-radius: 12px;
+    padding: 12px 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.left-dock-btn-arrow {
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    padding: 4px;
+    min-height: 24px;
+    transition: all 150ms ease;
+}
+.left-dock-btn-arrow:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.left-dock-btn {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    transition: all 150ms ease;
+}
+.left-dock-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.left-dock-btn-power {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    color: #ff4d4f; /* red */
+    transition: all 150ms ease;
+}
+.left-dock-btn-power:hover {
+    background: rgba(255, 77, 79, 0.2);
+}
+
+/* ------------------------------------------------------------------ Bottom Center Dock */
+.bottom-dock {
+    background-color: rgba(30, 30, 35, 0.6);
+    border-radius: 12px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.bottom-dock-btn {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
     padding: 6px 12px;
-    color: #00ff41;
-    font-size: 13px;
-    transition: all 150ms ease;
-    
-}
-button:hover {
-    background-color: #00ff41;
-    color: #050505;
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
-}
-button:active {
-    background-color: #050505;
-    border-color: #00ff41;
-    color: #00ff41;
-}
-button:focus {
-    outline-color: rgba(0, 255, 65, 0.8);
-    outline-style: solid;
-    outline-offset: -1px;
-    outline-width: 1px;
-}
-
-/* ------------------------------------------------------------------ Unified Bottom Panel */
-.bottom-panel {
-    background: rgba(5, 5, 5, 0.95);
-    border-top: 1px solid #00ff41;
-    box-shadow: 0 -2px 10px rgba(0, 255, 65, 0.15);
-}
-
-/* ------------------------------------------------------------------ Start Button */
-.start-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 2px;
-    padding: 6px;
     transition: all 150ms ease;
 }
-.start-btn:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.1);
-    box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.3);
-}
-.start-btn:active {
-    background: rgba(0, 255, 65, 0.3);
+.bottom-dock-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* ------------------------------------------------------------------ Clock (centered) */
-.clock-widget-box {
-    background: transparent;
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 2px 10px;
-    transition: all 150ms ease;
-}
-.clock-widget-box:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.05);
-}
-.clock-time {
-    color: #00ff41;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
-}
-.clock-date {
-    color: #2f8e4b;
-    font-size: 10px;
-    font-weight: 400;
-    
-}
-
-/* ------------------------------------------------------------------ Status Area (right panel) */
-.status-pill {
-    background: transparent;
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 4px 8px;
-    transition: all 150ms ease;
-}
-.status-pill:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.05);
-}
-.status-lbl {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    
-}
-.status-ok   { color: #00ff41; text-shadow: 0 0 5px rgba(0, 255, 65, 0.5); }
-.status-warn { color: #f9e2af; text-shadow: 0 0 5px rgba(249, 226, 175, 0.5); }
-.status-crit { color: #ff003c; text-shadow: 0 0 5px rgba(255, 0, 60, 0.5); }
-
-/* ------------------------------------------------------------------ Exit / Power Button */
-.power-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 2px;
-    padding: 4px 10px;
-    color: #ff003c;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 150ms ease;
-}
-.power-btn:hover {
-    border-color: #ff003c;
-    background: rgba(255, 0, 60, 0.15);
-    box-shadow: inset 0 0 8px rgba(255, 0, 60, 0.3);
-}
-
-/* ------------------------------------------------------------------ Quick Action Buttons */
-.quick-btn {
-    background: transparent;
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 4px 10px;
-    color: #00ff41;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 150ms ease;
-    
-}
-.quick-btn:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.1);
-    box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.3);
-}
-
-/* ------------------------------------------------------------------ Server / Hostname Label */
-.server {
-    color: #2f8e4b;
-    font-size: 11px;
-    font-weight: 700;
-    margin-right: 8px;
-    letter-spacing: 1px;
-}
-
-/* ------------------------------------------------------------------ Dock Pinned Icons */
-.dock-item-box {
-    padding: 0 1px;
-}
-.dock-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 2px;
-    padding: 6px 6px;
-    min-width: 40px;
-    min-height: 40px;
-    transition: all 130ms ease;
-}
-.dock-btn:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.05);
-}
-.dock-btn:active {
-    background: rgba(0, 255, 65, 0.2);
-}
-.dock-indicator {
-    background: transparent;
-    min-height: 3px;
-    min-width: 4px;
-    border-radius: 0;
-    margin-top: 2px;
-    margin-bottom: 1px;
-    transition: all 200ms ease;
-}
-.dock-indicator.active {
-    background: #00ff41;
-    min-width: 14px;
-    box-shadow: 0 0 5px rgba(0, 255, 65, 0.8);
-}
-
-/* ------------------------------------------------------------------ Running Task Buttons */
-.running-task-btn {
-    background: rgba(10, 10, 15, 0.9);
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 0 4px;
-    transition: all 120ms ease;
-}
-.running-task-btn:hover {
-    border-color: #00ff41;
-    background: rgba(0, 255, 65, 0.1);
-    box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.2);
-}
-.running-task-inner-btn {
-    padding: 3px 6px;
-    color: #00ff41;
+.bottom-dock-label {
+    color: #ffffff;
     font-size: 11px;
     font-weight: 500;
-    
-}
-.running-task-close-btn {
-    color: #2f8e4b;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 2px;
-    transition: all 120ms ease;
-}
-.running-task-close-btn:hover {
-    color: #ff003c;
-    background: rgba(255, 0, 60, 0.2);
 }
 
 /* ------------------------------------------------------------------ Desktop Icons */
 .icon-btn {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 2px;
+    border-radius: 8px;
     padding: 10px 8px;
     min-width: 88px;
     min-height: 88px;
     transition: all 120ms ease;
 }
 .icon-btn:hover {
-    background: rgba(0, 255, 65, 0.05);
-    border-color: #1a4d2e;
-}
-.icon-btn:active,
-.icon-btn.selected {
-    background: rgba(0, 255, 65, 0.15);
-    border-color: #00ff41;
-    box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.3);
+    background: rgba(255, 255, 255, 0.1);
 }
 .icon-name {
-    color: #00ff41;
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 500;
     font-size: 12px;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 255, 65, 0.5);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     margin-top: 4px;
-    
-}
-
-/* ------------------------------------------------------------------ Server Info Panel */
-.vps-frame {
-    background-color: rgba(5, 5, 5, 0.95);
-    border: 1px solid #00ff41;
-    border-radius: 2px;
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
-}
-.vps-title { color: #00ff41; font-weight: 700; font-size: 12px; letter-spacing: 1px;  text-shadow: 0 0 5px rgba(0,255,65,0.4); }
-.vps-key   { color: #2f8e4b; font-size: 11px; font-weight: 600;  }
-.vps-val   { color: #00ff41; font-size: 11px; font-weight: 400; }
-.hint      { color: #2f8e4b; font-size: 11px;  }
-
-/* ------------------------------------------------------------------ Calendar / Clock Flyout */
-.cal-window {
-    background-color: rgba(5, 5, 5, 0.95);
-    border: 1px solid #00ff41;
-    border-radius: 2px;
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
-}
-.cal-title    { color: #00ff41; font-weight: 700; font-size: 13px;  text-shadow: 0 0 5px rgba(0,255,65,0.4); }
-.cal-stat-key { color: #2f8e4b; font-size: 11px; font-weight: 600;  }
-.cal-stat-val { color: #00ff41; font-size: 11px; font-weight: 500; }
-
-/* ------------------------------------------------------------------ Wallpaper Dialog */
-.wp-section-lbl {
-    color: #00ff41;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 1px;
-    
-}
-.wp-card {
-    background: rgba(10, 10, 15, 0.8);
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 6px;
-    transition: all 120ms ease;
-}
-.wp-card:hover {
-    background: rgba(10, 10, 15, 1);
-    border-color: #00ff41;
-    box-shadow: inset 0 0 5px rgba(0,255,65,0.2);
-}
-.wp-card.active {
-    background: rgba(0, 255, 65, 0.1);
-    border-color: #00ff41;
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-}
-.wp-card-name {
-    color: #00ff41;
-    font-size: 11px;
-    font-weight: 500;
-    margin-top: 4px;
-    
-}
-.color-btn {
-    border-radius: 2px;
-    border: 1px solid #1a4d2e;
-    min-width: 48px;
-    min-height: 36px;
-    transition: border-color 120ms ease;
-}
-.color-btn:hover {
-    border-color: #00ff41;
-}
-.color-btn.active {
-    border-color: #00ff41;
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
-}
-.wallpaper-btn {
-    background: transparent;
-    border: 1px solid #1a4d2e;
-    border-radius: 2px;
-    padding: 8px 14px;
-    color: #00ff41;
-    font-weight: 500;
-    transition: all 120ms ease;
-    
-}
-.wallpaper-btn:hover {
-    background: rgba(0, 255, 65, 0.1);
-    border-color: #00ff41;
-    box-shadow: inset 0 0 5px rgba(0,255,65,0.2);
 }
