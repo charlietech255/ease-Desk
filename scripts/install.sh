@@ -154,7 +154,7 @@ if command -v apt-get >/dev/null 2>&1; then
   hicolor-icon-theme \
   >/dev/null 2>&1 || {
    echo -e "${YELLOW}Retrying essential apt packages...${NC}"
-   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 xvfb x11vnc novnc websockify xrdp nginx fail2ban git curl wget wmctrl xdotool >/dev/null 2>&1 || true
+   apt-get install -y -qq python3 python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91 labwc wayvnc gir1.2-gtk-layer-shell-0.1 novnc websockify nginx fail2ban git curl wget grim slurp >/dev/null 2>&1 || true
   }
   adwaita-icon-theme \
   papirus-icon-theme \
