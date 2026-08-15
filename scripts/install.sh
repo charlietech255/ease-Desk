@@ -315,8 +315,8 @@ server {
 
  # ── /novnc/: proxy noVNC web UI (served by websockify) ─────────────────────
  location /novnc/ {
-  rewrite ^/novnc(/.*)$ $1 break;
-  proxy_pass http://127.0.0.1:6080;
+  rewrite ^/novnc(/.*)$ \$1 break;
+  proxy_pass http://127.0.0.1:6080/;
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection \$connection_upgrade;
@@ -325,7 +325,6 @@ server {
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-  proxy_pass http://127.0.0.1:6080/;
  }
 
  # ── /auth_check: XHR credentials probe used by login.html ──────────────────
