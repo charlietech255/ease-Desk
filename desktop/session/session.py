@@ -24,6 +24,13 @@ class SessionManager:
         # 1. Start labwc in headless mode
         os.environ["WLR_BACKENDS"] = "headless"
         os.environ["WLR_RENDERER"] = "pixman"
+        os.environ["LIBSEAT_BACKEND"] = "noop"
+        os.environ["WLR_LIBINPUT_NO_DEVICES"] = "1"
+        os.environ["WLR_HEADLESS_OUTPUTS"] = "1"
+        
+        runtime_dir = f"/tmp/ease-desk-runtime-{os.geteuid()}"
+        os.makedirs(runtime_dir, mode=0o700, exist_ok=True)
+        os.environ["XDG_RUNTIME_DIR"] = runtime_dir
         
         # Create a startup script for labwc
         startup_script = os.path.join(self.root_dir, "scripts", "wayland_init.sh")
