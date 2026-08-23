@@ -591,9 +591,9 @@ class ShellApp:
                 continue
 
     def show_all(self):
+        self.bg_win.show_all()
         self.top_win.show_all()
         self.dock_win.show_all()
-        self.bg_win.show_all()
 
 
 class DesktopShell(ShellApp):

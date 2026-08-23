@@ -49,6 +49,16 @@ THEME_ICON_MAP = {
     "browser": ["google-chrome", "chromium-browser", "firefox", "org.gnome.Epiphany", "epiphany", "web-browser", "applications-internet", "browser"],
     "editor": ["accessories-text-editor", "text-editor", "document-edit", "text-x-generic"],
     "settings": ["preferences-system", "system-settings", "preferences-desktop"],
+    # FreeDesktop standard name aliases → map to canonical categories
+    "system-file-manager": ["system-file-manager", "folder", "inode-directory"],
+    "utilities-terminal": ["utilities-terminal", "org.gnome.Terminal", "terminal"],
+    "epiphany": ["org.gnome.Epiphany", "epiphany", "web-browser", "applications-internet"],
+    "system-run": ["system-run", "utilities-system-monitor", "system-monitor"],
+    "utilities-system-monitor": ["utilities-system-monitor", "system-monitor", "system-run"],
+    "system-shutdown": ["system-shutdown", "system-log-out"],
+    "application-x-executable": ["application-x-executable", "system-run"],
+    "network-wireless": ["network-wireless", "network-wireless-symbolic", "network-idle"],
+    "files": ["system-file-manager", "folder", "inode-directory"],
 }
 
 _PIXBUF_CACHE: dict[tuple[str, int], GdkPixbuf.Pixbuf] = {}
@@ -89,38 +99,51 @@ def _render_cairo_fallback(key: str, size: int) -> GdkPixbuf.Pixbuf:
     # Scale coordinate system to standard 100x100
     ctx.scale(size / 100.0, size / 100.0)
 
-    if key in ("folder", "home", "desktop", "documents", "downloads", "projects"):
+    if key in ("folder", "home", "desktop", "documents", "downloads", "projects",
+               "system-file-manager", "files", "inode-directory"):
         _draw_folder(ctx, key)
-    elif key in ("terminal", "cli", "bash", "console"):
+    elif key in ("terminal", "cli", "bash", "console",
+                 "utilities-terminal", "org.gnome.terminal", "xterm"):
         _draw_terminal(ctx)
-    elif key in ("task_manager", "activity", "process", "monitor"):
+    elif key in ("task_manager", "activity", "process", "monitor",
+                 "utilities-system-monitor", "system-run", "system-monitor"):
         _draw_task_manager(ctx)
-    elif key in ("browser", "web", "internet", "chromium", "firefox"):
+    elif key in ("browser", "web", "internet", "chromium", "firefox",
+                 "epiphany", "org.gnome.epiphany", "web-browser",
+                 "applications-internet", "google-chrome", "chromium-browser"):
         _draw_browser(ctx)
-    elif key in ("editor", "text_editor", "code"):
+    elif key in ("editor", "text_editor", "code",
+                 "accessories-text-editor", "text-editor"):
         _draw_editor(ctx)
-    elif key in ("settings", "preferences"):
+    elif key in ("settings", "preferences",
+                 "preferences-system", "preferences-desktop"):
         _draw_settings(ctx)
-    elif key in ("computer", "server"):
+    elif key in ("computer", "server", "network-server"):
         _draw_computer(ctx)
-    elif key in ("webroot", "html"):
+    elif key in ("webroot", "html", "text-html"):
         _draw_webroot(ctx)
-    elif key in ("drive", "database"):
+    elif key in ("drive", "database", "drive-harddisk"):
         _draw_drive(ctx)
-    elif key in ("image",):
+    elif key in ("image", "image-x-generic"):
         _draw_image(ctx)
-    elif key in ("archive", "zip", "tar"):
+    elif key in ("archive", "zip", "tar", "package-x-generic"):
         _draw_archive(ctx)
-    elif key in ("script", "php", "javascript"):
+    elif key in ("script", "php", "javascript",
+                 "application-x-executable", "text-x-script"):
         _draw_script(ctx)
     elif key in ("config",):
         _draw_config(ctx)
-    elif key in ("video",):
+    elif key in ("video", "video-x-generic"):
         _draw_video(ctx)
-    elif key in ("audio",):
+    elif key in ("audio", "audio-x-generic"):
         _draw_audio(ctx)
-    elif key in ("trash",):
+    elif key in ("trash", "user-trash"):
         _draw_trash(ctx)
+    elif key in ("system-shutdown", "system-log-out"):
+        _draw_power(ctx)
+    elif key in ("network-wireless", "network-idle",
+                 "network-wireless-symbolic"):
+        _draw_network(ctx)
     else:
         _draw_file(ctx, key)
 
@@ -374,5 +397,23 @@ def _draw_settings(ctx: cairo.Context) -> None:
         ctx.line_to(0, -26)
         ctx.stroke()
         ctx.restore()
+
+def _draw_power(ctx: cairo.Context) -> None:
+    _setup_stroke(ctx)
+    import math
+    ctx.arc(50, 50, 24, math.pi/4, math.pi - math.pi/4)
+    ctx.stroke()
+    ctx.move_to(50, 26)
+    ctx.line_to(50, 50)
+    ctx.stroke()
+
+def _draw_network(ctx: cairo.Context) -> None:
+    _setup_stroke(ctx)
+    ctx.arc(50, 70, 4, 0, 2 * 3.14159)
+    ctx.fill()
+    import math
+    for radius in (16, 28, 40):
+        ctx.arc(50, 70, radius, math.pi + math.pi/4, math.pi*2 - math.pi/4)
+        ctx.stroke()
 
 
