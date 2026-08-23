@@ -17,7 +17,8 @@ import sys
 import gi
 
 from shared.utilities.wallpaper import hex_to_rgb
-from shared.utilities.apps import AppDefinition
+from shared.utilities.apps import AppDefinition, launcher_applications
+from shared.config import preferences
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
@@ -142,9 +143,10 @@ class ShellApp:
         self.start_btn = None
         self.desktop_items = []
         self.window = None
-        self.wallpaper_path = None
-        self.wallpaper_mode = "fill"
-        self.solid_color = "#0b0e14"
+        self.wallpaper_path = preferences.get("Personalization", "wallpaper_path", "") or None
+        self.wallpaper_mode = preferences.get("Personalization", "wallpaper_mode", "fill")
+        self.solid_color = preferences.get("Personalization", "solid_color", "#0b0e14")
+        self.dock_position = preferences.get("Personalization", "dock_position", "left")
         self.wallpaper_pixbuf = None
         self._cached_scaled_pixbuf = None
         self._cached_draw_params = None
@@ -301,18 +303,18 @@ class ShellApp:
         GLib.timeout_add_seconds(1, self._update_clock)
 
     def _build_pinned_apps(self):
-        apps = (
-            ("files", "Files", lambda: _launch(["python3", "-m", "file_manager.app"])),
-            ("terminal", "Terminal", self._open_terminal),
-            ("browser", "Web Browser", lambda: _launch(["epiphany"])),
-            ("task_manager", "Task Manager", lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
-        )
-        for app_id, tooltip, callback in apps:
+        pinned = preferences.get_pinned_apps()
+        available_apps = {app.app_id: app for app in launcher_applications()}
+
+        for app_id in pinned:
+            if app_id not in available_apps:
+                continue
+            app = available_apps[app_id]
             button = Gtk.Button()
             button.set_relief(Gtk.ReliefStyle.NONE)
-            button.add(_img(app_id, 18))
-            button.set_tooltip_text(tooltip)
-            button.connect("clicked", lambda *_args, cb=callback: cb())
+            button.add(_img(app.icon, 18))
+            button.set_tooltip_text(app.name)
+            button.connect("clicked", lambda *_args, a=app: self._launch_application(a))
             indicator = Gtk.Box()
             indicator.set_size_request(3, 3)
             indicator.get_style_context().add_class("pinned-indicator")
@@ -415,24 +417,19 @@ class ShellApp:
         dock.set_valign(Gtk.Align.START)
 
         # App icons
-        apps = [
-            ("system-file-manager", "File Manager",
-             lambda: _launch(["python3", "-m", "file_manager.app"])),
-            ("utilities-terminal", "Terminal",
-             lambda: self._open_terminal()),
-            ("epiphany", "Web Browser",
-             lambda: _launch(["epiphany"])),
-            ("system-run", "Task Manager",
-             lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
-        ]
+        pinned = preferences.get_pinned_apps()
+        available_apps = {app.app_id: app for app in launcher_applications()}
 
-        for icon_name, tooltip, cb in apps:
+        for app_id in pinned:
+            if app_id not in available_apps:
+                continue
+            app = available_apps[app_id]
             btn = Gtk.Button()
             btn.set_relief(Gtk.ReliefStyle.NONE)
             btn.get_style_context().add_class("left-dock-btn")
-            btn.add(_img(icon_name, 22))
-            btn.set_tooltip_text(tooltip)
-            btn.connect("clicked", lambda *_, c=cb: c())
+            btn.add(_img(app.icon, 22))
+            btn.set_tooltip_text(app.name)
+            btn.connect("clicked", lambda *_, a=app: self._launch_application(a))
             dock.pack_start(btn, False, False, 0)
 
         # Separator
@@ -483,38 +480,35 @@ class ShellApp:
         fixed.set_margin_start(20)
         fixed.set_margin_top(20)
 
-        icons = [
-            ("system-file-manager", "Files", 0, 0, "files",
-             lambda: _launch(["python3", "-m", "file_manager.app"])),
-            ("utilities-terminal", "Terminal", 0, 100, "terminal",
-             lambda: self._open_terminal()),
-            ("epiphany", "Browser", 0, 200, "browser",
-             lambda: _launch(["epiphany"])),
-            ("utilities-system-monitor", "Task Manager", 0, 300, "task_manager",
-             lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
-        ]
+        pinned = preferences.get_pinned_apps()
+        available_apps = {app.app_id: app for app in launcher_applications()}
 
-        self.desktop_items = [{"id": item_id, "label": label, "icon": icon_name, "x": x, "y": y}
-                              for icon_name, label, x, y, item_id, _ in icons]
+        self.desktop_items = []
+        for idx, app_id in enumerate(pinned):
+            if app_id not in available_apps:
+                continue
+            app = available_apps[app_id]
+            x = 0
+            y = idx * 100
+            self.desktop_items.append({"id": app_id, "label": app.name, "icon": app.icon, "x": x, "y": y})
 
-        for icon_name, label, x, y, _item_id, cb in icons:
             btn = Gtk.Button()
             btn.set_relief(Gtk.ReliefStyle.NONE)
             btn.get_style_context().add_class("icon-btn")
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             box.set_halign(Gtk.Align.CENTER)
 
-            img = _img(icon_name, 48)
+            img = _img(app.icon, 48)
             img.set_halign(Gtk.Align.CENTER)
 
-            lbl = Gtk.Label(label=label)
+            lbl = Gtk.Label(label=app.name)
             lbl.get_style_context().add_class("icon-name")
             lbl.set_halign(Gtk.Align.CENTER)
 
             box.pack_start(img, False, False, 0)
             box.pack_start(lbl, False, False, 0)
             btn.add(box)
-            btn.connect("clicked", lambda *_, c=cb: c())
+            btn.connect("clicked", lambda *_, a=app: self._launch_application(a))
             fixed.put(btn, x, y)
 
         self.bg_win.add(fixed)
@@ -621,6 +615,17 @@ class DesktopShell(ShellApp):
     def __init__(self):
         super().__init__()
         self.window = self.bg_win
+        if not LAYER_SHELL:
+            self.window.connect("configure-event", self._on_configure_event)
+
+    def _on_configure_event(self, widget, event):
+        w, h = _screen_size()
+        self.top_win.set_size_request(w, TOP_BAR_H)
+        self.dock_win.set_size_request(DOCK_W, h - TOP_BAR_H)
+        self.dock_win.move(0, TOP_BAR_H)
+        self.bg_win.set_size_request(w - DOCK_W, h - TOP_BAR_H)
+        self.bg_win.move(DOCK_W, TOP_BAR_H)
+        return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────

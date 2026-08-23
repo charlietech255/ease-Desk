@@ -11,6 +11,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 
 from shared.utilities import sysinfo
 from shared.utilities.icons import get_icon_pixbuf
+from shared.config import preferences
 
 
 class SettingsWindow(Gtk.Window):
@@ -76,6 +77,7 @@ class SettingsWindow(Gtk.Window):
         # Create Pages
         self.pages = {}
         self._add_page("System Info", "computer", self._build_system_info())
+        self._add_page("Personalization", "preferences-desktop-wallpaper", self._build_personalization())
         self._add_page("Services", "task_manager", self._build_services())
         self._add_page("Firewall", "webroot", self._build_firewall())
         self._add_page("Users", "folder", self._build_users())
@@ -185,6 +187,142 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(update_box, False, False, 0)
 
         return box
+
+    # ---------------------------------------------------------------------- Personalization
+    def _build_personalization(self) -> Gtk.Widget:
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        box.set_margin_top(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        
+        lbl = Gtk.Label(label="Personalization")
+        lbl.get_style_context().add_class("page-title")
+        lbl.set_halign(Gtk.Align.START)
+        box.pack_start(lbl, False, False, 0)
+
+        # Wallpaper
+        wp_lbl = Gtk.Label(label="Wallpaper")
+        wp_lbl.set_halign(Gtk.Align.START)
+        wp_lbl.get_style_context().add_class("info-key")
+        box.pack_start(wp_lbl, False, False, 0)
+        
+        wp_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.wp_entry = Gtk.Entry()
+        self.wp_entry.set_text(preferences.get("Personalization", "wallpaper_path", ""))
+        self.wp_entry.set_hexpand(True)
+        wp_hbox.pack_start(self.wp_entry, True, True, 0)
+        
+        wp_btn = Gtk.Button(label="Browse...")
+        wp_btn.connect("clicked", self._on_browse_wallpaper)
+        wp_hbox.pack_start(wp_btn, False, False, 0)
+        
+        box.pack_start(wp_hbox, False, False, 0)
+        
+        # Wallpaper Mode
+        mode_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        mode_lbl = Gtk.Label(label="Mode:")
+        mode_lbl.get_style_context().add_class("info-key")
+        mode_hbox.pack_start(mode_lbl, False, False, 0)
+        
+        self.mode_combo = Gtk.ComboBoxText()
+        for mode in ["fill", "fit", "stretch", "center", "solid"]:
+            self.mode_combo.append(mode, mode)
+        self.mode_combo.set_active_id(preferences.get("Personalization", "wallpaper_mode", "fill"))
+        self.mode_combo.connect("changed", self._on_wallpaper_mode_changed)
+        mode_hbox.pack_start(self.mode_combo, False, False, 0)
+        box.pack_start(mode_hbox, False, False, 0)
+        
+        # Solid Color
+        color_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        color_lbl = Gtk.Label(label="Solid Color:")
+        color_lbl.get_style_context().add_class("info-key")
+        color_hbox.pack_start(color_lbl, False, False, 0)
+        
+        self.color_btn = Gtk.ColorButton()
+        rgba = Gdk.RGBA()
+        rgba.parse(preferences.get("Personalization", "solid_color", "#0b0e14"))
+        self.color_btn.set_rgba(rgba)
+        self.color_btn.connect("color-set", self._on_color_set)
+        color_hbox.pack_start(self.color_btn, False, False, 0)
+        box.pack_start(color_hbox, False, False, 0)
+        
+        # Apply button
+        apply_btn = Gtk.Button(label="Apply Wallpaper")
+        apply_btn.connect("clicked", self._on_apply_wallpaper)
+        apply_btn.set_halign(Gtk.Align.START)
+        box.pack_start(apply_btn, False, False, 0)
+
+        box.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 10)
+
+        # Theme Mode
+        theme_lbl = Gtk.Label(label="Theme Mode")
+        theme_lbl.set_halign(Gtk.Align.START)
+        theme_lbl.get_style_context().add_class("info-key")
+        box.pack_start(theme_lbl, False, False, 0)
+        
+        self.theme_combo = Gtk.ComboBoxText()
+        self.theme_combo.append("dark", "Dark Mode")
+        self.theme_combo.append("light", "Light Mode")
+        self.theme_combo.set_active_id(preferences.get("Personalization", "theme_mode", "dark"))
+        self.theme_combo.connect("changed", lambda c: preferences.set("Personalization", "theme_mode", c.get_active_id() or "dark"))
+        self.theme_combo.set_halign(Gtk.Align.START)
+        box.pack_start(self.theme_combo, False, False, 0)
+        
+        # Dock Position
+        dock_lbl = Gtk.Label(label="Dock Position")
+        dock_lbl.set_halign(Gtk.Align.START)
+        dock_lbl.get_style_context().add_class("info-key")
+        box.pack_start(dock_lbl, False, False, 0)
+        
+        self.dock_combo = Gtk.ComboBoxText()
+        self.dock_combo.append("left", "Left")
+        self.dock_combo.append("bottom", "Bottom")
+        self.dock_combo.set_active_id(preferences.get("Personalization", "dock_position", "left"))
+        self.dock_combo.connect("changed", lambda c: preferences.set("Personalization", "dock_position", c.get_active_id() or "left"))
+        self.dock_combo.set_halign(Gtk.Align.START)
+        box.pack_start(self.dock_combo, False, False, 0)
+
+        # Note about restart
+        note_lbl = Gtk.Label(label="Note: Some changes may require restarting ease-Desk to take full effect.")
+        note_lbl.get_style_context().add_class("info-val")
+        note_lbl.set_halign(Gtk.Align.START)
+        box.pack_start(note_lbl, False, False, 20)
+
+        return box
+
+    def _on_browse_wallpaper(self, btn):
+        dialog = Gtk.FileChooserDialog(
+            title="Select Wallpaper",
+            parent=self,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OPEN,
+            Gtk.ResponseType.OK,
+        )
+        filter_img = Gtk.FileFilter()
+        filter_img.set_name("Images")
+        filter_img.add_mime_type("image/png")
+        filter_img.add_mime_type("image/jpeg")
+        filter_img.add_mime_type("image/svg+xml")
+        dialog.add_filter(filter_img)
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            self.wp_entry.set_text(dialog.get_filename())
+        dialog.destroy()
+
+    def _on_wallpaper_mode_changed(self, combo):
+        preferences.set("Personalization", "wallpaper_mode", combo.get_active_text() or "fill")
+
+    def _on_color_set(self, btn):
+        rgba = btn.get_rgba()
+        color_hex = f"#{int(rgba.red * 255):02x}{int(rgba.green * 255):02x}{int(rgba.blue * 255):02x}"
+        preferences.set("Personalization", "solid_color", color_hex)
+
+    def _on_apply_wallpaper(self, btn):
+        preferences.set("Personalization", "wallpaper_path", self.wp_entry.get_text().strip())
 
     # ---------------------------------------------------------------------- Services
     def _build_services(self) -> Gtk.Widget:

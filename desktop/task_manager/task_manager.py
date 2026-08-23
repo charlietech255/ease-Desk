@@ -134,10 +134,16 @@ class TaskManagerWindow(Gtk.Window):
         ref_btn.connect("clicked", lambda *_: self._refresh_data())
         header.pack_start(ref_btn)
 
-        # End Task button
+        # End Task buttons
         self.kill_btn = Gtk.Button(label="End Task")
         self.kill_btn.get_style_context().add_class("destructive-action")
-        self.kill_btn.connect("clicked", self._on_end_task_clicked)
+        self.kill_btn.connect("clicked", lambda b: self._on_end_task_clicked(b, force=False))
+        
+        self.force_kill_btn = Gtk.Button(label="Force Quit")
+        self.force_kill_btn.get_style_context().add_class("destructive-action")
+        self.force_kill_btn.connect("clicked", lambda b: self._on_end_task_clicked(b, force=True))
+        
+        header.pack_end(self.force_kill_btn)
         header.pack_end(self.kill_btn)
 
         # 1. System Performance Overview Cards
@@ -165,9 +171,14 @@ class TaskManagerWindow(Gtk.Window):
 
         self.proc_count_lbl = Gtk.Label(label="0 processes")
         self.proc_count_lbl.get_style_context().add_class("dim-label")
+        
+        self.show_system_procs = False
+        self.sys_proc_check = Gtk.CheckButton(label="Show system processes")
+        self.sys_proc_check.connect("toggled", self._on_sys_proc_toggled)
 
         search_box.pack_start(search_lbl, False, False, 0)
         search_box.pack_start(self.search_entry, True, True, 0)
+        search_box.pack_start(self.sys_proc_check, False, False, 0)
         search_box.pack_start(self.proc_count_lbl, False, False, 0)
         main_box.pack_start(search_box, False, False, 0)
 
@@ -272,6 +283,10 @@ class TaskManagerWindow(Gtk.Window):
         self.filter_text = entry.get_text().strip()
         self.tree_filter.refilter()
 
+    def _on_sys_proc_toggled(self, check) -> None:
+        self.show_system_procs = check.get_active()
+        self._refresh_data()
+
 
     def _update_bar_color(self, bar: Gtk.ProgressBar, pct: float) -> None:
         ctx = bar.get_style_context()
@@ -300,6 +315,10 @@ class TaskManagerWindow(Gtk.Window):
 
         # 2. Update Process Table
         procs = list_processes()
+        
+        if not self.show_system_procs:
+            procs = [p for p in procs if p["pid"] > 1000 and not p["name"].startswith(("systemd", "sway", "dbus", "NetworkManager", "pulseaudio", "pipewire"))]
+            
         self.proc_count_lbl.set_text(f"{len(procs)} processes")
 
         self.store.clear()
@@ -323,10 +342,12 @@ class TaskManagerWindow(Gtk.Window):
         if tree_iter:
             pid = model.get_value(tree_iter, 0)
             self.kill_btn.set_sensitive(pid != 1)
+            self.force_kill_btn.set_sensitive(pid != 1)
         else:
             self.kill_btn.set_sensitive(False)
+            self.force_kill_btn.set_sensitive(False)
 
-    def _on_end_task_clicked(self, btn: Gtk.Button) -> None:
+    def _on_end_task_clicked(self, btn: Gtk.Button, force: bool = False) -> None:
         selection = self.tree_view.get_selection()
         model, tree_iter = selection.get_selected()
         if not tree_iter:
@@ -338,20 +359,24 @@ class TaskManagerWindow(Gtk.Window):
         if pid == 1:
             return
 
+        action_name = "Force Quit" if force else "End"
         dialog = Gtk.MessageDialog(
             transient_for=self,
             modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.OK_CANCEL,
-            text=f"End Process '{name}' (PID: {pid})?",
+            text=f"{action_name} Process '{name}' (PID: {pid})?",
         )
-        dialog.format_secondary_text("Ending a process may cause unsaved data loss.")
+        dialog.format_secondary_text(f"{action_name}ing a process may cause unsaved data loss.")
         response = dialog.run()
         dialog.destroy()
 
         if response == Gtk.ResponseType.OK:
             try:
-                os.kill(pid, signal.SIGTERM)
+                if force:
+                    os.kill(pid, signal.SIGKILL)
+                else:
+                    os.kill(pid, signal.SIGTERM)
                 GLib.timeout_add(300, self._refresh_data)
             except OSError as exc:
                 err_dialog = Gtk.MessageDialog(

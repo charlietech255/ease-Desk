@@ -102,9 +102,9 @@ class TestNewFeatures(unittest.TestCase):
         shell = DesktopShell()
         self.assertIsNotNone(shell.start_btn)
         item_ids = [it["id"] for it in shell.desktop_items]
-        self.assertIn("browser", item_ids)
-        self.assertIn("terminal", item_ids)
-        self.assertIn("task_manager", item_ids)
+        self.assertIn("ease-desk-files", item_ids)
+        self.assertIn("ease-desk-terminal", item_ids)
+        self.assertIn("ease-desk-task-manager", item_ids)
         shell.window.destroy()
 
     def test_sysinfo_live_probes(self):
@@ -123,21 +123,21 @@ class TestNewFeatures(unittest.TestCase):
         """Test pinned apps bar, live indicators, and process tracking."""
         shell = DesktopShell()
         self.assertIsNotNone(shell.pinned_box)
-        self.assertIn("browser", shell.pinned_buttons)
-        self.assertIn("terminal", shell.pinned_buttons)
-        self.assertIn("task_manager", shell.pinned_buttons)
+        self.assertIn("ease-desk-files", shell.pinned_buttons)
+        self.assertIn("ease-desk-terminal", shell.pinned_buttons)
+        self.assertIn("ease-desk-task-manager", shell.pinned_buttons)
 
         # Simulate tracking a process
         shell.tracked_processes[999999] = {
             "pid": 999999,
-            "app_id": "terminal",
+            "app_id": "ease-desk-terminal",
             "title": "Terminal",
             "icon_key": "terminal",
             "popen": None,
         }
         shell._update_running_tasks_ui()
         self.assertTrue(
-            "active" in shell.pinned_indicators["terminal"].get_style_context().list_classes()
+            "active" in shell.pinned_indicators["ease-desk-terminal"].get_style_context().list_classes()
         )
         self.assertGreater(len(shell.running_tasks_box.get_children()), 0)
 
@@ -145,7 +145,7 @@ class TestNewFeatures(unittest.TestCase):
         shell.tracked_processes.clear()
         shell._update_running_tasks_ui()
         self.assertFalse(
-            "active" in shell.pinned_indicators["terminal"].get_style_context().list_classes()
+            "active" in shell.pinned_indicators["ease-desk-terminal"].get_style_context().list_classes()
         )
 
         # Toggle calendar flyout
