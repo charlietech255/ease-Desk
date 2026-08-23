@@ -1,26 +1,9 @@
-"""ease-Desk This PC & File Manager — GTK3 entry point.
+import re
 
-Usage:
-    python3 -m file_manager [directory | thispc://]
-"""
+with open("file_manager/app.py", "r") as f:
+    content = f.read()
 
-from __future__ import annotations
-
-import os
-import sys
-
-import gi
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gtk  # noqa: E402
-
-from file_manager.gui import FileManagerWindow  # noqa: E402
-from shared.utilities import animate  # noqa: E402
-
-
-def _load_css() -> None:
-    css = b"""
+new_css = b"""
     window, .app-window { background-color: #1e1e1e; color: #cccccc; }
     toolbar {
         background-color: #252526;
@@ -262,43 +245,9 @@ def _load_css() -> None:
         border-color: #007acc;
     }
     """
-    provider = Gtk.CssProvider()
-    provider.load_from_data(css)
-    screen = Gdk.Screen.get_default()
-    if screen is not None:
-        Gtk.StyleContext.add_provider_for_screen(
-            screen,
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
 
+pattern = r'css = b"""(.*?)"""'
+content = re.sub(pattern, 'css = b"""' + new_css.decode('utf-8') + '"""', content, flags=re.DOTALL)
 
-def main(argv: list[str] | None = None) -> int:
-    argv = sys.argv[1:] if argv is None else argv
-    
-    # Enforce global dark mode for file manager to fix white title bar
-    settings = Gtk.Settings.get_default()
-    if settings:
-        settings.set_property("gtk-application-prefer-dark-theme", False)
-        
-    _load_css()
-
-    start = "thispc://"
-    if argv:
-        target = argv[0].strip()
-        if target.lower() in ("thispc", "thispc://", "pc", "pc://", "mycomputer", "computer://"):
-            start = "thispc://"
-        elif os.path.exists(os.path.expanduser(target)):
-            start = os.path.expanduser(target)
-        else:
-            start = "thispc://"
-
-    window = FileManagerWindow(start)
-    window.show_all()
-    animate.fade_in(window, duration_ms=220)
-    Gtk.main()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+with open("file_manager/app.py", "w") as f:
+    f.write(content)

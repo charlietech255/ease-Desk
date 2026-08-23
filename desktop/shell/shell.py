@@ -13,10 +13,14 @@ import datetime
 import os
 import subprocess
 import sys
+
 import gi
 
+from shared.utilities.wallpaper import hex_to_rgb
+from shared.utilities.apps import AppDefinition
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 
 # ── Optional: gtk-layer-shell ─────────────────────────────────────────────────
 LAYER_SHELL = False
@@ -91,12 +95,48 @@ TOP_BAR_H = 36
 DOCK_W = 60
 
 
+def _ensure_gtk_initialized() -> None:
+    try:
+        if hasattr(Gtk, "get_initialized") and Gtk.get_initialized():
+            return
+    except Exception:
+        pass
+    try:
+        Gtk.init_check()
+    except Exception:
+        pass
+    try:
+        Gtk.init()
+    except Exception:
+        pass
+
+
 class ShellApp:
     """Orchestrates all shell surfaces."""
 
     def __init__(self):
+        _ensure_gtk_initialized()
         self.spotlight: SpotlightWindow | None = None
         self.dashboard: DashboardPanel | None = None
+        self.start_btn = None
+        self.desktop_items = []
+        self.window = None
+        self.wallpaper_path = None
+        self.wallpaper_mode = "fill"
+        self.solid_color = "#0b0e14"
+        self.wallpaper_pixbuf = None
+        self._cached_scaled_pixbuf = None
+        self._cached_draw_params = None
+        self._cached_offsets = (0, 0)
+        self._cached_bg_rgb = hex_to_rgb(self.solid_color)
+        self._config_mtime = 0.0
+        self.pinned_buttons = {}
+        self.pinned_indicators = {}
+        self.tracked_processes = {}
+        self.running_tasks_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.current_workspace = 1
+        self.workspace_buttons = {}
+        self._cal_window = None
 
         self._build_top_bar()
         self._build_left_dock()
@@ -106,6 +146,60 @@ class ShellApp:
             # Pass a lightweight proxy so panels can call back into us
             self.spotlight = SpotlightWindow(self)
             self.dashboard = DashboardPanel(self)
+
+    def _compute_scaled_wallpaper(self, screen_w: int, screen_h: int):
+        """Compatibility helper used by tests and wallpaper-related code."""
+        self._cached_bg_rgb = hex_to_rgb(self.solid_color)
+
+        if self.wallpaper_mode == "solid":
+            self._cached_scaled_pixbuf = None
+            self._cached_offsets = (0, 0)
+            return
+
+        pixbuf = self.wallpaper_pixbuf
+        if pixbuf is None:
+            self._cached_scaled_pixbuf = None
+            self._cached_offsets = (0, 0)
+            return
+
+        src_w, src_h = pixbuf.get_width(), pixbuf.get_height()
+        if src_w <= 0 or src_h <= 0:
+            self._cached_scaled_pixbuf = None
+            self._cached_offsets = (0, 0)
+            return
+
+        mode = self.wallpaper_mode
+        if mode == "stretch":
+            self._cached_scaled_pixbuf = pixbuf.scale_simple(screen_w, screen_h, GdkPixbuf.InterpType.BILINEAR)
+            self._cached_offsets = (0, 0)
+            return
+
+        if mode == "center":
+            self._cached_scaled_pixbuf = pixbuf.scale_simple(src_w, src_h, GdkPixbuf.InterpType.BILINEAR)
+            self._cached_offsets = ((screen_w - src_w) // 2, (screen_h - src_h) // 2)
+            return
+
+        if mode == "fit":
+            scale = min(screen_w / src_w, screen_h / src_h)
+            dest_w = max(1, int(src_w * scale))
+            dest_h = max(1, int(src_h * scale))
+            self._cached_scaled_pixbuf = pixbuf.scale_simple(dest_w, dest_h, GdkPixbuf.InterpType.BILINEAR)
+            self._cached_offsets = ((screen_w - dest_w) // 2, (screen_h - dest_h) // 2)
+            return
+
+        # default fill mode
+        scale = max(screen_w / src_w, screen_h / src_h)
+        dest_w = max(1, int(src_w * scale))
+        dest_h = max(1, int(src_h * scale))
+        self._cached_scaled_pixbuf = pixbuf.scale_simple(dest_w, dest_h, GdkPixbuf.InterpType.BILINEAR)
+        self._cached_offsets = ((screen_w - dest_w) // 2, (screen_h - dest_h) // 2)
+
+    def _set_wallpaper(self, path: str | None, mode: str = "fill", solid_color: str | None = None):
+        self.wallpaper_path = path
+        self.wallpaper_mode = mode
+        if solid_color:
+            self.solid_color = solid_color
+        self._cached_bg_rgb = hex_to_rgb(self.solid_color)
 
     # ── Top bar ───────────────────────────────────────────────────────────────
     def _build_top_bar(self):
@@ -134,12 +228,30 @@ class ShellApp:
         menu_btn.get_style_context().add_class("left-dock-btn")
         menu_btn.set_tooltip_text("Applications (Super)")
         menu_btn.connect("clicked", lambda *_: self._toggle_spotlight())
+        self.start_btn = menu_btn
         left.pack_start(menu_btn, False, False, 0)
         bar.pack_start(left, False, False, 0)
 
         # Right side — tray icons + clock
         right = Gtk.Box(spacing=10)
         right.set_margin_end(14)
+
+        self.pinned_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        right.pack_start(self.pinned_box, False, False, 0)
+        self._build_pinned_apps()
+        right.pack_start(self.running_tasks_box, False, False, 0)
+
+        workspace_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        workspace_box.get_style_context().add_class("workspace-switcher")
+        for workspace_id in range(1, 5):
+            button = Gtk.Button.new_with_label(str(workspace_id))
+            button.set_relief(Gtk.ReliefStyle.NONE)
+            button.set_tooltip_text(f"Workspace {workspace_id}")
+            button.connect("clicked", self._switch_workspace, workspace_id)
+            workspace_box.pack_start(button, False, False, 0)
+            self.workspace_buttons[workspace_id] = button
+        right.pack_start(workspace_box, False, False, 4)
+        self._set_active_workspace(1)
 
         # Network icon
         net_img = _img("network-wireless", 16)
@@ -160,14 +272,99 @@ class ShellApp:
 
         bar.pack_end(right, False, False, 0)
         self.top_win.add(bar)
+        self.top_win.connect("key-press-event", self._on_key_press)
 
         self._update_clock()
         GLib.timeout_add_seconds(1, self._update_clock)
+
+    def _build_pinned_apps(self):
+        apps = (
+            ("files", "Files", lambda: _launch(["python3", "-m", "file_manager.app"])),
+            ("terminal", "Terminal", self._open_terminal),
+            ("browser", "Web Browser", lambda: _launch(["epiphany"])),
+            ("task_manager", "Task Manager", lambda: _launch(["python3", "-m", "desktop.task_manager.task_manager"])),
+        )
+        for app_id, tooltip, callback in apps:
+            button = Gtk.Button()
+            button.set_relief(Gtk.ReliefStyle.NONE)
+            button.add(_img(app_id, 18))
+            button.set_tooltip_text(tooltip)
+            button.connect("clicked", lambda *_args, cb=callback: cb())
+            indicator = Gtk.Box()
+            indicator.set_size_request(3, 3)
+            indicator.get_style_context().add_class("pinned-indicator")
+            self.pinned_box.pack_start(button, False, False, 0)
+            self.pinned_buttons[app_id] = button
+            self.pinned_indicators[app_id] = indicator
+
+    def _update_running_tasks_ui(self):
+        for child in self.running_tasks_box.get_children():
+            self.running_tasks_box.remove(child)
+        active_ids = {task.get("app_id") for task in self.tracked_processes.values()}
+        for app_id, indicator in self.pinned_indicators.items():
+            context = indicator.get_style_context()
+            if app_id in active_ids:
+                context.add_class("active")
+            else:
+                context.remove_class("active")
+        for task in self.tracked_processes.values():
+            label = Gtk.Label(label=task.get("title") or str(task.get("pid", "")))
+            label.set_tooltip_text(task.get("title") or "Running task")
+            self.running_tasks_box.pack_start(label, False, False, 0)
+        self.running_tasks_box.show_all()
+
+    def _toggle_calendar(self):
+        if self._cal_window is not None:
+            self._cal_window.destroy()
+            self._cal_window = None
+            return
+        window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        window.set_title("Calendar")
+        window.set_default_size(280, 240)
+        window.set_position(Gtk.WindowPosition.CENTER)
+        calendar = Gtk.Calendar()
+        window.add(calendar)
+        window.connect("destroy", self._calendar_closed)
+        self._cal_window = window
+        window.show_all()
+
+    def _calendar_closed(self, _window):
+        self._cal_window = None
 
     def _update_clock(self):
         now = datetime.datetime.now()
         self.clock_lbl.set_text(now.strftime("  %H:%M    %a %d %b  "))
         return True
+
+    def _on_key_press(self, _widget, event):
+        key = event.keyval
+        if key == Gdk.KEY_Escape:
+            if self.spotlight and self.spotlight.is_visible():
+                self.spotlight.hide()
+                return True
+            if self.dashboard and self.dashboard.get_reveal_child():
+                self.dashboard.set_reveal_child(False)
+                return True
+        if key in (Gdk.KEY_Super_L, Gdk.KEY_Super_R):
+            self._toggle_spotlight()
+            return True
+        return False
+
+    def _switch_workspace(self, _button, workspace_id: int):
+        """Ask the compositor to change workspace; the shell remains stateless."""
+        _launch(["swaymsg", "workspace", str(workspace_id)])
+        self._set_active_workspace(workspace_id)
+
+    def _set_active_workspace(self, workspace_id: int):
+        if workspace_id not in self.workspace_buttons:
+            return
+        self.current_workspace = workspace_id
+        for button_id, button in self.workspace_buttons.items():
+            context = button.get_style_context()
+            if button_id == workspace_id:
+                context.add_class("active")
+            else:
+                context.remove_class("active")
 
     # ── Left dock ─────────────────────────────────────────────────────────────
     def _build_left_dock(self):
@@ -260,15 +457,20 @@ class ShellApp:
         fixed.set_margin_top(20)
 
         icons = [
-            ("system-file-manager", "Files", 0, 0,
+            ("system-file-manager", "Files", 0, 0, "files",
              lambda: _launch(["python3", "-m", "file_manager.app"])),
-            ("utilities-terminal", "Terminal", 0, 100,
+            ("utilities-terminal", "Terminal", 0, 100, "terminal",
              lambda: self._open_terminal()),
-            ("epiphany", "Browser", 0, 200,
+            ("epiphany", "Browser", 0, 200, "browser",
              lambda: _launch(["epiphany"])),
+            ("utilities-system-monitor", "Task Manager", 0, 300, "task_manager",
+             lambda: _launch(["python3", "-m", "desktop.task_manager.task_manager"])),
         ]
 
-        for icon_name, label, x, y, cb in icons:
+        self.desktop_items = [{"id": item_id, "label": label, "icon": icon_name, "x": x, "y": y}
+                              for icon_name, label, x, y, item_id, _ in icons]
+
+        for icon_name, label, x, y, _item_id, cb in icons:
             btn = Gtk.Button()
             btn.set_relief(Gtk.ReliefStyle.NONE)
             btn.get_style_context().add_class("icon-btn")
@@ -309,6 +511,10 @@ class ShellApp:
                 _launch(["epiphany"])
             elif app == "task_manager":
                 _launch(["python3", "-m", "desktop.task_manager.task_manager"])
+            elif app == "settings":
+                _launch(["python3", "-m", "desktop.settings.app"])
+            elif app == "wallpaper":
+                self._dialog_change_wallpaper()
             elif app == "files":
                 _launch(["python3", "-m", "file_manager.app"])
         elif path.startswith("thispc://"):
@@ -316,8 +522,21 @@ class ShellApp:
         elif os.path.exists(path):
             _launch(["xdg-open", path])
 
+    def _launch_application(self, application: AppDefinition):
+        """Launch a registry entry without passing it through a shell."""
+        _launch(list(application.exec_command))
+
     def _dialog_change_wallpaper(self):
-        pass  # Future
+        dialog = Gtk.MessageDialog(
+            transient_for=self.bg_win,
+            modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text="Wallpaper settings",
+        )
+        dialog.format_secondary_text("Wallpaper selection will be available in Settings.")
+        dialog.run()
+        dialog.destroy()
 
     def _dialog_add_shortcut(self):
         pass  # Future
@@ -355,6 +574,14 @@ class ShellApp:
         self.top_win.show_all()
         self.dock_win.show_all()
         self.bg_win.show_all()
+
+
+class DesktopShell(ShellApp):
+    """Backward-compatible shell entry point for older call sites and tests."""
+
+    def __init__(self):
+        super().__init__()
+        self.window = self.bg_win
 
 
 # ─────────────────────────────────────────────────────────────────────────────

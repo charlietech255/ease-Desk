@@ -1,263 +1,211 @@
 /* ===========================================================================
-   ease-Desk — Premium Dark Shell Theme
-   Glassmorphism + Depth + Smooth animations
+   ease-Desk — Professional Desktop Shell Theme
+   Sleek, flat, minimal dark mode
    =========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
 * {
     font-family: "Inter", "Ubuntu", "Segoe UI", sans-serif;
 }
 
-/* ── Transparent window base — only use where compositor supports RGBA ── */
-/* DO NOT set window background-color: transparent — it renders black on
-   headless wayvnc. Instead give each surface an explicit dark color.    */
-
 /* ── Top Bar ─────────────────────────────────────────────────────────────── */
 .top-bar {
-    background: linear-gradient(
-        180deg,
-        rgba(5, 5, 12, 0.88) 0%,
-        rgba(10, 10, 22, 0.72) 100%
-    );
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: #1e1e1e;
+    border-bottom: 1px solid #333333;
     padding: 0 12px;
-    min-height: 36px;
+    min-height: 32px;
 }
 
 .topbar-icon {
-    opacity: 0.85;
+    opacity: 0.9;
     -gtk-icon-size: 16px;
 }
 
 .topbar-clock {
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 13px;
+    color: #cccccc;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.3px;
 }
 
 .topbar-clock:hover {
     color: #ffffff;
 }
 
-/* ── Left Dock ───────────────────────────────────────────────────────────── */
-.left-dock {
-    background: linear-gradient(
-        180deg,
-        rgba(12, 12, 26, 0.82) 0%,
-        rgba(8, 8, 18, 0.90) 100%
-    );
-    border-right: 1px solid rgba(255, 255, 255, 0.055);
-    padding: 12px 0;
-    min-width: 60px;
+.pinned-indicator {
+    background: transparent;
+    margin: 0 2px;
+    min-width: 3px;
+    min-height: 3px;
 }
 
-.left-dock-btn {
+.pinned-indicator.active {
+    background: #007acc;
+}
+
+.workspace-switcher {
+    margin: 0 8px;
+}
+
+.workspace-switcher button {
+    color: #858585;
     background: transparent;
     border: none;
-    border-radius: 10px;
-    padding: 7px;
-    margin: 2px 8px;
-    min-width: 44px;
-    min-height: 44px;
-    transition: background-color 150ms ease, box-shadow 150ms ease;
+    border-radius: 2px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
 }
 
-.left-dock-btn:hover {
-    background: rgba(255, 255, 255, 0.09);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+.workspace-switcher button:hover,
+.workspace-switcher button.active {
+    color: #ffffff;
+    background: #3e3e42;
 }
 
-.left-dock-btn:active {
-    background: rgba(255, 255, 255, 0.16);
+/* ── Taskbar ───────────────────────────────────────────────────────────── */
+.bottom-taskbar {
+    background: #1e1e1e;
+    border-top: 1px solid #333333;
+    padding: 0;
 }
 
-.left-dock-btn-power {
+.taskbar-btn {
     background: transparent;
     border: none;
-    border-radius: 10px;
-    padding: 7px;
-    margin: 2px 8px;
-    min-width: 44px;
-    min-height: 44px;
-    transition: background-color 150ms ease;
+    border-radius: 2px;
+    padding: 6px 12px;
+    margin: 2px 2px;
+    min-width: 40px;
+    min-height: 36px;
+    transition: background-color 100ms ease;
 }
 
-.left-dock-btn-power:hover {
-    background: rgba(239, 68, 68, 0.18);
+.taskbar-btn:hover {
+    background: #3e3e42;
 }
 
-.left-dock-btn-power:active {
-    background: rgba(239, 68, 68, 0.32);
+.taskbar-btn:active {
+    background: #007acc;
 }
 
-/* Dock separator */
-.dock-sep {
-    background-color: rgba(255, 255, 255, 0.08);
-    margin: 6px 14px;
-    min-height: 1px;
+.taskbar-btn-power {
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    padding: 6px 12px;
+    margin: 2px 2px;
+    min-width: 40px;
+    min-height: 36px;
+    transition: background-color 100ms ease;
+}
+
+.taskbar-btn-power:hover {
+    background: #f14c4c;
+}
+
+.taskbar-btn-power:active {
+    background: #c53b3b;
 }
 
 /* ── Desktop Icon Grid ───────────────────────────────────────────────────── */
 .icon-btn {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 10px;
-    padding: 10px 6px;
+    border-radius: 2px;
+    padding: 8px 6px;
     min-width: 80px;
     min-height: 80px;
-    transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .icon-btn:active {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(0, 122, 204, 0.3);
+    border-color: #007acc;
 }
 
 .icon-name {
-    color: rgba(255, 255, 255, 0.92);
+    color: #ffffff;
     font-size: 11px;
     font-weight: 500;
-    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     margin-top: 4px;
-}
-
-/* ── Spotlight Search ────────────────────────────────────────────────────── */
-.spotlight-window {
-    background: rgba(18, 18, 28, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    box-shadow:
-        0 32px 80px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-}
-
-.spotlight-entry {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 20px;
-    font-weight: 300;
-    font-family: "Inter", sans-serif;
-    padding: 14px 24px;
-    caret-color: #a78bfa;
-}
-
-.spotlight-entry:focus {
-    border: none;
-    box-shadow: none;
 }
 
 /* ── Dashboard / Quick Settings Panel ───────────────────────────────────── */
 .dashboard-panel {
-    background: rgba(10, 10, 20, 0.95);
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+    background: #252526;
+    border-left: 1px solid #333333;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
     padding: 0 20px 24px 20px;
 }
 
 .dash-header {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 16px;
-    font-weight: 700;
-    font-family: "Inter", sans-serif;
+    color: #cccccc;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .dash-section-lbl {
-    color: rgba(255, 255, 255, 0.35);
+    color: #858585;
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
+    font-weight: 600;
+    text-transform: uppercase;
     margin-top: 18px;
     margin-bottom: 6px;
 }
 
 .dash-stat-key {
-    color: rgba(255, 255, 255, 0.55);
+    color: #858585;
     font-size: 12px;
-    font-weight: 400;
 }
 
 .dash-stat-val {
-    color: rgba(255, 255, 255, 0.90);
+    color: #cccccc;
     font-size: 12px;
     font-weight: 600;
 }
 
 .dash-action-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.85);
+    background: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    border-radius: 2px;
+    color: #cccccc;
     font-size: 12px;
-    font-weight: 500;
-    padding: 8px 12px;
-    transition: background-color 130ms ease, border-color 130ms ease;
+    padding: 6px 12px;
 }
 
 .dash-action-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.18);
+    background: #454545;
     color: #ffffff;
 }
 
 .dash-action-btn:active {
-    background: rgba(255, 255, 255, 0.20);
+    background: #007acc;
 }
 
 /* Progress bars */
 progressbar > trough {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    min-height: 5px;
+    background-color: #3c3c3c;
+    border-radius: 0px;
+    min-height: 4px;
     border: none;
 }
 
 progressbar > trough > progress {
-    background: linear-gradient(to right, #7c3aed, #a78bfa);
-    border-radius: 8px;
+    background: #007acc;
+    border-radius: 0px;
     border: none;
 }
 
 progressbar.warning > trough > progress {
-    background: linear-gradient(to right, #d97706, #fbbf24);
+    background: #d7ba7d;
 }
 
 progressbar.critical > trough > progress {
-    background: linear-gradient(to right, #dc2626, #f87171);
-}
-
-/* ── Bottom Dock (if used) ───────────────────────────────────────────────── */
-.bottom-dock {
-    background: rgba(12, 12, 24, 0.82);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 8px 20px;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-}
-
-.bottom-dock-btn {
-    background: transparent;
-    border: none;
-    border-radius: 10px;
-    padding: 6px 14px;
-    transition: background-color 130ms ease;
-}
-
-.bottom-dock-btn:hover {
-    background: rgba(255, 255, 255, 0.10);
-}
-
-.bottom-dock-label {
-    color: rgba(255, 255, 255, 0.70);
-    font-size: 11px;
-    font-weight: 500;
+    background: #f14c4c;
 }
