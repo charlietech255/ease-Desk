@@ -221,7 +221,7 @@ done
 echo -e "${CYAN} [4/7] Deploying ease-Desk to ${INSTALL_DIR}...${NC}"
 mkdir -p "${INSTALL_DIR}"
 
-if [ -n "$SRC_DIR" ] && [ -d "${SRC_DIR}/desktop" ]; then
+if [ -n "$SRC_DIR" ] && [ -d "${SRC_DIR}/desktop" ] && [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
  cp -r "${SRC_DIR}/desktop" "${INSTALL_DIR}/"
  cp -r "${SRC_DIR}/file_manager" "${INSTALL_DIR}/"
  cp -r "${SRC_DIR}/shared" "${INSTALL_DIR}/"
@@ -229,7 +229,7 @@ if [ -n "$SRC_DIR" ] && [ -d "${SRC_DIR}/desktop" ]; then
  for asset in "${SRC_DIR}"/*.png "${SRC_DIR}"/*.jpg "${SRC_DIR}"/*.svg "${SRC_DIR}"/*.md; do
   [ -f "${asset}" ] && cp "${asset}" "${INSTALL_DIR}/" 2>/dev/null || true
  done
-elif [ ! -f "${INSTALL_DIR}/desktop/session/session.py" ]; then
+elif [ ! -f "${INSTALL_DIR}/desktop/session/session.py" ] && [ "$SRC_DIR" != "$INSTALL_DIR" ]; then
  echo "Cloning latest ease-Desk from repository..."
  git clone https://github.com/charlietech255/ease-Desk.git "${INSTALL_DIR}"
 fi
