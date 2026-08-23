@@ -206,6 +206,7 @@ class ShellApp:
         self.top_win = Gtk.Window()
         self.top_win.set_decorated(False)
         self.top_win.set_resizable(False)
+        self.top_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.top_win.set_keep_above(True)
 
         if LAYER_SHELL:
@@ -371,6 +372,7 @@ class ShellApp:
         self.dock_win = Gtk.Window()
         self.dock_win.set_decorated(False)
         self.dock_win.set_resizable(False)
+        self.dock_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.dock_win.set_keep_above(True)
 
         if LAYER_SHELL:
@@ -438,6 +440,7 @@ class ShellApp:
         self.bg_win = Gtk.Window()
         self.bg_win.set_decorated(False)
         self.bg_win.set_resizable(False)
+        self.bg_win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
         # Solid dark background — no transparency needed
         self.bg_win.override_background_color(
             Gtk.StateFlags.NORMAL,
@@ -586,6 +589,11 @@ class DesktopShell(ShellApp):
 
 # ─────────────────────────────────────────────────────────────────────────────
 def main() -> int:
+    settings = Gtk.Settings.get_default()
+    if settings:
+        settings.set_property("gtk-icon-theme-name", "Adwaita")
+        settings.set_property("gtk-theme-name", "Adwaita")
+
     # ── Load CSS theme ────────────────────────────────────────────────────────
     provider = Gtk.CssProvider()
     css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.css")
