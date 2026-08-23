@@ -72,6 +72,8 @@ for u_home in "/root" /home/*; do
     rm -rf "${u_home}/.vnc"
     rm -f  "${u_home}/.xsession"
     rm -rf "${u_home}/.themes/ease-Desk"
+    rm -rf "${u_home}/.config/easedesk"
+    rm -rf "${u_home}/.cache/easedesk"
     echo "  Cleaned: ${u_home}"
 done
 echo -e "${GREEN}  Done.${NC}"

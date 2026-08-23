@@ -17,7 +17,7 @@ _default_settings = {
         "dock_position": "left",
     },
     "Dock": {
-        "pinned_apps": "ease-desk-files,browser,ease-desk-terminal,ease-desk-task-manager"
+        "pinned_apps": "ease-desk-files,browser,ease-desk-terminal,ease-desk-media-player,ease-desk-settings,ease-desk-task-manager"
     }
 }
 
@@ -42,7 +42,7 @@ def set(section: str, key: str, value: str) -> None:
         parser.write(f)
 
 def get_pinned_apps() -> list[str]:
-    apps_str = get("Dock", "pinned_apps", "ease-desk-files,browser,ease-desk-terminal,ease-desk-task-manager")
+    apps_str = get("Dock", "pinned_apps", "ease-desk-files,browser,ease-desk-terminal,ease-desk-media-player,ease-desk-settings,ease-desk-task-manager")
     return [a.strip() for a in apps_str.split(",") if a.strip()]
 
 def pin_app(app_id: str) -> None:

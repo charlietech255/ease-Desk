@@ -13,6 +13,18 @@ import datetime
 import os
 import subprocess
 import sys
+import time
+import logging
+from pathlib import Path
+
+LOG_DIR = Path.home() / ".cache" / "easedesk" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+logging.basicConfig(
+    filename=LOG_DIR / "shell.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("DesktopShell")
 
 import gi
 
@@ -109,6 +121,7 @@ def _launch(cmd: list[str]):
             stderr=subprocess.DEVNULL,
         )
     except Exception as e:
+        logger.error(f"[shell] launch error: {e}")
         print(f"[shell] launch error: {e}", file=sys.stderr)
 
 
@@ -160,6 +173,8 @@ class ShellApp:
         self.current_workspace = 1
         self.workspace_buttons = {}
         self._cal_window = None
+        self.start_time = time.time()
+        logger.info("Initializing DesktopShell UI components")
 
         self._build_top_bar()
         self._build_left_dock()
@@ -543,9 +558,32 @@ class ShellApp:
         elif os.path.exists(path):
             _launch(["xdg-open", path])
 
-    def _launch_application(self, application: AppDefinition):
-        """Launch a registry entry without passing it through a shell."""
-        _launch(list(application.exec_command))
+    def _launch_application(self, app: AppDefinition):
+        logger.info(f"Launching application: {app.name} ({app.app_id})")
+        cmd = list(app.exec_command)
+        
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                close_fds=True,
+            )
+            logger.info(f"Successfully spawned {app.app_id} (PID {proc.pid})")
+            
+            self.tracked_processes[proc.pid] = {
+                "pid": proc.pid,
+                "app_id": app.app_id,
+                "title": app.name,
+                "icon_key": app.icon,
+                "popen": proc
+            }
+            self._update_running_tasks_ui()
+            
+        except Exception as e:
+            logger.error(f"Failed to launch {app.name}: {e}")
+            print(f"Failed to launch {app.name}: {e}")
 
     def _dialog_change_wallpaper(self):
         dialog = Gtk.MessageDialog(
@@ -573,10 +611,11 @@ class ShellApp:
                 continue
 
     def _exit(self):
+        logger.info("Exiting session...")
         try:
             subprocess.Popen(["swaymsg", "exit"])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error during exit: {e}")
         Gtk.main_quit()
         sys.exit(0)
 
@@ -630,6 +669,7 @@ class DesktopShell(ShellApp):
 
 # ─────────────────────────────────────────────────────────────────────────────
 def main() -> int:
+    logger.info("Starting ease-Desk Shell")
     settings = Gtk.Settings.get_default()
     if settings:
         settings.set_property("gtk-icon-theme-name", "Adwaita")
@@ -646,10 +686,11 @@ def main() -> int:
                 screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
             )
 
-    app = ShellApp()
+    app = DesktopShell()
     app.show_all()
 
     Gtk.main()
+    logger.info("ease-Desk Shell exited gracefully")
     return 0
 
 

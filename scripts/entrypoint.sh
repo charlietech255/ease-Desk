@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-# Setup KasmVNC password
+# Setup wayvnc password
 if [ -n "$EASEDESK_VNC_PASS" ]; then
     mkdir -p /home/easedesk/.vnc
-    echo -e "${EASEDESK_VNC_PASS}\n${EASEDESK_VNC_PASS}" | kasmvncpasswd -u easedesk -rw /home/easedesk/.kasmpasswd
-    chmod 600 /home/easedesk/.kasmpasswd
+    printf '%s' "$EASEDESK_VNC_PASS" > /home/easedesk/.vnc/plainpass
+    chmod 600 /home/easedesk/.vnc/plainpass
 fi
+
+# Ensure config and log directories exist
+mkdir -p /home/easedesk/.config/easedesk /home/easedesk/.cache/easedesk/logs
+chown -R easedesk:easedesk /home/easedesk/.config /home/easedesk/.cache /home/easedesk/.vnc 2>/dev/null || true
 
 # Setup Nginx SSL certificate if missing
 if [ ! -f /etc/nginx/ssl/easedesk.crt ]; then
@@ -17,7 +21,7 @@ if [ ! -f /etc/nginx/ssl/easedesk.crt ]; then
         -subj "/C=US/ST=State/L=City/O=ease-Desk/CN=localhost"
 fi
 
-# Configure Nginx for KasmVNC
+# Configure Nginx for wayvnc/websockify
 sudo bash -c 'cat <<EOF > /etc/nginx/sites-available/default
 map \$http_upgrade \$connection_upgrade {
  default upgrade;
@@ -41,22 +45,30 @@ server {
   root /opt/ease-desk/shared/web;
  }
 
- location /kasmvnc/ {
-  rewrite ^/kasmvnc(/.*)$ \$1 break;
-  proxy_pass http://127.0.0.1:8445;
+ location /novnc/ {
+  rewrite ^/novnc(/.*)$ \$1 break;
+  proxy_pass http://127.0.0.1:6080/;
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection \$connection_upgrade;
   proxy_set_header Host \$host;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
-  proxy_hide_header WWW-Authenticate;
  }
 
  location = /auth_check {
-  proxy_pass http://127.0.0.1:8445/;
+  proxy_pass http://127.0.0.1:6080/;
   proxy_hide_header WWW-Authenticate;
+ }
+
+ location /websockify {
+  proxy_pass http://127.0.0.1:6080;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade \$http_upgrade;
+  proxy_set_header Connection \$connection_upgrade;
+  proxy_set_header Host \$host;
+  proxy_read_timeout 86400s;
+  proxy_send_timeout 86400s;
  }
 
  location = /logout {
@@ -64,16 +76,14 @@ server {
   rewrite ^/logout$ /logout.html break;
  }
 
- location ~* ^/(websockify|assets|core|vendor|app|images|sounds)(/.*)?$ {
-  proxy_pass http://127.0.0.1:8445;
+ location ~* ^/(assets|core|vendor|app|images|sounds)(/.*)?$ {
+  proxy_pass http://127.0.0.1:6080;
   proxy_http_version 1.1;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection \$connection_upgrade;
   proxy_set_header Host \$host;
   proxy_read_timeout 86400s;
   proxy_send_timeout 86400s;
-  proxy_set_header Authorization "Basic \$cookie_easedesk_auth";
-  proxy_hide_header WWW-Authenticate;
  }
 }
 EOF'

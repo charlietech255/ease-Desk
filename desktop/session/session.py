@@ -9,6 +9,17 @@ import signal
 import subprocess
 import sys
 import time
+import logging
+from pathlib import Path
+
+LOG_DIR = Path.home() / ".cache" / "easedesk" / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+logging.basicConfig(
+    filename=LOG_DIR / "session.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("SessionManager")
 
 
 class SessionManager:
@@ -47,6 +58,7 @@ class SessionManager:
 
     def start(self) -> int:
         print("\nStarting ease-Desk (Wayland/Headless)...")
+        logger.info("Starting ease-Desk SessionManager")
 
         # ── Python path ────────────────────────────────────────────────────────
         os.environ["PYTHONPATH"] = (
@@ -187,10 +199,12 @@ exec {startup_script}
 
         # ── Launch sway ────────────────────────────────────────────────────────
         if not self._check_bin("sway"):
+            logger.error("'sway' is not installed.")
             print("ERROR: 'sway' is not installed. Run: apt-get install -y sway", file=sys.stderr)
             return 1
 
         cmd = ["sway", "-c", sway_config]
+        logger.info(f"Launching sway: {' '.join(cmd)}")
         self._sway_proc = subprocess.Popen(cmd)
 
         print("\n" + "=" * 64)
@@ -210,7 +224,9 @@ exec {startup_script}
 
         try:
             returncode = self._sway_proc.wait()
+            logger.info(f"Sway exited with code {returncode}")
         except KeyboardInterrupt:
+            logger.info("Received KeyboardInterrupt, stopping session")
             self.stop()
             returncode = 0
 
@@ -218,6 +234,7 @@ exec {startup_script}
 
     def stop(self):
         print("Stopping ease-Desk...")
+        logger.info("Stopping ease-Desk session")
         for proc in self.spawned_processes:
             if proc.poll() is None:
                 proc.terminate()
@@ -226,14 +243,16 @@ exec {startup_script}
             try:
                 self._sway_proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
+                logger.warning("Sway did not terminate gracefully, killing it")
                 self._sway_proc.kill()
         
         # Ensure remote services started via the shell script are also killed
         try:
             subprocess.run(["pkill", "-f", f"wayvnc.*{self.vnc_port}"], check=False)
             subprocess.run(["pkill", "-f", f"websockify.*{self.novnc_port}"], check=False)
-        except Exception:
-            pass
+            logger.info("Killed remote services (wayvnc, websockify)")
+        except Exception as e:
+            logger.error(f"Error killing remote services: {e}")
 
         if self._startup_script:
             try:

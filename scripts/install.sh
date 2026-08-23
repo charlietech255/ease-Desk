@@ -203,7 +203,10 @@ if [ -n "$VNC_PASS" ]; then
   # Plain-text pass used by session.py to build wayvnc credentials file
   printf '%s' "$VNC_PASS" > "${u_home}/.vnc/plainpass"
   chmod 600 "${u_home}/.vnc/plainpass"
-  [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" 2>/dev/null || true
+  
+  mkdir -p "${u_home}/.config/easedesk" "${u_home}/.cache/easedesk/logs"
+  
+  [ "$TARGET_USER" != "root" ] && chown -R "${TARGET_USER}" "${u_home}/.vnc" "${u_home}/.config/easedesk" "${u_home}/.cache/easedesk" 2>/dev/null || true
  done
  echo -e "${GREEN} Password saved securely (wayvnc credentials).${NC}"
 fi

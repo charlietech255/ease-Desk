@@ -94,9 +94,10 @@ def project_applications() -> list[AppDefinition]:
     """Return ease-Desk applications available even without installed desktop files."""
     return [
         AppDefinition("ease-desk-files", "Files", ("python3", "-m", "file_manager.app"), "folder"),
-        AppDefinition("ease-desk-terminal", "Terminal", ("python3", "-m", "desktop.terminal.app"), "terminal"),
-        AppDefinition("ease-desk-task-manager", "Task Manager", ("python3", "-m", "desktop.task_manager.app"), "task_manager"),
-        AppDefinition("ease-desk-settings", "Settings", ("python3", "-m", "desktop.settings.app"), "settings"),
+        AppDefinition("ease-desk-terminal", "Terminal", ("python3", "-m", "desktop.terminal.app"), "utilities-terminal"),
+        AppDefinition("ease-desk-task-manager", "Task Manager", ("python3", "-m", "desktop.task_manager.app"), "utilities-system-monitor"),
+        AppDefinition("ease-desk-settings", "Settings", ("python3", "-m", "desktop.settings.app"), "preferences-system"),
+        AppDefinition("ease-desk-media-player", "Media Player", ("python3", "-m", "desktop.media_player.app"), "multimedia-audio-player"),
     ]
 
 
