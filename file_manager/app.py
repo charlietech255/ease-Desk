@@ -294,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
             start = "thispc://"
 
     window = FileManagerWindow(start)
+    window.connect("destroy", Gtk.main_quit)
     window.show_all()
     animate.fade_in(window, duration_ms=220)
     Gtk.main()

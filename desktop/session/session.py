@@ -227,6 +227,14 @@ exec {startup_script}
                 self._sway_proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self._sway_proc.kill()
+        
+        # Ensure remote services started via the shell script are also killed
+        try:
+            subprocess.run(["pkill", "-f", f"wayvnc.*{self.vnc_port}"], check=False)
+            subprocess.run(["pkill", "-f", f"websockify.*{self.novnc_port}"], check=False)
+        except Exception:
+            pass
+
         if self._startup_script:
             try:
                 os.unlink(self._startup_script)

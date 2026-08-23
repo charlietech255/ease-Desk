@@ -99,7 +99,14 @@ def _screen_size():
 
 def _launch(cmd: list[str]):
     try:
-        subprocess.Popen(cmd, start_new_session=True)
+        subprocess.Popen(
+            cmd,
+            start_new_session=True,
+            close_fds=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     except Exception as e:
         print(f"[shell] launch error: {e}", file=sys.stderr)
 
@@ -298,7 +305,7 @@ class ShellApp:
             ("files", "Files", lambda: _launch(["python3", "-m", "file_manager.app"])),
             ("terminal", "Terminal", self._open_terminal),
             ("browser", "Web Browser", lambda: _launch(["epiphany"])),
-            ("task_manager", "Task Manager", lambda: _launch(["python3", "-m", "desktop.task_manager.task_manager"])),
+            ("task_manager", "Task Manager", lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
         )
         for app_id, tooltip, callback in apps:
             button = Gtk.Button()
@@ -416,7 +423,7 @@ class ShellApp:
             ("epiphany", "Web Browser",
              lambda: _launch(["epiphany"])),
             ("system-run", "Task Manager",
-             lambda: _launch(["python3", "-m", "desktop.task_manager.task_manager"])),
+             lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
         ]
 
         for icon_name, tooltip, cb in apps:
@@ -484,7 +491,7 @@ class ShellApp:
             ("epiphany", "Browser", 0, 200, "browser",
              lambda: _launch(["epiphany"])),
             ("utilities-system-monitor", "Task Manager", 0, 300, "task_manager",
-             lambda: _launch(["python3", "-m", "desktop.task_manager.task_manager"])),
+             lambda: _launch(["python3", "-m", "desktop.task_manager.app"])),
         ]
 
         self.desktop_items = [{"id": item_id, "label": label, "icon": icon_name, "x": x, "y": y}
@@ -530,7 +537,7 @@ class ShellApp:
             elif app == "browser":
                 _launch(["epiphany"])
             elif app == "task_manager":
-                _launch(["python3", "-m", "desktop.task_manager.task_manager"])
+                _launch(["python3", "-m", "desktop.task_manager.app"])
             elif app == "settings":
                 _launch(["python3", "-m", "desktop.settings.app"])
             elif app == "wallpaper":
@@ -572,6 +579,10 @@ class ShellApp:
                 continue
 
     def _exit(self):
+        try:
+            subprocess.Popen(["swaymsg", "exit"])
+        except Exception:
+            pass
         Gtk.main_quit()
         sys.exit(0)
 
@@ -585,7 +596,15 @@ class ShellApp:
             ["bash", "-c", "xterm || true"],
         ):
             try:
-                subprocess.Popen(cmd, cwd=root, start_new_session=True)
+                subprocess.Popen(
+                    cmd,
+                    cwd=root,
+                    start_new_session=True,
+                    close_fds=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
                 return
             except (FileNotFoundError, OSError):
                 continue
