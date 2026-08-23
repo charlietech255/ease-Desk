@@ -59,10 +59,27 @@ def list_processes() -> list[dict]:
     return procs
 
 
+def _ensure_gtk_initialized() -> None:
+    try:
+        if hasattr(Gtk, "get_initialized") and Gtk.get_initialized():
+            return
+    except Exception:
+        pass
+    try:
+        Gtk.init_check()
+    except Exception:
+        pass
+    try:
+        Gtk.init()
+    except Exception:
+        pass
+
+
 class TaskManagerWindow(Gtk.Window):
     """Full-featured Task Manager window for ease-Desk."""
 
     def __init__(self):
+        _ensure_gtk_initialized()
         super().__init__(title="Task Manager — ease-Desk")
         
         geometry = Gdk.Geometry()

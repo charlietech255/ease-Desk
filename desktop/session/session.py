@@ -2,25 +2,45 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
-import signal
 
 
 class SessionManager:
     """Manages the full lifecycle of a headless Wayland/Sway graphical session."""
 
-    def __init__(self, display=None, resolution="1920x1080", enable_vnc=True):
+    def __init__(
+        self,
+        display=None,
+        resolution="1920x1080",
+        enable_vnc=True,
+        vnc_port=5900,
+        novnc_port=6080,
+    ):
+        self.display = display or self._find_free_display()
         self.resolution = resolution
         self.enable_vnc = enable_vnc
+        self.vnc_port = vnc_port
+        self.novnc_port = novnc_port
         self.root_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         )
         self.spawned_processes = []
         self._sway_proc = None
+        self._startup_script = None
+
+    def _find_free_display(self) -> str:
+        """Return a display identifier that is safe for headless socket use."""
+        for candidate in range(99, 120):
+            display = f":{candidate}"
+            if not os.environ.get("DISPLAY") or display != os.environ.get("DISPLAY"):
+                return display
+        return ":99"
 
     def _check_bin(self, name: str) -> bool:
         return shutil.which(name) is not None
@@ -41,6 +61,7 @@ class SessionManager:
         os.environ["WLR_NO_HARDWARE_CURSORS"] = "1"
         os.environ["WLR_LIBINPUT_NO_DEVICES"] = "1"
         os.environ["LIBSEAT_BACKEND"] = "noop"
+        os.environ.setdefault("DISPLAY", self.display)
 
         # ── XDG runtime dir ────────────────────────────────────────────────────
         runtime_dir = f"/tmp/ease-desk-runtime-{os.geteuid()}"
@@ -51,7 +72,7 @@ class SessionManager:
         # processes (wayvnc, the shell) to find it.
         os.environ.setdefault("WAYLAND_DISPLAY", "wayland-1")
 
-        # ── wayvnc password credentials file ──────────────────────────────────
+        # ── Optional remote access services ───────────────────────────────────
         # wayvnc expects a credentials file, not a VNC passwd binary blob.
         # Format: username=<user>\npassword=<pass>
         vnc_pass_file = os.path.join(runtime_dir, "wayvnc-credentials")
@@ -75,18 +96,26 @@ class SessionManager:
             vnc_password = "easedesk"  # safe fallback
 
         # Write wayvnc credentials file (plain text, read only by owner)
-        try:
-            with open(vnc_pass_file, "w") as cf:
-                cf.write(f"username=easedesk\npassword={vnc_password}\n")
-            os.chmod(vnc_pass_file, 0o600)
-        except OSError:
-            vnc_pass_file = None
+        if self.enable_vnc:
+            try:
+                with open(vnc_pass_file, "w") as cf:
+                    cf.write(f"username=easedesk\npassword={vnc_password}\n")
+                os.chmod(vnc_pass_file, 0o600)
+            except OSError:
+                vnc_pass_file = None
 
         # ── Startup script executed by sway's exec directive ───────────────────
         startup_script = os.path.join(self.root_dir, "scripts", "wayland_init.sh")
-        wayvnc_args = "127.0.0.1 5900"
-        if vnc_pass_file:
-            wayvnc_args = f"--config={vnc_pass_file} 127.0.0.1 5900"
+        remote_services = ""
+        if self.enable_vnc:
+            wayvnc_args = f"127.0.0.1 {self.vnc_port}"
+            if vnc_pass_file:
+                wayvnc_args = f"--config={vnc_pass_file} 127.0.0.1 {self.vnc_port}"
+            remote_services = f"""
+# Start VNC server and noVNC bridge only when remote access is enabled
+wayvnc {wayvnc_args} &
+websockify --web /usr/share/novnc {self.novnc_port} 127.0.0.1:{self.vnc_port} &
+"""
 
         xwayland_line = ""
         if not self._check_bin("Xwayland"):
@@ -106,17 +135,13 @@ sleep 1
 # Set background colour
 swaymsg "output * bg #050505 solid_color" >/dev/null 2>&1 || true
 
-# Start VNC server (wayvnc)
-wayvnc {wayvnc_args} &
-
-# Start noVNC web bridge (websockify)
-websockify --web /usr/share/novnc 6080 127.0.0.1:5900 &
-
+{remote_services}
 # Start the Desktop Shell
 exec python3 -m desktop.shell.shell
 """
             )
         os.chmod(startup_script, 0o755)
+        self._startup_script = startup_script
 
         # ── Sway config ────────────────────────────────────────────────────────
         sway_config = os.path.join(self.root_dir, "scripts", "sway_config")
@@ -170,15 +195,40 @@ exec {startup_script}
 
     def stop(self):
         print("Stopping ease-Desk...")
-        for proc_name in ["wayvnc", "websockify", "desktop.shell.shell"]:
-            subprocess.run(["pkill", "-f", proc_name], check=False)
+        for proc in self.spawned_processes:
+            if proc.poll() is None:
+                proc.terminate()
         if self._sway_proc and self._sway_proc.poll() is None:
             self._sway_proc.terminate()
             try:
                 self._sway_proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self._sway_proc.kill()
+        if self._startup_script:
+            try:
+                os.unlink(self._startup_script)
+            except FileNotFoundError:
+                pass
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="ease-Desk Session Manager")
+    parser.add_argument("--display", default=None, help="Headless display identifier to use")
+    parser.add_argument("--resolution", default="1920x1080", help="Session resolution to request")
+    parser.add_argument("--vnc-port", type=int, default=5900, help="VNC port for wayvnc")
+    parser.add_argument("--novnc-port", type=int, default=6080, help="noVNC web port")
+    parser.add_argument("--no-vnc", action="store_true", help="Disable VNC bridge")
+    args = parser.parse_args(argv)
+
+    mgr = SessionManager(
+        display=args.display,
+        resolution=args.resolution,
+        enable_vnc=not args.no_vnc,
+        vnc_port=args.vnc_port,
+        novnc_port=args.novnc_port,
+    )
+    return mgr.start()
 
 
 if __name__ == "__main__":
-    sys.exit(SessionManager().start())
+    sys.exit(main())

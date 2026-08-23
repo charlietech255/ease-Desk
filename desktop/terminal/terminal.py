@@ -481,10 +481,27 @@ if HAVE_VTE:
             pass
 
 
+def _ensure_gtk_initialized() -> None:
+    try:
+        if hasattr(Gtk, "get_initialized") and Gtk.get_initialized():
+            return
+    except Exception:
+        pass
+    try:
+        Gtk.init_check()
+    except Exception:
+        pass
+    try:
+        Gtk.init()
+    except Exception:
+        pass
+
+
 class TerminalWindow(Gtk.Window):
     """Full-featured standalone Terminal Window for ease-Desk."""
 
     def __init__(self, initial_dir: Optional[str] = None):
+        _ensure_gtk_initialized()
         super().__init__(title="Terminal — ease-Desk")
         
         geometry = Gdk.Geometry()

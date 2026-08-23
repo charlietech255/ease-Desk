@@ -7,6 +7,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 from shared.utilities import sysinfo
+from shared.utilities.apps import launcher_applications
 
 
 # ------------------------------------------------------------------ Spotlight
@@ -40,6 +41,7 @@ class SpotlightWindow(Gtk.Window):
     def __init__(self, parent_shell):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.shell = parent_shell
+        self.applications = launcher_applications()
         self.set_decorated(False)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_default_size(600, 56)
@@ -84,6 +86,12 @@ class SpotlightWindow(Gtk.Window):
     def _on_activate(self, entry):
         query = entry.get_text().strip()
         if query:
+            matches = [app for app in self.applications if app.matches(query)]
+            if matches:
+                self.shell._launch_application(matches[0])
+                entry.set_text("")
+                self.hide()
+                return
             q = query.lower()
             if q in ("terminal", "term", "bash", "console"):
                 self.shell._launch_path("app://terminal")
