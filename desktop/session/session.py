@@ -143,6 +143,18 @@ exec python3 -m desktop.shell.shell
         os.chmod(startup_script, 0o755)
         self._startup_script = startup_script
 
+        # ── GTK Settings (Force Icon Theme for Wayland) ────────────────────────
+        gtk_conf_dir = os.path.join(vnc_home, ".config", "gtk-3.0")
+        try:
+            os.makedirs(gtk_conf_dir, exist_ok=True)
+            with open(os.path.join(gtk_conf_dir, "settings.ini"), "w") as f:
+                f.write("[Settings]\n"
+                        "gtk-theme-name=Adwaita\n"
+                        "gtk-icon-theme-name=Adwaita\n"
+                        "gtk-application-prefer-dark-theme=1\n")
+        except OSError:
+            pass
+
         # ── Sway config ────────────────────────────────────────────────────────
         sway_config = os.path.join(self.root_dir, "scripts", "sway_config")
         xwayland_directive = "disable" if not self._check_bin("Xwayland") else "enable"
@@ -163,6 +175,11 @@ input * {{
 # Force all windows to float
 for_window [class=".*"] floating enable
 for_window [app_id=".*"] floating enable
+
+# Shell Fallback Positioning (if gtk-layer-shell is missing)
+for_window [title="easedesk-desktop-bg"] floating enable, move position 0 0
+for_window [title="easedesk-top-bar"] floating enable, move position 0 0
+for_window [title="easedesk-left-dock"] floating enable, move position 0 36
 
 exec {startup_script}
 """

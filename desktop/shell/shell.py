@@ -218,6 +218,7 @@ class ShellApp:
     # ── Top bar ───────────────────────────────────────────────────────────────
     def _build_top_bar(self):
         self.top_win = Gtk.Window()
+        self.top_win.set_title("easedesk-top-bar")
         self.top_win.set_decorated(False)
         self.top_win.set_resizable(False)
         self.top_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
@@ -384,6 +385,7 @@ class ShellApp:
     # ── Left dock ─────────────────────────────────────────────────────────────
     def _build_left_dock(self):
         self.dock_win = Gtk.Window()
+        self.dock_win.set_title("easedesk-left-dock")
         self.dock_win.set_decorated(False)
         self.dock_win.set_resizable(False)
         self.dock_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
@@ -452,6 +454,7 @@ class ShellApp:
     # ── Desktop background ────────────────────────────────────────────────────
     def _build_desktop_bg(self):
         self.bg_win = Gtk.Window()
+        self.bg_win.set_title("easedesk-desktop-bg")
         self.bg_win.set_decorated(False)
         self.bg_win.set_resizable(False)
         self.bg_win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
