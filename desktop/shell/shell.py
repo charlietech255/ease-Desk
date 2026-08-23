@@ -31,18 +31,32 @@ try:
 except (ValueError, ImportError):
     pass
 
-# ── Optional: icon helper ─────────────────────────────────────────────────────
-try:
-    from shared.utilities.icons import get_icon_pixbuf as _gpb
-
-    def _img(name: str, size: int = 24) -> Gtk.Image:
-        try:
-            return Gtk.Image.new_from_pixbuf(_gpb(name, size=size))
-        except Exception:
-            return Gtk.Image.new_from_icon_name(name, Gtk.IconSize.LARGE_TOOLBAR)
-except Exception:
-    def _img(name: str, size: int = 24) -> Gtk.Image:
-        return Gtk.Image.new_from_icon_name(name, Gtk.IconSize.LARGE_TOOLBAR)
+def _img(name: str, size: int = 24) -> Gtk.Image:
+    try:
+        from shared.utilities.icons import get_icon_pixbuf as _gpb
+        pb = _gpb(name, size=size)
+        if pb:
+            return Gtk.Image.new_from_pixbuf(pb)
+    except Exception:
+        pass
+    
+    # Fallback if icons.py fails (e.g. missing python3-cairo)
+    theme = Gtk.IconTheme.get_default()
+    if theme:
+        # Try finding the icon in standard names first
+        for lookup_name in [name, name.replace('_', '-'), "text-x-generic"]:
+            if theme.has_icon(lookup_name):
+                try:
+                    pb = theme.load_icon(lookup_name, size, Gtk.IconLookupFlags.FORCE_SIZE)
+                    if pb:
+                        return Gtk.Image.new_from_pixbuf(pb)
+                except Exception:
+                    continue
+                    
+    # Ultimate fallback, forces size via css or default scaling
+    img = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DIALOG)
+    img.set_pixel_size(size)
+    return img
 
 # ── Optional: game_changer panels ─────────────────────────────────────────────
 try:
