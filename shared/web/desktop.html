@@ -51,6 +51,8 @@
       u.searchParams.set('password', pw);
       u.searchParams.set('path', 'websockify');
       u.searchParams.set('cursor', 'local');
+      u.searchParams.set('quality', '4');
+      u.searchParams.set('compression', '7');
       
       iframe.src = u.toString();
       document.body.appendChild(iframe);

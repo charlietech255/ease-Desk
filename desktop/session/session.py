@@ -154,6 +154,12 @@ default_border none
 default_floating_border none
 xwayland {xwayland_directive}
 
+# Disable mouse acceleration for VNC virtual pointers
+input * {{
+    pointer_accel 0
+    accel_profile flat
+}}
+
 # Force all windows to float
 for_window [class=".*"] floating enable
 for_window [app_id=".*"] floating enable
