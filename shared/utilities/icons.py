@@ -73,17 +73,18 @@ def get_icon_pixbuf(key: str, size: int = 48) -> GdkPixbuf.Pixbuf:
     theme = Gtk.IconTheme.get_default()
     names = THEME_ICON_MAP.get(key.lower(), [key, "text-x-generic"])
 
-    # 0. Custom PNG Assets
+    # 0. Custom PNG Assets (check all mapped names)
     import os
-    custom_icon = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", f"{key.lower()}.png")
-    if os.path.exists(custom_icon):
-        try:
-            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(custom_icon, size, size, True)
-            if pb:
-                _PIXBUF_CACHE[cache_key] = pb
-                return pb
-        except Exception:
-            pass
+    for mapped_name in names:
+        custom_icon = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icons", f"{mapped_name}.png")
+        if os.path.exists(custom_icon):
+            try:
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(custom_icon, size, size, True)
+                if pb:
+                    _PIXBUF_CACHE[cache_key] = pb
+                    return pb
+            except Exception:
+                pass
 
     # 1. Attempt lookup from GTK Icon Theme
     if theme:

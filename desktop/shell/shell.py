@@ -488,8 +488,8 @@ class ShellApp:
             app = available_apps[app_id]
             btn = Gtk.Button()
             btn.set_relief(Gtk.ReliefStyle.NONE)
-            btn.get_style_context().add_class("left-dock-btn")
-            btn.add(_img(app.icon, 36))
+            btn.get_style_context().add_class("dock-btn")
+            btn.add(_img(app.icon, 52)) # Larger icon size for the new premium dock
             btn.set_tooltip_text(app.name)
             btn.connect("clicked", lambda *_, a=app: self._launch_application(a))
             dock.pack_start(btn, False, False, 0)
@@ -523,23 +523,30 @@ class ShellApp:
         self.bg_win.set_decorated(False)
         self.bg_win.set_resizable(False)
         self.bg_win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
-        # Solid dark background — no transparency needed
-        self.bg_win.override_background_color(
-            Gtk.StateFlags.NORMAL,
-            Gdk.RGBA(0.02, 0.02, 0.07, 1.0),  # #050512
-        )
+        self.bg_win.set_app_paintable(True)
+        
+        # Connect the draw signal to render wallpaper
+        self.bg_win.connect("draw", self._draw_bg)
+
+        try:
+            self.wallpaper_pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.wallpaper_path) if self.wallpaper_path else None
+        except Exception as e:
+            logger.error(f"Failed to load wallpaper: {e}")
+            self.wallpaper_pixbuf = None
+
+        self._compute_scaled_wallpaper(*_screen_size())
 
         if LAYER_SHELL:
             _layer(self.bg_win, "BACKGROUND", ["TOP", "BOTTOM", "LEFT", "RIGHT"])
         else:
             self.bg_win.set_keep_below(True)
             w, h = _screen_size()
-            self.bg_win.set_size_request(w - DOCK_W, h - TOP_BAR_H)
-            self.bg_win.move(DOCK_W, TOP_BAR_H)
+            self.bg_win.set_size_request(w, h)
+            self.bg_win.move(0, 0)
 
         fixed = Gtk.Fixed()
-        fixed.set_margin_start(20)
-        fixed.set_margin_top(20)
+        fixed.set_margin_start(32)
+        fixed.set_margin_top(48)
 
         pinned = preferences.get_pinned_apps()
         available_apps = {app.app_id: app for app in launcher_applications()}
@@ -573,6 +580,20 @@ class ShellApp:
             fixed.put(btn, x, y)
 
         self.bg_win.add(fixed)
+
+    def _draw_bg(self, widget, cr):
+        # Draw solid color first
+        if hasattr(self, '_cached_bg_rgb'):
+            r, g, b = self._cached_bg_rgb
+            cr.set_source_rgb(r, g, b)
+            cr.paint()
+            
+        # Draw wallpaper if it exists
+        if hasattr(self, '_cached_scaled_pixbuf') and self._cached_scaled_pixbuf:
+            ox, oy = getattr(self, '_cached_offsets', (0, 0))
+            Gdk.cairo_set_source_pixbuf(cr, self._cached_scaled_pixbuf, ox, oy)
+            cr.paint()
+        return False
 
     # ── Actions ───────────────────────────────────────────────────────────────
     def _toggle_spotlight(self):
