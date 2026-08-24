@@ -105,6 +105,8 @@ class SpotlightWindow(Gtk.Window):
                 self.shell._launch_path("app://wallpaper")
             elif q in ("settings", "system"):
                 self.shell._launch_path("app://settings")
+            elif q in ("lock", "lockscreen", "lock screen"):
+                self.shell._lock_screen()
             elif os.path.exists(query):
                 self.shell._launch_path(query)
             else:
@@ -283,7 +285,7 @@ class DashboardPanel(Gtk.Revealer):
         actions = [
             ("Wallpaper",   lambda *_: self.shell._dialog_change_wallpaper()),
             ("Screenshot",  lambda *_: self.shell._take_screenshot()),
-            ("Add Shortcut",lambda *_: self.shell._dialog_add_shortcut()),
+            ("Lock Screen", lambda *_: self.shell._lock_screen()),
             ("Exit Session",lambda *_: self.shell._exit()),
         ]
         for idx, (label_txt, cb) in enumerate(actions):

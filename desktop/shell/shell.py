@@ -73,6 +73,8 @@ def _img(name: str, size: int = 24) -> Gtk.Image:
 
 # ── Optional: game_changer panels ─────────────────────────────────────────────
 try:
+    from desktop.shell.launcher import LauncherWindow
+    from desktop.shell.lockscreen import LockScreen
     from desktop.shell.game_changer import SpotlightWindow, DashboardPanel
     HAS_GAME_CHANGER = True
 except Exception:
@@ -153,6 +155,7 @@ class ShellApp:
         _ensure_gtk_initialized()
         self.spotlight: SpotlightWindow | None = None
         self.dashboard: DashboardPanel | None = None
+        self.locker: LockScreen | None = None
         self.start_btn = None
         self.desktop_items = []
         self.window = None
@@ -184,6 +187,7 @@ class ShellApp:
             # Pass a lightweight proxy so panels can call back into us
             self.spotlight = SpotlightWindow(self)
             self.dashboard = DashboardPanel(self)
+            self.locker = LockScreen(self)
 
     def _compute_scaled_wallpaper(self, screen_w: int, screen_h: int):
         """Compatibility helper used by tests and wallpaper-related code."""
@@ -615,14 +619,18 @@ class ShellApp:
         pass  # Future
 
     def _take_screenshot(self):
-        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = os.path.expanduser(f"~/screenshot_{ts}.png")
-        for cmd in (["grim", path], ["scrot", path]):
-            try:
-                subprocess.Popen(cmd)
-                return
-            except FileNotFoundError:
-                continue
+        """Invoke external screenshot utility."""
+        import subprocess
+        script_path = os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "capture_screenshots.py")
+        if os.path.exists(script_path):
+            subprocess.Popen(["python3", script_path])
+            
+    def _lock_screen(self):
+        """Lock the desktop session."""
+        if self.dashboard and self.dashboard.get_reveal_child():
+            self.dashboard.toggle()
+        if self.locker:
+            self.locker.lock()
 
     def _exit(self):
         logger.info("Exiting session...")
