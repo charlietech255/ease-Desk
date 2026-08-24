@@ -34,6 +34,7 @@ except (ImportError, ValueError):
     HAVE_VTE = False
 
 from shared.utilities.icons import get_icon_pixbuf
+from shared.ui import load_global_theme
 
 
 # Standard 16 ANSI colors for dark themes
@@ -109,6 +110,8 @@ class PtyTextViewTerminal(Gtk.Box):
         self.text_view.set_right_margin(10)
         self.text_view.set_top_margin(10)
         self.text_view.set_bottom_margin(10)
+
+        load_global_theme()
 
         # Style dark background
         css = """

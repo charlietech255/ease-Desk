@@ -25,7 +25,8 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk, Pango
+from shared.utilities.icons import get_icon_pixbuf
+from shared.ui import load_global_theme, GLib, GObject, Gtk, Pango
 
 # ── GStreamer optional import ──────────────────────────────────────────────
 _GST_OK = False
@@ -44,7 +45,6 @@ VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".ts", ".m4v", ".
 ALL_MEDIA_EXTS = AUDIO_EXTS | VIDEO_EXTS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CSS_PATH = os.path.join(os.path.dirname(__file__), "theme.css")
 
 
 def _fmt_time(seconds: float) -> str:
@@ -360,15 +360,8 @@ class MediaPlayerWindow(Gtk.Window):
         header.set_title("Media Player")
         self.set_titlebar(header)
 
-        # Load CSS
-        provider = Gtk.CssProvider()
-        if os.path.exists(CSS_PATH):
-            provider.load_from_path(CSS_PATH)
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
+        # Load Global Theme
+        load_global_theme()
 
         # State
         self._playlist: list[str] = []

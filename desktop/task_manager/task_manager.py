@@ -21,6 +21,7 @@ from gi.repository import Gdk, GLib, Gtk
 
 from shared.utilities import sysinfo
 from shared.utilities.icons import get_icon_pixbuf
+from shared.ui import load_global_theme
 
 
 def list_processes() -> list[dict]:
@@ -97,23 +98,11 @@ class TaskManagerWindow(Gtk.Window):
         self.timer_id: Optional[int] = None
         self.refresh_interval = 2  # seconds
 
-        self._load_css()
+        load_global_theme()
         self._build_ui()
         self._refresh_data()
         self.timer_id = GLib.timeout_add_seconds(self.refresh_interval, self._refresh_data)
         self.connect("delete-event", self._on_close)
-
-
-    def _load_css(self) -> None:
-        provider = Gtk.CssProvider()
-        css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.css")
-        if os.path.exists(css_path):
-            provider.load_from_path(css_path)
-            screen = Gdk.Screen.get_default()
-            if screen is not None:
-                Gtk.StyleContext.add_provider_for_screen(
-                    screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                )
 
     def _build_ui(self) -> None:
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)

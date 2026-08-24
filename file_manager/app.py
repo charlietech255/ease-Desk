@@ -15,7 +15,8 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
-from file_manager.gui import FileManagerWindow  # noqa: E402
+from file_manager.gui import FileManagerWindow
+from shared.ui import load_global_theme  # noqa: E402
 from shared.utilities import animate  # noqa: E402
 
 
@@ -276,11 +277,8 @@ def _load_css() -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     
-    # Enforce global dark mode for file manager to fix white title bar
-    settings = Gtk.Settings.get_default()
-    if settings:
-        settings.set_property("gtk-application-prefer-dark-theme", False)
-        
+    # Enforce global premium app theme (includes dark mode)
+    load_global_theme()
     _load_css()
 
     start = "thispc://"

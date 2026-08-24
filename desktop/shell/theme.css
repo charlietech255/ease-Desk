@@ -98,7 +98,6 @@
 .taskbar-btn:active {
     background: rgba(0, 122, 255, 0.2);
     border-color: #007aff;
-    transform: scale(0.96);
 }
 
 .taskbar-btn-power {
@@ -119,7 +118,6 @@
 
 .taskbar-btn-power:active {
     background: rgba(255, 59, 48, 0.4);
-    transform: scale(0.96);
 }
 
 /* ── Desktop Icon Grid ───────────────────────────────────────────────────── */

@@ -12,6 +12,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 from shared.utilities import sysinfo
 from shared.utilities.icons import get_icon_pixbuf
 from shared.config import preferences
+from shared.ui import load_global_theme
 
 
 class SettingsWindow(Gtk.Window):
@@ -29,19 +30,8 @@ class SettingsWindow(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon(get_icon_pixbuf("settings", size=48))
 
-        self._load_css()
+        load_global_theme()
         self._build_ui()
-
-    def _load_css(self) -> None:
-        provider = Gtk.CssProvider()
-        css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.css")
-        if os.path.exists(css_path):
-            provider.load_from_path(css_path)
-            screen = Gdk.Screen.get_default()
-            if screen is not None:
-                Gtk.StyleContext.add_provider_for_screen(
-                    screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                )
 
     def _build_ui(self) -> None:
         main_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
