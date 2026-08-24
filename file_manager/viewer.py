@@ -13,12 +13,16 @@ from file_manager.core import fs  # noqa: E402
 
 
 class TextViewerWindow(Gtk.Window):
-    def __init__(self, path: str):
-        super().__init__(title=f"Viewing — {os.path.basename(path)}")
+    def __init__(self, path: str | None = None):
+        title = f"Viewing — {os.path.basename(path)}" if path else "ease-Desk Text Editor"
+        super().__init__(title=title)
         self.set_default_size(720, 520)
         self.set_position(Gtk.WindowPosition.CENTER)
 
-        content, truncated = fs.read_text(path)
+        if path:
+            content, truncated = fs.read_text(path)
+        else:
+            content, truncated = "", False
 
         textview = Gtk.TextView()
         textview.set_editable(False)
@@ -39,9 +43,12 @@ class TextViewerWindow(Gtk.Window):
         status.set_xalign(0)
         status.set_margin_top(4)
         status.set_margin_bottom(4)
-        total = len(content.encode("utf-8", "replace"))
-        note = " (file truncated at 1 MiB)" if truncated else ""
-        status.set_text(f"{os.path.basename(path)} — {fs.human_size(total)} read{note}")
+        if path:
+            total = len(content.encode("utf-8", "replace"))
+            note = " (file truncated at 1 MiB)" if truncated else ""
+            status.set_text(f"{os.path.basename(path)} — {fs.human_size(total)} read{note}")
+        else:
+            status.set_text("New Document")
         box.pack_start(status, False, False, 0)
 
         self.add(box)
@@ -53,31 +60,40 @@ class TextViewerWindow(Gtk.Window):
 
 
 class ImageViewerWindow(Gtk.Window):
-    def __init__(self, path: str):
-        super().__init__(title=f"Preview — {os.path.basename(path)}")
-        try:
-            info = GdkPixbuf.Pixbuf.get_file_info(path)[0]
-            if info:
-                w, h = info.get_width(), info.get_height()
-                if w > 8192 or h > 8192:
-                    raise fs.FileOpError(f"Image too large ({w}x{h}). Max supported is 8192x8192.")
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
-        except Exception as exc:
-            raise fs.FileOpError(f"Could not load image: {exc}") from exc
+    def __init__(self, path: str | None = None):
+        title = f"Preview — {os.path.basename(path)}" if path else "ease-Desk Image Viewer"
+        super().__init__(title=title)
+        
+        pixbuf = None
+        if path:
+            try:
+                info = GdkPixbuf.Pixbuf.get_file_info(path)[0]
+                if info:
+                    w, h = info.get_width(), info.get_height()
+                    if w > 8192 or h > 8192:
+                        raise fs.FileOpError(f"Image too large ({w}x{h}). Max supported is 8192x8192.")
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
+            except Exception as exc:
+                raise fs.FileOpError(f"Could not load image: {exc}") from exc
 
-        screen = Gdk.Screen.get_default()
-        screen_w = min(screen.get_width(), 1100)
-        scale = min(1.0, screen_w / pixbuf.get_width()) if pixbuf.get_width() else 1.0
-        if scale < 1.0:
-            pixbuf = pixbuf.scale_simple(
-                int(pixbuf.get_width() * scale),
-                int(pixbuf.get_height() * scale),
-                GdkPixbuf.InterpType.BILINEAR,
-            )
-
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        self.set_default_size(min(1100, pixbuf.get_width() + 40), min(800, pixbuf.get_height() + 80))
-        self.add(image)
+        if pixbuf:
+            screen = Gdk.Screen.get_default()
+            screen_w = min(screen.get_width(), 1100)
+            scale = min(1.0, screen_w / pixbuf.get_width()) if pixbuf.get_width() else 1.0
+            if scale < 1.0:
+                pixbuf = pixbuf.scale_simple(
+                    int(pixbuf.get_width() * scale),
+                    int(pixbuf.get_height() * scale),
+                    GdkPixbuf.InterpType.BILINEAR,
+                )
+            image = Gtk.Image.new_from_pixbuf(pixbuf)
+            self.set_default_size(min(1100, pixbuf.get_width() + 40), min(800, pixbuf.get_height() + 80))
+            self.add(image)
+        else:
+            lbl = Gtk.Label(label="No image selected")
+            self.set_default_size(600, 400)
+            self.add(lbl)
+            
         self.connect("delete-event", lambda *_: self._close())
 
     def _close(self) -> bool:
