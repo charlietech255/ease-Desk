@@ -128,6 +128,15 @@ class WidgetEngine(Gtk.Window):
         
         # Layout container
         overlay = Gtk.Overlay()
+        
+        # Overlay needs a main child to define its size, otherwise it collapses to 0x0.
+        main_bg = Gtk.EventBox()
+        main_bg.set_hexpand(True)
+        main_bg.set_vexpand(True)
+        # Transparent
+        main_bg.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0, 0, 0, 0))
+        overlay.add(main_bg)
+        
         self.add(overlay)
         
         # Add Clock (Center)
