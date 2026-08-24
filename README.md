@@ -27,6 +27,15 @@ Simply run the startup script to build and launch the container:
 ```
 > Access via browser: `https://localhost:8444` (or port `6080` for plain HTTP).
 
+### Method 3: Advanced Cloud Deployment (Terraform)
+To deploy ease-Desk directly to a DigitalOcean droplet using Infrastructure-as-Code:
+```bash
+cd scripts/terraform
+terraform init
+terraform apply
+```
+> Read the [Terraform Guide](scripts/terraform/README.md) for variable configurations and requirements.
+
 ---
 
 ## Troubleshooting & Known Issues
