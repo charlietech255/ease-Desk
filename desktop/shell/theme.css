@@ -177,7 +177,6 @@
 
 .dock-btn:active {
     background: rgba(255, 255, 255, 0.25);
-    transform: scale(0.95);
 }
 
 .dock-sep {
