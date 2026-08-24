@@ -281,6 +281,34 @@ class SettingsWindow(Gtk.Window):
         self.dock_combo.connect("changed", lambda c: preferences.set("Personalization", "dock_position", c.get_active_id() or "left"))
         self.dock_combo.set_halign(Gtk.Align.START)
         box.pack_start(self.dock_combo, False, False, 0)
+        
+        # Panel Position
+        panel_lbl = Gtk.Label(label="Panel Position")
+        panel_lbl.set_halign(Gtk.Align.START)
+        panel_lbl.get_style_context().add_class("info-key")
+        box.pack_start(panel_lbl, False, False, 0)
+        
+        self.panel_combo = Gtk.ComboBoxText()
+        self.panel_combo.append("top", "Top")
+        self.panel_combo.append("bottom", "Bottom")
+        self.panel_combo.set_active_id(preferences.get("Personalization", "panel_position", "top"))
+        self.panel_combo.connect("changed", lambda c: preferences.set("Personalization", "panel_position", c.get_active_id() or "top"))
+        self.panel_combo.set_halign(Gtk.Align.START)
+        box.pack_start(self.panel_combo, False, False, 0)
+
+        # Clock Format
+        clock_lbl = Gtk.Label(label="Clock Format")
+        clock_lbl.set_halign(Gtk.Align.START)
+        clock_lbl.get_style_context().add_class("info-key")
+        box.pack_start(clock_lbl, False, False, 0)
+        
+        self.clock_combo = Gtk.ComboBoxText()
+        self.clock_combo.append("24h", "24-hour (14:30)")
+        self.clock_combo.append("12h", "12-hour (02:30 PM)")
+        self.clock_combo.set_active_id(preferences.get("Personalization", "clock_format", "24h"))
+        self.clock_combo.connect("changed", lambda c: preferences.set("Personalization", "clock_format", c.get_active_id() or "24h"))
+        self.clock_combo.set_halign(Gtk.Align.START)
+        box.pack_start(self.clock_combo, False, False, 0)
 
         # Note about restart
         note_lbl = Gtk.Label(label="Note: Some changes may require restarting ease-Desk to take full effect.")
@@ -515,7 +543,7 @@ class SettingsWindow(Gtk.Window):
 
         # Change Password
         pw_btn = Gtk.Button(label="Change VNC Password")
-        pw_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo /bin/bash -c 'echo \"Enter new password:\"; read -s p1; echo \"Confirm:\"; read -s p2; if [ \"$p1\" = \"$p2\" ]; then printf \"%s\\n%s\\n\" \"$p1\" \"$p1\" | kasmvncpasswd -u $USER -rw ~/.kasmpasswd; echo \"Done! Restart ease-Desk to apply.\"; else echo \"Mismatch!\"; fi; sleep 3'"]))
+        pw_btn.connect("clicked", lambda x: subprocess.Popen(["lxterminal", "-e", "sudo /bin/bash -c 'echo \"Enter new password:\"; read -s p1; echo \"Confirm:\"; read -s p2; if [ \"$p1\" = \"$p2\" ]; then printf \"%s\" \"$p1\" > ~/.vnc/plainpass && chmod 600 ~/.vnc/plainpass && echo \"Done! Restart ease-Desk to apply.\"; else echo \"Mismatch!\"; fi; sleep 3'"]))
         
         pw_desc = Gtk.Label(label="Update your remote desktop connection password.")
         pw_desc.get_style_context().add_class("info-key")

@@ -248,12 +248,20 @@ class ShellApp:
         self.top_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.top_win.set_keep_above(True)
 
+        panel_pos = preferences.get("Personalization", "panel_position", "top")
+
         if LAYER_SHELL:
-            _layer(self.top_win, "TOP", ["TOP", "LEFT", "RIGHT"], exclusive=True)
+            if panel_pos == "bottom":
+                _layer(self.top_win, "TOP", ["BOTTOM", "LEFT", "RIGHT"], exclusive=True)
+            else:
+                _layer(self.top_win, "TOP", ["TOP", "LEFT", "RIGHT"], exclusive=True)
         else:
-            w, _ = _screen_size()
+            w, h = _screen_size()
             self.top_win.set_size_request(w, TOP_BAR_H)
-            self.top_win.move(0, 0)
+            if panel_pos == "bottom":
+                self.top_win.move(0, h - TOP_BAR_H)
+            else:
+                self.top_win.move(0, 0)
 
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         bar.get_style_context().add_class("top-bar")
@@ -373,7 +381,8 @@ class ShellApp:
 
     def _update_clock(self):
         now = datetime.datetime.now()
-        self.clock_lbl.set_text(now.strftime("  %H:%M    %a %d %b  "))
+        fmt = "  %H:%M    %a %d %b  " if preferences.get("Personalization", "clock_format", "24h") == "24h" else "  %I:%M %p    %a %d %b  "
+        self.clock_lbl.set_text(now.strftime(fmt))
         return True
 
     def _on_key_press(self, _widget, event):
@@ -415,12 +424,17 @@ class ShellApp:
         self.dock_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.dock_win.set_keep_above(True)
 
+        panel_pos = preferences.get("Personalization", "panel_position", "top")
+
         if LAYER_SHELL:
             _layer(self.dock_win, "TOP", ["LEFT", "TOP", "BOTTOM"], exclusive=True)
         else:
             _, h = _screen_size()
             self.dock_win.set_size_request(DOCK_W, h - TOP_BAR_H)
-            self.dock_win.move(0, TOP_BAR_H)
+            if panel_pos == "bottom":
+                self.dock_win.move(0, 0)
+            else:
+                self.dock_win.move(0, TOP_BAR_H)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         outer.get_style_context().add_class("left-dock")

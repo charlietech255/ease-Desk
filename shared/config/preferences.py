@@ -15,6 +15,8 @@ _default_settings = {
         "solid_color": "#0b0e14",
         "theme_mode": "dark",
         "dock_position": "left",
+        "panel_position": "top",
+        "clock_format": "24h",
     },
     "Dock": {
         "pinned_apps": "ease-desk-files,browser,ease-desk-terminal,ease-desk-media-player,ease-desk-settings,ease-desk-task-manager"
