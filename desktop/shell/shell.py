@@ -30,6 +30,7 @@ import gi
 
 from shared.utilities.wallpaper import hex_to_rgb
 from desktop.shell.notify import NotificationManager
+from desktop.shell.widgets import WidgetEngine
 from shared.utilities.apps import AppDefinition, launcher_applications
 from shared.config import preferences
 
@@ -165,6 +166,7 @@ class ShellApp:
         self.solid_color = preferences.get("Personalization", "solid_color", "#0b0e14")
         self.dock_position = preferences.get("Personalization", "dock_position", "left")
         self.wallpaper_pixbuf = None
+        self.widget_engine = None
         
         # 1. Start notification daemon
         self.notify_manager = NotificationManager()
@@ -194,6 +196,8 @@ class ShellApp:
             self.spotlight = SpotlightWindow(self)
             self.dashboard = DashboardPanel(self)
             self.locker = LockScreen(self)
+            
+        self.widget_engine = WidgetEngine(self.bg_win)
 
     def _compute_scaled_wallpaper(self, screen_w: int, screen_h: int):
         """Compatibility helper used by tests and wallpaper-related code."""

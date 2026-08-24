@@ -134,6 +134,27 @@ class TestNewFeatures(unittest.TestCase):
         mgr.clear_all()
         self.assertEqual(len(mgr.history), 0)
 
+    def test_widget_engine_initialization(self):
+        """Test Desktop Widget Engine logic."""
+        from desktop.shell.widgets import WidgetEngine, ClockWidget, VitalsWidget
+        import gi
+        from gi.repository import Gtk
+        win = Gtk.Window()
+        engine = WidgetEngine(win)
+        
+        # Verify children
+        clock_found = False
+        vitals_found = False
+        overlay = engine.get_children()[0]
+        for child in overlay.get_children():
+            if isinstance(child, ClockWidget):
+                clock_found = True
+            elif isinstance(child, VitalsWidget):
+                vitals_found = True
+                
+        self.assertTrue(clock_found, "ClockWidget not found in WidgetEngine overlay")
+        self.assertTrue(vitals_found, "VitalsWidget not found in WidgetEngine overlay")
+
     def test_desktop_shell_integration(self):
         """Test DesktopShell start menu and item configuration."""
         shell = DesktopShell()
