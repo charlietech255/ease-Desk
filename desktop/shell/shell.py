@@ -161,7 +161,12 @@ class ShellApp:
         self.start_btn = None
         self.desktop_items = []
         self.window = None
-        self.wallpaper_path = preferences.get("Personalization", "wallpaper_path", "") or None
+        self.wallpaper_path = preferences.get("Personalization", "wallpaper_path", "")
+        if not self.wallpaper_path:
+            # Fallback to our new premium default wallpaper
+            default_wp = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "shared", "assets", "wallpapers", "default.jpg")
+            if os.path.exists(default_wp):
+                self.wallpaper_path = default_wp
         self.wallpaper_mode = preferences.get("Personalization", "wallpaper_mode", "fill")
         self.solid_color = preferences.get("Personalization", "solid_color", "#0b0e14")
         self.dock_position = preferences.get("Personalization", "dock_position", "left")
@@ -188,7 +193,7 @@ class ShellApp:
         logger.info("Initializing DesktopShell UI components")
 
         self._build_top_bar()
-        self._build_left_dock()
+        self._build_dock()
         self._build_desktop_bg()
 
         if HAS_GAME_CHANGER:
@@ -261,6 +266,13 @@ class ShellApp:
         self.top_win.set_resizable(False)
         self.top_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.top_win.set_keep_above(True)
+
+        # Transparent background for floating pill effect
+        screen = self.top_win.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and self.top_win.is_composited():
+            self.top_win.set_visual(visual)
+        self.top_win.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0, 0, 0, 0))
 
         panel_pos = preferences.get("Personalization", "panel_position", "top")
 
@@ -429,35 +441,42 @@ class ShellApp:
             else:
                 context.remove_class("active")
 
-    # ── Left dock ─────────────────────────────────────────────────────────────
-    def _build_left_dock(self):
+    # ── Centered Bottom Dock ─────────────────────────────────────────────────────────────
+    def _build_dock(self):
         self.dock_win = Gtk.Window()
-        self.dock_win.set_title("easedesk-left-dock")
+        self.dock_win.set_title("easedesk-dock")
         self.dock_win.set_decorated(False)
         self.dock_win.set_resizable(False)
         self.dock_win.set_type_hint(Gdk.WindowTypeHint.DOCK)
         self.dock_win.set_keep_above(True)
 
-        panel_pos = preferences.get("Personalization", "panel_position", "top")
+        # Transparent background for the window so we can have floating margins
+        screen = self.dock_win.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual and self.dock_win.is_composited():
+            self.dock_win.set_visual(visual)
+        self.dock_win.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0, 0, 0, 0))
 
         if LAYER_SHELL:
-            _layer(self.dock_win, "TOP", ["LEFT", "TOP", "BOTTOM"], exclusive=True)
+            _layer(self.dock_win, "TOP", ["BOTTOM"], exclusive=False)
+            GtkLayerShell.set_margin(self.dock_win, GtkLayerShell.Edge.BOTTOM, 16)
         else:
-            _, h = _screen_size()
-            self.dock_win.set_size_request(DOCK_W, h - TOP_BAR_H)
-            if panel_pos == "bottom":
-                self.dock_win.move(0, 0)
-            else:
-                self.dock_win.move(0, TOP_BAR_H)
+            w, h = _screen_size()
+            self.dock_win.set_size_request(-1, DOCK_W)
+            # Rough manual centering for testing
+            self.dock_win.move(w // 2 - 300, h - DOCK_W - 16)
 
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        outer.get_style_context().add_class("left-dock")
+        outer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        outer.get_style_context().add_class("bottom-dock")
+        self.dock_win.add(outer)
 
-        dock = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        dock.set_margin_top(10)
-        dock.set_margin_bottom(10)
-        dock.set_vexpand(True)
-        dock.set_valign(Gtk.Align.START)
+        dock = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        dock.set_margin_start(16)
+        dock.set_margin_end(16)
+        dock.set_margin_top(8)
+        dock.set_margin_bottom(8)
+        dock.set_valign(Gtk.Align.CENTER)
+        dock.set_halign(Gtk.Align.CENTER)
 
         # App icons
         pinned = preferences.get_pinned_apps()
@@ -470,33 +489,32 @@ class ShellApp:
             btn = Gtk.Button()
             btn.set_relief(Gtk.ReliefStyle.NONE)
             btn.get_style_context().add_class("left-dock-btn")
-            btn.add(_img(app.icon, 22))
+            btn.add(_img(app.icon, 36))
             btn.set_tooltip_text(app.name)
             btn.connect("clicked", lambda *_, a=app: self._launch_application(a))
             dock.pack_start(btn, False, False, 0)
 
         # Separator
-        sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
         sep.get_style_context().add_class("dock-sep")
-        dock.pack_start(sep, False, False, 6)
+        dock.pack_start(sep, False, False, 12)
 
-        # Power button at bottom
-        power_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        power_box.set_vexpand(True)
-        power_box.set_valign(Gtk.Align.END)
-        power_box.set_margin_bottom(10)
+        # Power button at right edge
+        power_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        power_box.set_valign(Gtk.Align.CENTER)
+        power_box.set_margin_end(16)
 
         pwr = Gtk.Button()
         pwr.set_relief(Gtk.ReliefStyle.NONE)
-        pwr.get_style_context().add_class("left-dock-btn-power")
-        pwr.add(_img("system-shutdown", 20))
-        pwr.set_tooltip_text("End Session")
-        pwr.connect("clicked", lambda *_: self._exit())
-        power_box.pack_end(pwr, False, False, 0)
+        pwr.get_style_context().add_class("dock-btn")
+        pwr.add(_img("system-shutdown", 28))
+        pwr.connect("clicked", lambda *_: self._launch(["systemctl", "poweroff"]))
+        pwr.set_tooltip_text("Power Off")
+
+        power_box.pack_start(pwr, False, False, 0)
 
         outer.pack_start(dock, True, True, 0)
         outer.pack_end(power_box, False, False, 0)
-        self.dock_win.add(outer)
 
     # ── Desktop background ────────────────────────────────────────────────────
     def _build_desktop_bg(self):
