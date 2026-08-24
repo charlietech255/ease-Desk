@@ -462,9 +462,9 @@ class ShellApp:
             GtkLayerShell.set_margin(self.dock_win, GtkLayerShell.Edge.BOTTOM, 16)
         else:
             w, h = _screen_size()
-            self.dock_win.set_size_request(-1, DOCK_W)
-            # Rough manual centering for testing
-            self.dock_win.move(w // 2 - 300, h - DOCK_W - 16)
+            self.dock_win.set_size_request(-1, -1)
+            # Rough manual centering for Broadway testing (using an estimated dock width of 400px)
+            self.dock_win.move(w // 2 - 200, h - 90)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         outer.get_style_context().add_class("bottom-dock")
@@ -544,42 +544,8 @@ class ShellApp:
             self.bg_win.set_size_request(w, h)
             self.bg_win.move(0, 0)
 
-        fixed = Gtk.Fixed()
-        fixed.set_margin_start(32)
-        fixed.set_margin_top(48)
-
-        pinned = preferences.get_pinned_apps()
-        available_apps = {app.app_id: app for app in launcher_applications()}
-
-        self.desktop_items = []
-        for idx, app_id in enumerate(pinned):
-            if app_id not in available_apps:
-                continue
-            app = available_apps[app_id]
-            x = 0
-            y = idx * 100
-            self.desktop_items.append({"id": app_id, "label": app.name, "icon": app.icon, "x": x, "y": y})
-
-            btn = Gtk.Button()
-            btn.set_relief(Gtk.ReliefStyle.NONE)
-            btn.get_style_context().add_class("icon-btn")
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            box.set_halign(Gtk.Align.CENTER)
-
-            img = _img(app.icon, 48)
-            img.set_halign(Gtk.Align.CENTER)
-
-            lbl = Gtk.Label(label=app.name)
-            lbl.get_style_context().add_class("icon-name")
-            lbl.set_halign(Gtk.Align.CENTER)
-
-            box.pack_start(img, False, False, 0)
-            box.pack_start(lbl, False, False, 0)
-            btn.add(box)
-            btn.connect("clicked", lambda *_, a=app: self._launch_application(a))
-            fixed.put(btn, x, y)
-
-        self.bg_win.add(fixed)
+        # Removed the desktop icon grid to provide a clean, modern desktop experience 
+        # that highlights the premium wallpaper. Applications are launched via the dock.
 
     def _draw_bg(self, widget, cr):
         # Draw solid color first
