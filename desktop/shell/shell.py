@@ -73,8 +73,9 @@ def _img(name: str, size: int = 24) -> Gtk.Image:
 
 # ── Optional: game_changer panels ─────────────────────────────────────────────
 try:
-    from desktop.shell.launcher import LauncherWindow
+    from desktop.shell.launcher import LauncherPanel
     from desktop.shell.lockscreen import LockScreen
+    from desktop.shell.notify import NotificationManager
     from desktop.shell.game_changer import SpotlightWindow, DashboardPanel
     HAS_GAME_CHANGER = True
 except Exception:
@@ -164,6 +165,11 @@ class ShellApp:
         self.solid_color = preferences.get("Personalization", "solid_color", "#0b0e14")
         self.dock_position = preferences.get("Personalization", "dock_position", "left")
         self.wallpaper_pixbuf = None
+        
+        # 1. Start notification daemon
+        self.notify_manager = NotificationManager()
+
+        # 2. Start game changer dashboard first so we can bind global hotkeys
         self._cached_scaled_pixbuf = None
         self._cached_draw_params = None
         self._cached_offsets = (0, 0)

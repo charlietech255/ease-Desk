@@ -97,6 +97,43 @@ class TestNewFeatures(unittest.TestCase):
         self.assertIn("Terminal", term.get_title())
         term.destroy()
 
+    def test_notification_manager(self):
+        """Test NotificationManager backend and socket integration."""
+        from desktop.shell.notify import NotificationManager
+        mgr = NotificationManager()
+        
+        # Test adding programmatically
+        mgr.add_notification("System", "Test Notification")
+        self.assertEqual(len(mgr.history), 1)
+        self.assertEqual(mgr.history[0].title, "System")
+        
+        # Wait for socket to bind
+        import time, socket, json
+        time.sleep(0.5)
+        
+        # Test adding via socket
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(mgr.SOCKET_PATH)
+        payload = {"title": "Socket", "body": "Hello over IPC", "app": "External"}
+        sock.sendall(json.dumps(payload).encode("utf-8"))
+        sock.close()
+        
+        # Give thread time to accept and process
+        time.sleep(1.0)
+        
+        # We need to run the GLib main loop briefly because add_notification uses GLib.idle_add
+        from gi.repository import GLib
+        context = GLib.MainContext.default()
+        while context.pending():
+            context.iteration(False)
+            
+        self.assertEqual(len(mgr.history), 2)
+        self.assertEqual(mgr.history[1].title, "Socket")
+        
+        # Test clearing
+        mgr.clear_all()
+        self.assertEqual(len(mgr.history), 0)
+
     def test_desktop_shell_integration(self):
         """Test DesktopShell start menu and item configuration."""
         shell = DesktopShell()

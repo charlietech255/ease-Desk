@@ -189,6 +189,23 @@ class DashboardPanel(Gtk.Revealer):
         progressbar.critical > trough > progress {
             background: linear-gradient(to right, #f38ba8, #eba0ac);
         }
+        .notif-row {
+            background-color: transparent;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .notif-title {
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .notif-body {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+        }
+        .transparent-bg {
+            background-color: transparent;
+        }
     """
 
     def __init__(self, parent_shell):
@@ -296,9 +313,66 @@ class DashboardPanel(Gtk.Revealer):
             actions_grid.attach(btn, idx % 2, idx // 2, 1, 1)
         self.box.pack_start(actions_grid, False, False, 0)
 
+        self.box.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 12)
+        
+        # Notifications Header
+        notif_hdr = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        notif_lbl = Gtk.Label(label="Notifications", xalign=0)
+        notif_lbl.get_style_context().add_class("dash-section-lbl")
+        notif_lbl.set_margin_top(0)
+        notif_hdr.pack_start(notif_lbl, True, True, 0)
+        
+        clear_btn = Gtk.Button.new_with_label("Clear")
+        clear_btn.get_style_context().add_class("dash-action-btn")
+        clear_btn.connect("clicked", self._on_clear_notifications)
+        notif_hdr.pack_end(clear_btn, False, False, 0)
+        
+        self.box.pack_start(notif_hdr, False, False, 0)
+        
+        # Notifications List
+        self.notif_scroll = Gtk.ScrolledWindow()
+        self.notif_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.notif_scroll.set_min_content_height(150)
+        self.notif_list = Gtk.ListBox()
+        self.notif_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.notif_list.get_style_context().add_class("transparent-bg")
+        self.notif_scroll.add(self.notif_list)
+        
+        self.box.pack_start(self.notif_scroll, True, True, 0)
+        
+        if hasattr(self.shell, "notify_manager") and self.shell.notify_manager:
+            self.shell.notify_manager.on_new_notification = self._add_notification_ui
+            for n in self.shell.notify_manager.history:
+                self._add_notification_ui(n)
+
         self.show_all()
         # Only poll when visible — resource efficient
         GLib.timeout_add_seconds(2, self.update_stats)
+
+    def _on_clear_notifications(self, btn):
+        if hasattr(self.shell, "notify_manager") and self.shell.notify_manager:
+            self.shell.notify_manager.clear_all()
+        for row in self.notif_list.get_children():
+            self.notif_list.remove(row)
+            row.destroy()
+
+    def _add_notification_ui(self, notif):
+        row = Gtk.ListBoxRow()
+        row.get_style_context().add_class("notif-row")
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        
+        t_lbl = Gtk.Label(label=notif.title, xalign=0)
+        t_lbl.get_style_context().add_class("notif-title")
+        vbox.pack_start(t_lbl, False, False, 0)
+        
+        b_lbl = Gtk.Label(label=notif.body, xalign=0)
+        b_lbl.get_style_context().add_class("notif-body")
+        b_lbl.set_line_wrap(True)
+        vbox.pack_start(b_lbl, False, False, 0)
+        
+        row.add(vbox)
+        self.notif_list.insert(row, 0)
+        self.notif_list.show_all()
 
     def update_stats(self):
         if self.get_reveal_child():
