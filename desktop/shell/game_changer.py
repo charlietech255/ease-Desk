@@ -16,21 +16,21 @@ class SpotlightWindow(Gtk.Window):
 
     _CSS = b"""
         .spotlight-window {
-            background-color: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            border-radius: 14px;
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+            background-color: rgba(30, 30, 32, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
         }
         .spotlight-entry {
             background: transparent;
             border: none;
             box-shadow: none;
-            color: #333333;
+            color: #ffffff;
             font-size: 22px;
             font-weight: 300;
             font-family: "Inter", "Ubuntu", sans-serif;
             padding: 14px 24px;
-            caret-color: #000000;
+            caret-color: #007aff;
         }
         .spotlight-entry:focus {
             border: none;
@@ -129,58 +129,59 @@ class DashboardPanel(Gtk.Revealer):
 
     _CSS = b"""
         .dashboard-panel {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-left: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 0px 20px 20px 20px;
-            box-shadow: -8px 0 28px rgba(0, 0, 0, 0.15);
+            background-color: rgba(18, 18, 20, 0.85);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0px 24px 24px 24px;
+            box-shadow: -12px 0 32px rgba(0, 0, 0, 0.4);
         }
         .dash-header {
-            color: #333333;
-            font-size: 16px;
+            color: #ffffff;
+            font-size: 18px;
             font-weight: 700;
             font-family: "Inter", "Ubuntu", sans-serif;
             margin-bottom: 4px;
         }
         .dash-section-lbl {
-            color: #888888;
-            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.8px;
-            margin-top: 16px;
-            margin-bottom: 6px;
+            letter-spacing: 1.0px;
+            text-transform: uppercase;
+            margin-top: 20px;
+            margin-bottom: 8px;
         }
         .dash-stat-key {
-            color: #555555;
-            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
             font-weight: 500;
         }
         .dash-stat-val {
-            color: #333333;
-            font-size: 12px;
+            color: #ffffff;
+            font-size: 13px;
             font-weight: 600;
         }
         .dash-action-btn {
-            background: rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            color: #333333;
-            font-size: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 13px;
             font-weight: 500;
-            padding: 6px 10px;
-            transition: all 130ms ease;
+            padding: 8px 12px;
+            transition: all 200ms ease;
         }
         .dash-action-btn:hover {
-            background: rgba(0, 0, 0, 0.1);
-            border-color: rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         progressbar > trough {
-            background-color: rgba(0, 0, 0, 0.1);
-            border-radius: 6px;
-            min-height: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            min-height: 8px;
         }
         progressbar > trough > progress {
             background: linear-gradient(to right, #007aff, #00c6ff);
-            border-radius: 6px;
+            border-radius: 8px;
         }
         progressbar.warning > trough > progress {
             background: linear-gradient(to right, #f9e2af, #fab387);
