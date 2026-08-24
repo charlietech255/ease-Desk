@@ -29,6 +29,7 @@ logger = logging.getLogger("DesktopShell")
 import gi
 
 from shared.utilities.wallpaper import hex_to_rgb
+from desktop.shell.notify import NotificationManager
 from shared.utilities.apps import AppDefinition, launcher_applications
 from shared.config import preferences
 
@@ -75,7 +76,6 @@ def _img(name: str, size: int = 24) -> Gtk.Image:
 try:
     from desktop.shell.launcher import LauncherPanel
     from desktop.shell.lockscreen import LockScreen
-    from desktop.shell.notify import NotificationManager
     from desktop.shell.game_changer import SpotlightWindow, DashboardPanel
     HAS_GAME_CHANGER = True
 except Exception:

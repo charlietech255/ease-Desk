@@ -14,10 +14,15 @@ from file_manager.core import fs  # noqa: E402
 
 class TextViewerWindow(Gtk.Window):
     def __init__(self, path: str | None = None):
-        title = f"Viewing — {os.path.basename(path)}" if path else "ease-Desk Text Editor"
-        super().__init__(title=title)
+        super().__init__()
         self.set_default_size(720, 520)
         self.set_position(Gtk.WindowPosition.CENTER)
+        
+        header = Gtk.HeaderBar()
+        header.set_show_close_button(True)
+        header.set_title("ease-Desk Text Editor")
+        header.set_subtitle(os.path.basename(path) if path else "New Document")
+        self.set_titlebar(header)
 
         if path:
             content, truncated = fs.read_text(path)
@@ -61,8 +66,14 @@ class TextViewerWindow(Gtk.Window):
 
 class ImageViewerWindow(Gtk.Window):
     def __init__(self, path: str | None = None):
-        title = f"Preview — {os.path.basename(path)}" if path else "ease-Desk Image Viewer"
-        super().__init__(title=title)
+        super().__init__()
+        self.set_position(Gtk.WindowPosition.CENTER)
+
+        header = Gtk.HeaderBar()
+        header.set_show_close_button(True)
+        header.set_title("ease-Desk Image Viewer")
+        header.set_subtitle(os.path.basename(path) if path else "No Image")
+        self.set_titlebar(header)
         
         pixbuf = None
         if path:
